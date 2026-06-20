@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Shield, Clock, Lock, Key, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 export default function MarketingPage() {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const staggerContainer = {
     hidden: { opacity: 0 },
     show: {
@@ -210,8 +228,13 @@ export default function MarketingPage() {
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> SMS & Email Check-ins</li>
                 <li className="flex items-center gap-3"><CheckCircle2 className="w-5 h-5 text-primary" /> 24/7 Priority Support</li>
               </ul>
-              <Button size="lg" className="w-full rounded-full h-14 text-base shadow-[0_0_20px_rgba(var(--primary),0.3)]">
-                Get Lifetime Access
+              <Button 
+                size="lg" 
+                onClick={handleCheckout} 
+                disabled={isLoading}
+                className="w-full rounded-full h-14 text-base shadow-[0_0_20px_rgba(var(--primary),0.3)]"
+              >
+                {isLoading ? "Redirecting to Stripe..." : "Get Lifetime Access"}
               </Button>
             </CardContent>
           </Card>
