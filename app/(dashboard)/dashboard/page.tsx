@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
 
 // Mock Data
@@ -42,7 +43,8 @@ export default function DashboardPage() {
             <span className="text-xl font-bold tracking-tight">Dusk.</span>
           </Link>
           <div className="flex items-center gap-4">
-            <Badge variant="outline" className="border-primary/20 text-primary bg-primary/10">Premium</Badge>
+            <ThemeToggle />
+            <Badge variant="outline" className="border-primary/20 text-primary bg-primary/10 hidden sm:inline-flex">Premium</Badge>
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
               <LogOut className="w-5 h-5" />
             </Button>
