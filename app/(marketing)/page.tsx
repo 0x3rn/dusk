@@ -1,14 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { 
-  Shield, Clock, Lock, Key, ArrowRight, CheckCircle2, 
-  Database, UserCheck, CloudOff, EyeOff, LockKeyhole
-} from "lucide-react";
+import { Shield, Clock, Users, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import Link from "next/link";
@@ -31,220 +25,241 @@ export default function MarketingPage() {
     }
   };
 
-  const staggerContainer = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 },
-    },
-  };
-
-  const fadeInUp = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 60 } },
-  };
-
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden selection:bg-primary/30 selection:text-primary">
+    <div className="min-h-screen bg-background text-foreground font-sans">
       
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-background/50 backdrop-blur-xl">
+      {/* HEADER / NAVBAR */}
+      <nav className="border-b border-border bg-background sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center shadow-[0_0_15px_rgba(var(--primary),0.5)]">
-              <Shield className="w-4 h-4 text-background" />
+          <div className="flex items-center gap-6">
+            <Link href="/" className="text-2xl font-bold tracking-tight text-foreground">
+              Dusk
+            </Link>
+            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
+              <Link href="#features" className="hover:text-foreground">Features</Link>
+              <Link href="#how-it-works" className="hover:text-foreground">How It Works</Link>
+              <Link href="#pricing" className="hover:text-foreground">Pricing</Link>
+              <Link href="#faq" className="hover:text-foreground">FAQ</Link>
             </div>
-            <span className="text-xl font-bold tracking-tight">Dusk.</span>
           </div>
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hidden sm:block">
+            <Link href="/login" className="text-sm font-bold text-foreground hover:underline hidden sm:block">
               Sign In
             </Link>
-            <Button className="rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)]">Get Started</Button>
+            <Button className="rounded-md font-bold shadow-sm">
+              Create Vault
+            </Button>
           </div>
         </div>
       </nav>
 
-      <main className="pt-32 pb-24">
+      <main>
         {/* HERO SECTION */}
-        <section className="container mx-auto px-6 relative">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-primary/20 rounded-full blur-[150px] -z-10 pointer-events-none" />
-          
-          <motion.div variants={staggerContainer} initial="hidden" animate="show" className="flex flex-col items-center text-center max-w-5xl mx-auto">
-            <motion.div variants={fadeInUp}>
-              <Badge variant="outline" className="mb-6 border-primary/30 bg-primary/10 text-primary px-4 py-1.5 rounded-full backdrop-blur-sm">
-                Next-Generation Digital Estate Management
-              </Badge>
-            </motion.div>
-            
-            <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-bold tracking-tight mb-8 leading-tight">
-              Protect your legacy.<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary/80 to-white">
-                Pass it on automatically.
-              </span>
-            </motion.h1>
-            
-            <motion.p variants={fadeInUp} className="text-xl text-muted-foreground mb-10 max-w-3xl leading-relaxed">
-              The world's most secure Dead Man's Switch. Encrypt your crypto wallets, passwords, and final wishes directly in your browser. We monitor your status, and if the worst happens, we seamlessly deliver your vault to your loved ones.
-            </motion.p>
-            
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-              <Button size="lg" className="rounded-full h-14 px-8 text-base shadow-[0_0_30px_rgba(var(--primary),0.5)]">
-                Secure Your Vault Today
-                <ArrowRight className="ml-2 w-4 h-4" />
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.8 }}
-            className="mt-20 relative mx-auto max-w-5xl rounded-2xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-md overflow-hidden ring-1 ring-white/5"
-          >
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop" alt="Dashboard" className="w-full object-cover opacity-90" />
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
-          </motion.div>
-        </section>
-
-        {/* TRUST BADGES */}
-        <section className="container mx-auto px-6 mt-24 text-center border-y border-white/5 py-12 bg-white/[0.01]">
-          <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest mb-8">Securing over $100M+ in digital assets</p>
-          <div className="flex flex-wrap justify-center gap-12 md:gap-24 opacity-50 grayscale">
-            {/* Mock logos using text */}
-            <h3 className="text-2xl font-bold font-serif">CoinGuard</h3>
-            <h3 className="text-2xl font-bold tracking-tighter">VaultTech</h3>
-            <h3 className="text-2xl font-bold italic">SecureNet</h3>
-            <h3 className="text-2xl font-bold font-mono">HASH.SYS</h3>
-          </div>
-        </section>
-
-        {/* BENTO GRID FEATURES */}
-        <section className="container mx-auto px-6 mt-32">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">A flawless architecture</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">Dusk is built on modern cryptography and resilient cloud infrastructure. We ensure zero points of failure.</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {/* Large Card */}
-            <Card className="md:col-span-2 bg-gradient-to-br from-background to-primary/5 border-white/10 relative overflow-hidden group">
-              <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 rounded-full blur-[80px] group-hover:bg-primary/20 transition-all duration-700" />
-              <CardHeader>
-                <LockKeyhole className="w-10 h-10 text-primary mb-2" />
-                <CardTitle className="text-2xl">Client-Side Encryption</CardTitle>
-                <CardDescription className="text-base text-muted-foreground">Your vault never leaves your device unencrypted.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-6">We utilize the native Web Crypto API (AES-GCM-256) inside your browser. The decryption keys are transmitted via secure URL hashes, meaning our servers only ever store encrypted gibberish.</p>
-                <div className="p-4 bg-black/40 rounded-lg border border-white/5 font-mono text-xs text-primary/80">
-                  {">"} crypto.subtle.encrypt({"{ name: 'AES-GCM', iv }"}, key, data)<br/>
-                  {">"} 0x8f2a1b9c3e... (Ciphertext sent to Dusk)
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/50 border-white/10 backdrop-blur-sm">
-              <CardHeader>
-                <Clock className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>Automated Checks</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">We monitor your status. If you don't click the "I am alive" button every 90 days, the Dead Man's Switch protocol engages.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-background/50 border-white/10 backdrop-blur-sm">
-              <CardHeader>
-                <CloudOff className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>Zero Server Access</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">We cannot access your data, nor can anyone who breaches our databases or subpoenas us. True zero-knowledge.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="md:col-span-2 bg-background/50 border-white/10 backdrop-blur-sm">
-              <CardHeader>
-                <UserCheck className="w-8 h-8 text-primary mb-2" />
-                <CardTitle>Multi-Recipient Routing</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Assign up to 5 emergency contacts. When the switch triggers, each contact automatically receives an SMS and email containing the secure link required to decrypt your vault.</p>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* PRICING */}
-        <section className="container mx-auto px-6 mt-40">
-          <div className="max-w-4xl mx-auto rounded-3xl border border-primary/20 bg-gradient-to-b from-primary/10 to-background p-8 md:p-16 text-center relative overflow-hidden shadow-[0_0_50px_rgba(var(--primary),0.05)]">
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent" />
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-4">One Payment. Lifetime Peace of Mind.</h2>
-            <p className="text-muted-foreground text-lg mb-10 max-w-xl mx-auto">No recurring subscriptions. Protect your legacy forever with a single flat fee.</p>
-            
-            <div className="flex items-center justify-center gap-2 mb-10">
-              <span className="text-7xl font-bold">$50</span>
-              <span className="text-xl text-muted-foreground mt-6">/ lifetime</span>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-10 text-left">
-              <div className="flex items-center gap-3"><CheckCircle2 className="text-primary w-5 h-5" /> AES-256 Client Encryption</div>
-              <div className="flex items-center gap-3"><CheckCircle2 className="text-primary w-5 h-5" /> 5 Emergency Contacts</div>
-              <div className="flex items-center gap-3"><CheckCircle2 className="text-primary w-5 h-5" /> SMS & Email Triggers</div>
-              <div className="flex items-center gap-3"><CheckCircle2 className="text-primary w-5 h-5" /> Zero-Knowledge Architecture</div>
-            </div>
-
-            <Button 
-              size="lg" 
-              onClick={handleCheckout} 
-              disabled={isLoading}
-              className="rounded-full h-14 px-12 text-lg shadow-[0_0_30px_rgba(var(--primary),0.4)]"
-            >
-              {isLoading ? "Securely redirecting..." : "Activate Lifetime Vault"}
+        <section className="container mx-auto px-6 pt-24 pb-16 text-center max-w-5xl">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-foreground mb-8 leading-tight">
+            Your Digital Legacy, Cryptographically Secured.
+          </h1>
+          <p className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed">
+            The ultimate Dead Man’s Switch. We ensure your loved ones recover your crypto wallets, passwords, and final wishes when you are no longer here. Zero-knowledge architecture. One simple lifetime fee.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+            <Button size="lg" className="rounded-md text-lg h-14 px-8 font-bold w-full sm:w-auto shadow-sm">
+              Secure Your Vault — $50 Lifetime
+            </Button>
+            <Button size="lg" variant="outline" className="rounded-md text-lg h-14 px-8 font-bold w-full sm:w-auto bg-background hover:bg-muted">
+              Read the Security Whitepaper
             </Button>
           </div>
+
+          <div className="relative mx-auto w-full aspect-video md:aspect-[21/9] border border-border rounded-md overflow-hidden bg-muted shadow-sm">
+            <img 
+              src="https://images.unsplash.com/photo-1563206767-5b18f218e8de?auto=format&fit=crop&w=2000&q=80" 
+              alt="Impenetrable steel bank vault door" 
+              className="w-full h-full object-cover"
+            />
+          </div>
         </section>
 
-        {/* FAQ */}
-        <section className="container mx-auto px-6 mt-40 max-w-3xl">
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-10 text-center">Frequently Asked Questions</h2>
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="item-1" className="border-white/10">
-              <AccordionTrigger className="text-lg hover:text-primary">What happens if I forget to check in?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-base">
-                We will send you multiple warning emails and SMS messages 7 days before your 90-day timer expires. If you completely ignore all warnings and the timer reaches zero, the system assumes you have passed away and automatically routes the decryption keys to your emergency contacts.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2" className="border-white/10">
-              <AccordionTrigger className="text-lg hover:text-primary">Can Dusk employees read my passwords?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-base">
-                No. Because of our Zero-Knowledge architecture, your vault is encrypted inside your browser before it is saved to our database. We never possess the decryption keys. Even under a subpoena, we can only hand over encrypted ciphertext.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-3" className="border-white/10">
-              <AccordionTrigger className="text-lg hover:text-primary">Is it really a one-time fee?</AccordionTrigger>
-              <AccordionContent className="text-muted-foreground text-base">
-                Yes. We charge a flat $50 to cover the infrastructure, SMS delivery fees, and secure storage for your lifetime. There are no recurring monthly subscriptions.
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+        {/* SOCIAL PROOF BANNER */}
+        <section className="border-y border-border bg-muted py-6">
+          <div className="container mx-auto px-6 text-center">
+            <p className="text-sm font-bold text-muted-foreground tracking-widest">
+              SECURING MILLIONS IN DIGITAL ASSETS AND FINAL WISHES
+            </p>
+          </div>
+        </section>
+
+        {/* THE PROBLEM/SOLUTION SECTION (Feature Grid) */}
+        <section id="features" className="container mx-auto px-6 py-24">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground">Total Security. Zero Human Intervention.</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="border border-border rounded-md p-8 bg-card shadow-sm flex flex-col items-start text-left">
+              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-md mb-6">
+                <Shield className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-foreground">AES-256 Client-Side Encryption</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Your vault is encrypted directly in your browser. We never see your master key, and we can never read your data. True zero-knowledge architecture.
+              </p>
+            </div>
+
+            <div className="border border-border rounded-md p-8 bg-card shadow-sm flex flex-col items-start text-left">
+              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-md mb-6">
+                <Clock className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-foreground">Automated Contingency</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                If you fail to check in via our secure email or SMS link every 90 days, our system assumes the worst and automatically triggers your contingency plan.
+              </p>
+            </div>
+
+            <div className="border border-border rounded-md p-8 bg-card shadow-sm flex flex-col items-start text-left">
+              <div className="w-12 h-12 bg-primary flex items-center justify-center rounded-md mb-6">
+                <Users className="w-6 h-6 text-primary-foreground" />
+              </div>
+              <h3 className="text-xl font-bold mb-3 text-foreground">Multi-Recipient Routing</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                Designate up to 5 emergency contacts. When the switch triggers, they securely receive the decryption keys required to open your vault.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* HOW IT WORKS */}
+        <section id="how-it-works" className="border-t border-border bg-muted py-24">
+          <div className="container mx-auto px-6 max-w-4xl">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-16 text-center">How Dusk Protects Your Legacy</h2>
+            
+            <div className="space-y-8">
+              <div className="border border-border bg-background p-8 rounded-md shadow-sm">
+                <h3 className="text-2xl font-bold mb-2 text-foreground">1. Encrypt Your Assets.</h3>
+                <p className="text-lg text-muted-foreground">Store seed phrases, PINs, and documents. Everything is locked with military-grade encryption.</p>
+              </div>
+
+              <div className="border border-border bg-background p-8 rounded-md shadow-sm">
+                <h3 className="text-2xl font-bold mb-2 text-foreground">2. The Heartbeat Check.</h3>
+                <p className="text-lg text-muted-foreground">We ping you every 3 months. Click a single button to confirm you are alive and reset the timer.</p>
+              </div>
+
+              <div className="border border-border bg-background p-8 rounded-md shadow-sm">
+                <h3 className="text-2xl font-bold mb-2 text-foreground">3. The Handover.</h3>
+                <p className="text-lg text-muted-foreground">If you miss your check-in, Dusk automatically emails your designated contacts with secure access to your decrypted files.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* PRICING SECTION */}
+        <section id="pricing" className="container mx-auto px-6 py-32">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-4">No Subscriptions. Just Peace of Mind.</h2>
+            <p className="text-xl text-muted-foreground">End-of-life planning shouldn't come with a monthly bill.</p>
+          </div>
+
+          <div className="max-w-md mx-auto border-2 border-border bg-card rounded-md shadow-sm overflow-hidden flex flex-col">
+            <div className="p-10 text-center border-b border-border bg-muted/30">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-6xl font-extrabold text-foreground">$50</span>
+              </div>
+              <span className="text-lg font-bold text-muted-foreground uppercase tracking-wider">Lifetime</span>
+            </div>
+            
+            <div className="p-10 flex-1 flex flex-col">
+              <ul className="space-y-5 mb-10 text-left flex-1">
+                <li className="flex items-center gap-3 text-foreground font-medium"><CheckCircle2 className="w-5 h-5 text-primary" /> Client-Side AES-256 Encryption</li>
+                <li className="flex items-center gap-3 text-foreground font-medium"><CheckCircle2 className="w-5 h-5 text-primary" /> 5 Emergency Contacts</li>
+                <li className="flex items-center gap-3 text-foreground font-medium"><CheckCircle2 className="w-5 h-5 text-primary" /> Email & SMS Heartbeat Triggers</li>
+                <li className="flex items-center gap-3 text-foreground font-medium"><CheckCircle2 className="w-5 h-5 text-primary" /> Unlimited Secure Text Storage</li>
+                <li className="flex items-center gap-3 text-foreground font-medium"><CheckCircle2 className="w-5 h-5 text-primary" /> 24/7 Automated Monitoring</li>
+              </ul>
+              
+              <Button 
+                size="lg" 
+                onClick={handleCheckout} 
+                disabled={isLoading}
+                className="w-full rounded-md h-14 text-lg font-bold shadow-sm"
+              >
+                {isLoading ? "Redirecting..." : "Activate Lifetime Vault"}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ SECTION */}
+        <section id="faq" className="border-t border-border py-24 bg-muted/30">
+          <div className="container mx-auto px-6 max-w-3xl">
+            <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground mb-12 text-center">Frequently Asked Questions</h2>
+            
+            <Accordion type="single" collapsible className="w-full space-y-4">
+              <AccordionItem value="item-1" className="border border-border bg-background rounded-md px-6">
+                <AccordionTrigger className="text-lg font-bold hover:no-underline py-6">What happens if I just forget to check in?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base leading-relaxed pb-6">
+                  We send you multiple warnings at 14 days, 7 days, and 24 hours before triggering the vault. We use both email and SMS to ensure you don't miss it.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-2" className="border border-border bg-background rounded-md px-6">
+                <AccordionTrigger className="text-lg font-bold hover:no-underline py-6">Can Dusk employees read my passwords?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base leading-relaxed pb-6">
+                  Absolutely not. Your data is encrypted on your own device before it ever reaches our servers. Without your unique master key, your vault is mathematically impossible to open.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="item-3" className="border border-border bg-background rounded-md px-6">
+                <AccordionTrigger className="text-lg font-bold hover:no-underline py-6">Is it really a one-time fee?</AccordionTrigger>
+                <AccordionContent className="text-muted-foreground text-base leading-relaxed pb-6">
+                  Yes. We use highly efficient cloud infrastructure (Firebase) that costs us fractions of a cent per user per year. A $50 flat fee ensures we can maintain your vault indefinitely.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-12 mt-20 bg-black/20">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            <span className="text-xl font-bold tracking-tight text-foreground">Dusk.</span>
+      {/* FOOTER */}
+      <footer className="bg-slate-950 border-t border-slate-900 py-16">
+        <div className="container mx-auto px-6">
+          <div className="grid md:grid-cols-4 gap-12 mb-16">
+            <div className="md:col-span-1">
+              <span className="text-2xl font-bold tracking-tight text-white mb-6 block">Dusk.</span>
+              <p className="text-slate-400 text-sm">
+                Cryptographically secured digital estate management. 
+                Pass on your legacy safely.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-bold mb-4">Product</h4>
+              <ul className="space-y-2">
+                <li><Link href="#features" className="text-slate-400 hover:text-white text-sm">Features</Link></li>
+                <li><Link href="#pricing" className="text-slate-400 hover:text-white text-sm">Pricing</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-bold mb-4">Legal</h4>
+              <ul className="space-y-2">
+                <li><Link href="#" className="text-slate-400 hover:text-white text-sm">Privacy Policy</Link></li>
+                <li><Link href="#" className="text-slate-400 hover:text-white text-sm">Terms of Service</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-bold mb-4">Security</h4>
+              <ul className="space-y-2">
+                <li><Link href="#" className="text-slate-400 hover:text-white text-sm">Security Whitepaper</Link></li>
+                <li><Link href="#" className="text-slate-400 hover:text-white text-sm">Bug Bounty</Link></li>
+              </ul>
+            </div>
           </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-primary transition-colors">Security Whitepaper</Link>
+          
+          <div className="pt-8 border-t border-slate-800 text-sm text-slate-500">
+            © 2026 Dusk Technologies. All rights reserved.
           </div>
-          <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Dusk Digital Vault.</p>
         </div>
       </footer>
     </div>
