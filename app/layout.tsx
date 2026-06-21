@@ -21,7 +21,7 @@ export default function RootLayout({
       className={`${inter.className} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-50">
+      <body className="min-h-full flex flex-col bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
