@@ -120,7 +120,7 @@ export default function DashboardPage() {
                     <label className="text-sm font-medium">Secret Data</label>
                     <Textarea placeholder="Enter your passwords, seeds, or instructions here..." className="bg-black/40 border-white/10 h-32 resize-none" />
                   </div>
-                  <Button className="w-full"><Lock className="w-4 h-4 mr-2" /> Encrypt & Save</Button>
+                  <Button className="w-full">Encrypt and Save</Button>
                 </CardContent>
               </Card>
 
@@ -135,7 +135,7 @@ export default function DashboardPage() {
                       <div key={secret.id} className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-background/50 hover:border-primary/30 transition-colors cursor-pointer group">
                         <div className="flex items-center gap-4">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <Lock className="w-4 h-4 text-primary" />
+                            <span className="w-4 h-4 text-primary font-bold">L</span>
                           </div>
                           <div>
                             <p className="font-medium">{secret.title}</p>
