@@ -68,7 +68,7 @@ export default function MarketingPage() {
               Sign In
             </Link>
             <Link href="/register" className="bg-primary text-primary-foreground hover:bg-emerald-700 dark:hover:bg-[#00FFA3]/80 font-medium transition-colors px-5 py-2 rounded-md text-sm shadow-none">
-              Create Vault
+              Get Started
             </Link>
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function MarketingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-24">
             <Link href="/register" className="bg-primary text-primary-foreground hover:bg-emerald-700 dark:hover:bg-[#00FFA3]/80 font-semibold transition-colors px-8 py-4 rounded-md text-base w-full sm:w-auto shadow-none flex items-center justify-center">
-              Create Your Vault — $50 Lifetime
+              Get Started Free
             </Link>
             <Link href="#how-it-works" className="border border-border hover:bg-muted text-foreground rounded-md font-medium transition-colors px-8 py-4 text-base w-full sm:w-auto shadow-none flex items-center justify-center">
               See How It Works
@@ -571,7 +571,7 @@ export default function MarketingPage() {
               Create your encrypted vault today and ensure your loved ones can access what matters when it matters most.
             </p>
             <Link href="/register" className="inline-block bg-primary text-primary-foreground hover:bg-emerald-700 dark:hover:bg-[#00FFA3]/80 font-semibold transition-colors px-10 py-5 rounded-md text-lg shadow-none">
-              Create Vault — $50 Lifetime
+              Get Started Free
             </Link>
           </div>
         </section>
