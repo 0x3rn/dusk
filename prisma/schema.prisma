@@ -1,0 +1,368 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AuthProvider {
+  PASSWORD
+  GOOGLE
+  HYBRID
+}
+
+enum ScheduleState {
+  HEALTHY
+  REMINDER_DUE
+  GRACE_PERIOD
+  ESCALATION_PENDING
+  VERIFICATION_REQUIRED
+  RELEASE_HOLD
+  PAUSED
+  CANCELED
+  RELEASED
+}
+
+enum ItemCategory {
+  CREDENTIAL
+  CRYPTO_RECOVERY
+  DOCUMENT
+  DEVICE_ACCESS
+  FINANCIAL_INSTRUCTION
+  FINAL_WISH
+  SECURE_NOTE
+}
+
+enum ContactStatus {
+  PENDING_INVITE
+  VERIFIED
+  SUSPENDED
+  REVOKED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  SUPPRESSED
+}
+
+model User {
+  id                  String       @id @default(cuid())
+  email               String       @unique
+  fullName            String?
+  passwordHash        String?      // Present for Neon Postgres password auth; null for Google-only until set
+  firebaseUid         String?      @unique // Present when linked with Firebase Google Sign-In
+  authProvider        AuthProvider @default(PASSWORD)
+  phone               String?
+  phoneVerifiedAt     DateTime?
+  emailVerifiedAt     DateTime?
+  mfaEnabled          Boolean      @default(false)
+  mfaSecretEncrypted  String?
+  hasLifetimeAccess   Boolean      @default(false)
+  stripeCustomerId    String?      @unique
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  sessions            Session[]
+  vault               Vault?
+  contacts            Contact[]
+  checkInSchedule     CheckInSchedule?
+  recoveryArtifacts   RecoveryArtifact[]
+  notifications       NotificationDelivery[]
+  auditEvents         AuditEvent[]
+}
+
+model Session {
+  id             String    @id @default(cuid())
+  userId         String
+  tokenHash      String    @unique // SHA-256 of the opaque session token
+  deviceName     String?
+  userAgent      String?
+  ipAddressHash  String?
+  lastActiveAt   DateTime  @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Vault {
+  id                        String   @id @default(cuid())
+  userId                    String   @unique
+  currentKeyVersion         Int      @default(1)
+  // The Vault Master Key (VMK) is NEVER stored in plaintext.
+  // It is wrapped client-side under the user's derived key (KEK) and stored here as an encrypted envelope.
+  wrappedMasterKeyCiphertext String
+  wrappedMasterKeyIv         String
+  kdfSaltBase64              String
+  kdfAlgorithm               String  @default("PBKDF2-SHA256-600000")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  user                       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folders                    VaultFolder[]
+  items                      EncryptedItem[]
+  files                      EncryptedFile[]
+}
+
+model VaultFolder {
+  id                  String   @id @default(cuid())
+  vaultId             String
+  userId              String
+  // Folder name is encrypted client-side so server cannot infer estate structure from folder names
+  encryptedNameBase64 String
+  nameIvBase64        String
+  keyVersion          Int      @default(1)
+  sortOrder           Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  vault               Vault                @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  items               EncryptedItem[]
+  releaseAssignments  ReleaseAssignment[]
+
+  @@index([vaultId])
+  @@index([userId])
+}
+
+model EncryptedItem {
+  id                    String       @id @default(cuid())
+  vaultId               String
+  userId                String
+  folderId              String?
+  category              ItemCategory @default(SECURE_NOTE)
+  isFavorite            Boolean      @default(false)
+  sortOrder             Int          @default(0)
+
+  // Cryptographic payload (AES-256-GCM encrypted client-side)
+  schemaVersion         Int          @default(1)
+  keyVersion            Int          @default(1)
+  ciphertextBase64      String
+  ivBase64              String
+  wrappedItemKeyBase64  String       // Item Encryption Key (IEK) wrapped under Vault Master Key (VMK)
+  wrappedItemKeyIvBase64 String
+  aadResourceId         String
+
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  vault                 Vault                @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  folder                VaultFolder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  files                 EncryptedFile[]
+  releaseAssignments    ReleaseAssignment[]
+
+  @@index([vaultId])
+  @@index([userId])
+  @@index([folderId])
+}
+
+model EncryptedFile {
+  id                     String   @id @default(cuid())
+  vaultId                String
+  userId                 String
+  itemId                 String?
+  storageBlobKey         String   @unique
+  sizeBytes              Int
+  ciphertextSha256Hex    String   // Integrity verification hash of the encrypted blob
+  // Original filename and MIME type are encrypted client-side
+  encryptedMetaBase64    String
+  metaIvBase64           String
+  blobIvBase64           String
+  wrappedFileKeyBase64   String
+  wrappedFileKeyIvBase64 String
+  keyVersion             Int      @default(1)
+  createdAt              DateTime @default(now())
+
+  vault                  Vault          @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  item                   EncryptedItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([vaultId])
+  @@index([userId])
+  @@index([itemId])
+}
+
+model Contact {
+  id                  String        @id @default(cuid())
+  userId              String
+  fullName            String
+  email               String
+  phone               String?
+  // Explicit separation of roles per THE-100:
+  isBeneficiary       Boolean       @default(true)  // Recipient of estate material
+  isTrustedVerifier   Boolean       @default(false) // Participates in alive-checks / release verification
+  status              ContactStatus @default(PENDING_INVITE)
+  inviteTokenHash     String?       @unique
+  inviteExpiresAt     DateTime?
+  verifiedAt          DateTime?
+  // Public key for selective beneficiary key wrapping (THE-101)
+  publicKeyBase64     String?
+  keyAlgorithm        String?       @default("ECDH-P256-HKDF-AES256GCM")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  user                User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  releaseAssignments  ReleaseAssignment[]
+  releaseEvents       ReleaseEvent[]
+
+  @@unique([userId, email])
+  @@index([userId])
+}
+
+model ReleaseAssignment {
+  id                          String   @id @default(cuid())
+  userId                      String
+  contactId                   String
+  itemId                      String?
+  folderId                    String?
+  // The Item/Folder Key wrapped specifically to this Beneficiary's public key
+  beneficiaryWrappedKeyBase64 String
+  beneficiaryWrappedKeyIv     String
+  ephemeralPublicKeyBase64    String
+  keyVersion                  Int      @default(1)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  contact                     Contact        @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  item                        EncryptedItem? @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  folder                      VaultFolder?   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@unique([contactId, itemId])
+  @@index([userId])
+  @@index([contactId])
+}
+
+model CheckInSchedule {
+  id                        String        @id @default(cuid())
+  userId                    String        @unique
+  state                     ScheduleState @default(HEALTHY)
+  intervalDays              Int           @default(90)
+  gracePeriodDays           Int           @default(14)
+  reminderDaysBeforeDue     Int           @default(7)
+  minRequiredReminders      Int           @default(3)
+  remindersSentCount        Int           @default(0)
+  requiredVerifierApprovals Int           @default(1)
+  lastCheckInAt             DateTime      @default(now())
+  nextDueAt                 DateTime
+  graceEndsAt               DateTime?
+  pausedUntil               DateTime?
+  releasedAt                DateTime?
+  version                   Int           @default(1) // Optimistic concurrency lock for idempotent transitions
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+
+  user                      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workflowEvents            WorkflowEvent[]
+  releaseEvents             ReleaseEvent[]
+}
+
+model WorkflowEvent {
+  id              String        @id @default(cuid())
+  scheduleId      String
+  userId          String
+  fromState       ScheduleState
+  toState         ScheduleState
+  reason          String
+  idempotencyKey  String        @unique
+  actorType       String        // "USER", "SYSTEM_SCHEDULER", "TRUSTED_CONTACT"
+  actorId         String?
+  createdAt       DateTime      @default(now())
+
+  schedule        CheckInSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([scheduleId])
+  @@index([userId])
+}
+
+model ReleaseEvent {
+  id              String   @id @default(cuid())
+  scheduleId      String
+  userId          String
+  contactId       String?
+  eventType       String   // "VERIFIER_ATTESTED_ALIVE", "VERIFIER_APPROVED_RELEASE", "RELEASE_HOLD_PLACED", "PACKAGE_ISSUED", "PACKAGE_ACKNOWLEDGED"
+  actionTokenHash String?  @unique
+  tokenExpiresAt  DateTime?
+  tokenUsedAt     DateTime?
+  metadataJson    String?
+  createdAt       DateTime @default(now())
+
+  schedule        CheckInSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  contact         Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId])
+  @@index([userId])
+}
+
+model RecoveryArtifact {
+  id                        String    @id @default(cuid())
+  userId                    String
+  keyVersion                Int       @default(1)
+  // Vault Master Key wrapped under Recovery Key (which the user holds offline in their Recovery Kit)
+  recoveryWrappedVmKBase64  String
+  recoveryWrappedVmKIv      String
+  kdfSaltBase64             String
+  kdfAlgorithm              String    @default("ARGON2ID-19456-2-1")
+  fingerprintHex            String    // Public fingerprint so user can verify which recovery kit matches
+  isActive                  Boolean   @default(true)
+  revokedAt                 DateTime?
+  lastVerifiedAt            DateTime?
+  createdAt                 DateTime  @default(now())
+
+  user                      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isActive])
+}
+
+model NotificationDelivery {
+  id                String              @id @default(cuid())
+  userId            String
+  channel           NotificationChannel
+  templateKey       String
+  recipientAddress  String
+  status            NotificationStatus  @default(PENDING)
+  idempotencyKey    String              @unique
+  providerMessageId String?
+  attemptCount      Int                 @default(0)
+  lastError         String?
+  sentAt            DateTime?
+  deliveredAt       DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  userId        String
+  eventType     String
+  severity      String   @default("INFO") // "INFO", "WARN", "CRITICAL"
+  actorType     String   // "USER", "BENEFICIARY", "TRUSTED_CONTACT", "SYSTEM"
+  actorId       String?
+  ipAddressHash String?
+  userAgent     String?
+  // Guaranteed redacted JSON via redactForAuditLog (THE-96)
+  redactedMeta  String   @default("{}")
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
