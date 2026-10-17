@@ -1,13 +1,10 @@
-// app/api/auth/login/route.ts
+// app/api/auth/register/route.ts
 import { NextResponse } from "next/server";
 import {
   getFoundationService,
   setSessionCookie,
 } from "@/lib/auth/session-cookie";
-import {
-  AuthenticationError,
-  ValidationError,
-} from "@/lib/services/foundation-service";
+import { ValidationError } from "@/lib/services/foundation-service";
 
 export async function POST(req: Request) {
   try {
@@ -16,7 +13,7 @@ export async function POST(req: Request) {
     const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     const service = getFoundationService();
-    const result = await service.loginWithPassword({
+    const result = await service.registerWithPassword({
       ...body,
       userAgent,
       ipAddress: forwardedFor,
@@ -24,15 +21,21 @@ export async function POST(req: Request) {
 
     await setSessionCookie(result.sessionToken);
 
-    return NextResponse.json({ user: result.user }, { status: 200 });
+    return NextResponse.json(
+      {
+        user: result.user,
+        schedule: result.schedule,
+      },
+      { status: 201 }
+    );
   } catch (err: unknown) {
     if (err instanceof ValidationError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 400 });
     }
-    if (err instanceof AuthenticationError) {
-      return NextResponse.json({ error: err.message, code: err.code }, { status: 401 });
-    }
-    console.error("[POST /api/auth/login]", err);
-    return NextResponse.json({ error: "Unable to sign in." }, { status: 500 });
+    console.error("[POST /api/auth/register]", err);
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Unable to complete registration." },
+      { status: 500 }
+    );
   }
 }

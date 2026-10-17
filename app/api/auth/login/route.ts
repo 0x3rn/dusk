@@ -1,10 +1,13 @@
-// app/api/auth/google/route.ts
+// app/api/auth/login/route.ts
 import { NextResponse } from "next/server";
 import {
   getFoundationService,
   setSessionCookie,
 } from "@/lib/auth/session-cookie";
-import { ValidationError } from "@/lib/services/foundation-service";
+import {
+  AuthenticationError,
+  ValidationError,
+} from "@/lib/services/foundation-service";
 
 export async function POST(req: Request) {
   try {
@@ -13,7 +16,7 @@ export async function POST(req: Request) {
     const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     const service = getFoundationService();
-    const result = await service.authenticateWithGoogle({
+    const result = await service.loginWithPassword({
       ...body,
       userAgent,
       ipAddress: forwardedFor,
@@ -21,20 +24,17 @@ export async function POST(req: Request) {
 
     await setSessionCookie(result.sessionToken);
 
-    return NextResponse.json(
-      {
-        user: result.user,
-        schedule: result.schedule,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json({ user: result.user }, { status: 200 });
   } catch (err: unknown) {
     if (err instanceof ValidationError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 400 });
     }
-    console.error("[POST /api/auth/google]", err);
+    if (err instanceof AuthenticationError) {
+      return NextResponse.json({ error: err.message, code: err.code }, { status: 401 });
+    }
+    console.error("[POST /api/auth/login]", err);
     return NextResponse.json(
-      { error: "Unable to synchronize Google account." },
+      { error: err instanceof Error ? err.message : "Unable to sign in." },
       { status: 500 }
     );
   }

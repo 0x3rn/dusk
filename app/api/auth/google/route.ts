@@ -1,4 +1,4 @@
-// app/api/auth/register/route.ts
+// app/api/auth/google/route.ts
 import { NextResponse } from "next/server";
 import {
   getFoundationService,
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     const forwardedFor = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     const service = getFoundationService();
-    const result = await service.registerWithPassword({
+    const result = await service.authenticateWithGoogle({
       ...body,
       userAgent,
       ipAddress: forwardedFor,
@@ -26,15 +26,15 @@ export async function POST(req: Request) {
         user: result.user,
         schedule: result.schedule,
       },
-      { status: 201 }
+      { status: 200 }
     );
   } catch (err: unknown) {
     if (err instanceof ValidationError) {
       return NextResponse.json({ error: err.message, code: err.code }, { status: 400 });
     }
-    console.error("[POST /api/auth/register]", err);
+    console.error("[POST /api/auth/google]", err);
     return NextResponse.json(
-      { error: "Unable to complete registration." },
+      { error: err instanceof Error ? err.message : "Unable to synchronize Google account." },
       { status: 500 }
     );
   }

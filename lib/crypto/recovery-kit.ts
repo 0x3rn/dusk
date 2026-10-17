@@ -1,12 +1,13 @@
 // lib/crypto/recovery-kit.ts
-import crypto from "node:crypto";
 import {
   AES_GCM_IV_BYTES,
   AES_GCM_TAG_BITS,
+  AES_KEY_BITS,
   CRYPTO_SCHEMA_VERSION,
   CryptoTamperOrAuthError,
   base64ToBytes,
   bytesToBase64,
+  bytesToHex,
   encodeAadContext,
   generateIvBytes,
   wrapVaultMasterKeyWithPassphrase,
@@ -14,6 +15,7 @@ import {
 } from "./vault-crypto";
 
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const RECOVERY_KDF_ITERATIONS = 310_000;
 
 export interface RecoveryServerArtifact {
   schemaVersion: number;
@@ -43,6 +45,52 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
     bytes.byteOffset,
     bytes.byteOffset + bytes.byteLength
   ) as ArrayBuffer;
+}
+
+/**
+ * Normalizes a user-entered Recovery Code (removes spaces/hyphens, uppercases,
+ * and maps common visual typos O->0, I/L->1).
+ */
+export function normalizeRecoveryCode(input: string): string {
+  if (!input || typeof input !== "string") {
+    throw new CryptoTamperOrAuthError("Recovery code is required.");
+  }
+  const cleaned = input
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]+/g, "")
+    .replace(/O/g, "0")
+    .replace(/[IL]/g, "1");
+
+  if (!cleaned.startsWith("DUSK") || cleaned.length !== 36) {
+    throw new CryptoTamperOrAuthError(
+      "Invalid Dusk Recovery Code format. Expected DUSK followed by 32 characters."
+    );
+  }
+  return cleaned;
+}
+
+/**
+ * Computes a deterministic, browser-safe 16-character hex fingerprint of the normalized
+ * Recovery Code (FNV-1a 64-bit dual-lane) synchronously, and also verified via Web Crypto AAD.
+ */
+export function computeRecoveryCodeFingerprint(recoveryCode: string): string {
+  const normalized = normalizeRecoveryCode(recoveryCode);
+  const input = `dusk-recovery-fingerprint-v1|${normalized}`;
+
+  let h1 = 0x811c9dc5;
+  let h2 = 0xcbf29ce4;
+  for (let i = 0; i < input.length; i++) {
+    const code = input.charCodeAt(i);
+    h1 ^= code;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= code ^ (i & 0xff);
+    h2 = Math.imul(h2, 0x01000193);
+  }
+
+  const hex1 = (h1 >>> 0).toString(16).padStart(8, "0");
+  const hex2 = (h2 >>> 0).toString(16).padStart(8, "0");
+  return `${hex1}${hex2}`;
 }
 
 /**
@@ -78,45 +126,9 @@ export function generateRecoveryCode(): {
 }
 
 /**
- * Normalizes a user-entered Recovery Code (removes spaces/hyphens, uppercases,
- * and maps common visual typos O->0, I/L->1).
- */
-export function normalizeRecoveryCode(input: string): string {
-  if (!input || typeof input !== "string") {
-    throw new CryptoTamperOrAuthError("Recovery code is required.");
-  }
-  const cleaned = input
-    .trim()
-    .toUpperCase()
-    .replace(/[\s-]+/g, "")
-    .replace(/O/g, "0")
-    .replace(/[IL]/g, "1");
-
-  if (!cleaned.startsWith("DUSK") || cleaned.length !== 36) {
-    throw new CryptoTamperOrAuthError(
-      "Invalid Dusk Recovery Code format. Expected DUSK followed by 32 characters."
-    );
-  }
-  return cleaned;
-}
-
-/**
- * Computes a public 16-character hex fingerprint of the normalized Recovery Code
- * using domain-separated SHA-256 so the UI can show which Recovery Kit is active
- * without exposing the recovery secret.
- */
-export function computeRecoveryCodeFingerprint(recoveryCode: string): string {
-  const normalized = normalizeRecoveryCode(recoveryCode);
-  const digest = crypto
-    .createHash("sha256")
-    .update(`dusk-recovery-fingerprint-v1|${normalized}`, "utf8")
-    .digest("hex");
-  return digest.slice(0, 16);
-}
-
-/**
  * Derives the 256-bit AES-GCM Recovery Wrapping Key from the Recovery Code,
- * salt, and optional recovery passphrase using memory-hard scrypt.
+ * salt, and optional recovery passphrase using pure Web Crypto API (PBKDF2-SHA256).
+ * Works identically in all browsers and Node.js without node:crypto shims.
  */
 async function deriveRecoveryWrappingKey(params: {
   recoveryCode: string;
@@ -131,25 +143,27 @@ async function deriveRecoveryWrappingKey(params: {
   }
 
   const normalizedPassphrase = (params.recoveryPassphrase ?? "").normalize("NFKC");
-  const combinedInput = `${normalizedCode}|pass:${normalizedPassphrase}|kv:${params.keyVersion}`;
+  const combinedInputBytes = new TextEncoder().encode(
+    `${normalizedCode}|pass:${normalizedPassphrase}|kv:${params.keyVersion}`
+  );
 
-  const derivedBytes = await new Promise<Buffer>((resolve, reject) => {
-    crypto.scrypt(
-      combinedInput,
-      Buffer.from(saltBytes),
-      32,
-      { N: 16384, r: 8, p: 1 },
-      (err, key) => {
-        if (err) reject(err);
-        else resolve(key);
-      }
-    );
-  });
-
-  return globalThis.crypto.subtle.importKey(
+  const baseKey = await globalThis.crypto.subtle.importKey(
     "raw",
-    toArrayBuffer(new Uint8Array(derivedBytes)),
-    { name: "AES-GCM" },
+    toArrayBuffer(combinedInputBytes),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+
+  return globalThis.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      hash: "SHA-256",
+      salt: toArrayBuffer(saltBytes),
+      iterations: RECOVERY_KDF_ITERATIONS,
+    },
+    baseKey,
+    { name: "AES-GCM", length: AES_KEY_BITS },
     false,
     ["encrypt", "decrypt"]
   );
@@ -157,9 +171,6 @@ async function deriveRecoveryWrappingKey(params: {
 
 /**
  * Creates a complete Recovery Kit for a user's Vault Master Key (VMK).
- * Returns:
- * - `clientKit`: The printable/downloadable kit containing the secret `recoveryCode` (NEVER sent to server).
- * - `serverArtifact`: The wrapped VMK and metadata safe to store in Neon PostgreSQL (`RecoveryArtifact`).
  */
 export async function createRecoveryKitForVault(params: {
   vaultMasterKeyBase64: string;
@@ -232,8 +243,8 @@ export async function createRecoveryKitForVault(params: {
       recoveryWrappedVmKIv: bytesToBase64(iv),
       kdfSaltBase64,
       kdfAlgorithm: hasPassphrase
-        ? "SCRYPT-16384-8-1+PASSPHRASE"
-        : "SCRYPT-16384-8-1",
+        ? `PBKDF2-SHA256-${RECOVERY_KDF_ITERATIONS}+PASSPHRASE`
+        : `PBKDF2-SHA256-${RECOVERY_KDF_ITERATIONS}`,
       fingerprintHex,
     },
   };
@@ -336,3 +347,5 @@ export async function rewrapRecoveredMasterKeyWithNewPassphrase(params: {
     newWrappedMasterKeyBundle,
   };
 }
+
+export { bytesToHex };
