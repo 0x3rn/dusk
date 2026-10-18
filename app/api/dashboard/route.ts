@@ -31,18 +31,18 @@ export async function GET(req: Request) {
       prisma.vault.findUnique({
         where: { userId: user.id },
         include: {
-          items: { orderBy: { createdAt: "desc" } },
+          folders: { orderBy: { sortOrder: "asc" } },
+          items: { orderBy: [{ isFavorite: "desc" }, { createdAt: "desc" }] },
         },
       }),
       prisma.checkInSchedule.findUnique({
         where: { userId: user.id },
         include: {
           workflowEvents: { orderBy: { createdAt: "desc" }, take: 10 },
-          releaseEvents: { orderBy: { createdAt: "desc" }, take: 10 },
         },
       }),
       prisma.contact.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, status: { not: "REVOKED" } },
         orderBy: { createdAt: "desc" },
       }),
       prisma.recoveryArtifact.findMany({
@@ -56,7 +56,7 @@ export async function GET(req: Request) {
       prisma.auditEvent.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" },
-        take: 20,
+        take: 25,
       }),
     ]);
 
@@ -76,7 +76,7 @@ export async function GET(req: Request) {
     }
     console.error("[GET /api/dashboard]", err);
     return NextResponse.json(
-      { error: "Failed to load dashboard state." },
+      { error: "Failed to load dashboard." },
       { status: 500 }
     );
   }
@@ -142,7 +142,26 @@ export async function POST(req: Request) {
         return NextResponse.json({ item }, { status: 201 });
       }
 
-      case "INVITE_CONTACT": {
+      case "DELETE_ENCRYPTED_ITEM": {
+        const item = await service.getEncryptedItemForOwner(
+          user.id,
+          body.itemId
+        );
+        await prisma.encryptedItem.delete({ where: { id: item.id } });
+        await prisma.auditEvent.create({
+          data: {
+            userId: user.id,
+            eventType: "VAULT_ITEM_DELETED",
+            severity: "WARN",
+            actorType: "USER",
+            actorId: user.id,
+            redactedMeta: JSON.stringify({ itemId: item.id }),
+          },
+        });
+        return NextResponse.json({ ok: true });
+      }
+
+      case "ADD_CONTACT": {
         const {
           fullName,
           email,
@@ -151,17 +170,33 @@ export async function POST(req: Request) {
           isTrustedVerifier,
           publicKeyBase64,
         } = body.contact;
+
         if (!isBeneficiary && !isTrustedVerifier) {
           throw new ValidationError(
-            "Contact must be a Beneficiary, a Trusted Verifier, or both."
+            "A contact must be designated as a Beneficiary, a Trusted Verifier, or both."
           );
         }
-        const contact = await prisma.contact.create({
-          data: {
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const contact = await prisma.contact.upsert({
+          where: {
+            userId_email: { userId: user.id, email: normalizedEmail },
+          },
+          update: {
+            fullName: fullName.trim(),
+            phone: phone?.trim() || null,
+            isBeneficiary: Boolean(isBeneficiary),
+            isTrustedVerifier: Boolean(isTrustedVerifier),
+            status: "VERIFIED",
+            verifiedAt: new Date(),
+            publicKeyBase64: isBeneficiary ? publicKeyBase64 : null,
+            keyAlgorithm: isBeneficiary ? "ECDH-P256-HKDF-AES256GCM" : null,
+          },
+          create: {
             userId: user.id,
-            fullName,
-            email: email.trim().toLowerCase(),
-            phone: phone || null,
+            fullName: fullName.trim(),
+            email: normalizedEmail,
+            phone: phone?.trim() || null,
             isBeneficiary: Boolean(isBeneficiary),
             isTrustedVerifier: Boolean(isTrustedVerifier),
             status: "VERIFIED",
@@ -170,10 +205,11 @@ export async function POST(req: Request) {
             keyAlgorithm: isBeneficiary ? "ECDH-P256-HKDF-AES256GCM" : null,
           },
         });
+
         await prisma.auditEvent.create({
           data: {
             userId: user.id,
-            eventType: "CONTACT_VERIFIED",
+            eventType: "CONTACT_SAVED",
             severity: "INFO",
             actorType: "USER",
             actorId: user.id,
@@ -185,7 +221,38 @@ export async function POST(req: Request) {
             }),
           },
         });
+
         return NextResponse.json({ contact }, { status: 201 });
+      }
+
+      case "REVOKE_CONTACT": {
+        const contact = await prisma.contact.findUnique({
+          where: { id: body.contactId },
+        });
+        if (!contact || contact.userId !== user.id) {
+          throw new AuthorizationError("Contact not found.");
+        }
+        await prisma.releaseAssignment.deleteMany({
+          where: { contactId: contact.id },
+        });
+        await prisma.contact.update({
+          where: { id: contact.id },
+          data: { status: "REVOKED", publicKeyBase64: null },
+        });
+        await prisma.auditEvent.create({
+          data: {
+            userId: user.id,
+            eventType: "CONTACT_REVOKED",
+            severity: "WARN",
+            actorType: "USER",
+            actorId: user.id,
+            redactedMeta: JSON.stringify({
+              contactId: contact.id,
+              email: contact.email,
+            }),
+          },
+        });
+        return NextResponse.json({ ok: true });
       }
 
       case "ASSIGN_ITEM_TO_BENEFICIARY": {
@@ -198,9 +265,20 @@ export async function POST(req: Request) {
           keyVersion,
         } = body.assignment;
 
+        const contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+        });
+        if (!contact || contact.userId !== user.id || !contact.isBeneficiary) {
+          throw new AuthorizationError(
+            "Target contact is not a valid Beneficiary."
+          );
+        }
+
+        const item = await service.getEncryptedItemForOwner(user.id, itemId);
+
         const assignment = await prisma.releaseAssignment.upsert({
           where: {
-            contactId_itemId: { contactId, itemId },
+            contactId_itemId: { contactId: contact.id, itemId: item.id },
           },
           update: {
             beneficiaryWrappedKeyBase64,
@@ -210,8 +288,8 @@ export async function POST(req: Request) {
           },
           create: {
             userId: user.id,
-            contactId,
-            itemId,
+            contactId: contact.id,
+            itemId: item.id,
             beneficiaryWrappedKeyBase64,
             beneficiaryWrappedKeyIv,
             ephemeralPublicKeyBase64,
@@ -227,8 +305,8 @@ export async function POST(req: Request) {
             actorType: "USER",
             actorId: user.id,
             redactedMeta: JSON.stringify({
-              contactId,
-              itemId,
+              contactId: contact.id,
+              itemId: item.id,
               keyVersion,
             }),
           },
@@ -237,7 +315,30 @@ export async function POST(req: Request) {
         return NextResponse.json({ assignment }, { status: 201 });
       }
 
-      // THE-102: Authenticated Proof-of-Life Check-In
+      case "UNASSIGN_ITEM_FROM_BENEFICIARY": {
+        const { contactId, itemId } = body;
+        const contact = await prisma.contact.findUnique({
+          where: { id: contactId },
+        });
+        if (!contact || contact.userId !== user.id) {
+          throw new AuthorizationError("Contact not found.");
+        }
+        await prisma.releaseAssignment.deleteMany({
+          where: { contactId, itemId, userId: user.id },
+        });
+        await prisma.auditEvent.create({
+          data: {
+            userId: user.id,
+            eventType: "BENEFICIARY_ITEM_UNASSIGNED",
+            severity: "WARN",
+            actorType: "USER",
+            actorId: user.id,
+            redactedMeta: JSON.stringify({ contactId, itemId }),
+          },
+        });
+        return NextResponse.json({ ok: true });
+      }
+
       case "CHECK_IN_NOW": {
         const current = await prisma.checkInSchedule.findUniqueOrThrow({
           where: { userId: user.id },
@@ -286,70 +387,53 @@ export async function POST(req: Request) {
         return NextResponse.json({ schedule: updated });
       }
 
-      // THE-102: Advance 1 stage in state machine to test escalation in localhost
-      case "ADVANCE_STAGE_STEP": {
+      case "UPDATE_SCHEDULE_CONFIG": {
+        const intervalDays = Math.min(
+          365,
+          Math.max(7, Number(body.intervalDays) || 90)
+        );
+        const gracePeriodDays = Math.min(
+          90,
+          Math.max(3, Number(body.gracePeriodDays) || 14)
+        );
         const current = await prisma.checkInSchedule.findUniqueOrThrow({
           where: { userId: user.id },
         });
-        const stageOrder = [
-          "HEALTHY",
-          "REMINDER_DUE",
-          "GRACE_PERIOD",
-          "ESCALATION_PENDING",
-          "VERIFICATION_REQUIRED",
-        ] as const;
-        const idx = stageOrder.indexOf(current.state as any);
-        const nextState =
-          idx >= 0 && idx < stageOrder.length - 1
-            ? stageOrder[idx + 1]
-            : "VERIFICATION_REQUIRED";
-
         const now = new Date();
+        const nextDueAt = new Date(
+          now.getTime() + intervalDays * 24 * 60 * 60 * 1000
+        );
         const updated = await prisma.checkInSchedule.update({
           where: { id: current.id },
           data: {
-            state: nextState,
-            remindersSentCount: { increment: 1 },
-            graceEndsAt:
-              current.graceEndsAt ??
-              new Date(
-                now.getTime() + current.gracePeriodDays * 24 * 60 * 60 * 1000
-              ),
+            intervalDays,
+            gracePeriodDays,
+            state: "HEALTHY",
+            lastCheckInAt: now,
+            nextDueAt,
+            pausedUntil: null,
             version: { increment: 1 },
-          },
-        });
-        await prisma.workflowEvent.create({
-          data: {
-            scheduleId: current.id,
-            userId: user.id,
-            fromState: current.state,
-            toState: nextState,
-            reason: `SCHEDULER_STAGE_TRANSITION_TO_${nextState}`,
-            idempotencyKey: `step_${current.id}_v${current.version}_${now.getTime()}`,
-            actorType: "SYSTEM_SCHEDULER",
-            actorId: null,
           },
         });
         await prisma.auditEvent.create({
           data: {
             userId: user.id,
-            eventType: `WORKFLOW_STATE_${nextState}`,
-            severity: "WARN",
-            actorType: "SYSTEM",
-            redactedMeta: JSON.stringify({
-              fromState: current.state,
-              toState: nextState,
-              remindersSentCount: updated.remindersSentCount,
-            }),
+            eventType: "CHECKIN_SCHEDULE_CONFIGURED",
+            severity: "INFO",
+            actorType: "USER",
+            actorId: user.id,
+            redactedMeta: JSON.stringify({ intervalDays, gracePeriodDays }),
           },
         });
         return NextResponse.json({ schedule: updated });
       }
 
-      // THE-103: Pause / Snooze Schedule
       case "PAUSE_SCHEDULE": {
-        const pauseDays = Number(body.pauseDays) || 14;
-        const reason = body.reason || "Travel / Temporary Pause";
+        const pauseDays = Math.min(
+          180,
+          Math.max(1, Number(body.pauseDays) || 14)
+        );
+        const reason = (body.reason || "Paused by owner").slice(0, 200);
         const current = await prisma.checkInSchedule.findUniqueOrThrow({
           where: { userId: user.id },
         });
@@ -385,79 +469,6 @@ export async function POST(req: Request) {
             actorType: "USER",
             actorId: user.id,
             redactedMeta: JSON.stringify({ pauseDays, reason }),
-          },
-        });
-        return NextResponse.json({ schedule: updated });
-      }
-
-      // THE-103: Trusted Verifier "User Is Alive" Signal (No Vault Access)
-      case "TRUSTED_VERIFIER_ALIVE_SIGNAL": {
-        const { contactId, attestationNote } = body;
-        const contact = await prisma.contact.findUnique({
-          where: { id: contactId },
-        });
-        if (!contact || contact.userId !== user.id) {
-          throw new AuthorizationError("Contact not found.");
-        }
-        if (!contact.isTrustedVerifier || contact.status !== "VERIFIED") {
-          throw new AuthorizationError(
-            "Only verified Trusted Verifiers can signal that the user is alive. Recipient-only contacts are blocked."
-          );
-        }
-        const current = await prisma.checkInSchedule.findUniqueOrThrow({
-          where: { userId: user.id },
-        });
-        const now = new Date();
-        const nextDueAt = new Date(
-          now.getTime() + current.intervalDays * 24 * 60 * 60 * 1000
-        );
-        const updated = await prisma.checkInSchedule.update({
-          where: { id: current.id },
-          data: {
-            state: "HEALTHY",
-            lastCheckInAt: now,
-            nextDueAt,
-            graceEndsAt: null,
-            remindersSentCount: 0,
-            version: { increment: 1 },
-          },
-        });
-        await prisma.workflowEvent.create({
-          data: {
-            scheduleId: current.id,
-            userId: user.id,
-            fromState: current.state,
-            toState: "HEALTHY",
-            reason: `TRUSTED_CONTACT_ATTESTED_ALIVE:${contact.fullName}`,
-            idempotencyKey: `alive_${current.id}_v${current.version}_${now.getTime()}`,
-            actorType: "TRUSTED_CONTACT",
-            actorId: contact.id,
-          },
-        });
-        await prisma.releaseEvent.create({
-          data: {
-            scheduleId: current.id,
-            userId: user.id,
-            contactId: contact.id,
-            eventType: "VERIFIER_ATTESTED_ALIVE",
-            metadataJson: JSON.stringify({
-              verifierName: contact.fullName,
-              attestationNote,
-            }),
-          },
-        });
-        await prisma.auditEvent.create({
-          data: {
-            userId: user.id,
-            eventType: "TRUSTED_CONTACT_SIGNALED_ALIVE",
-            severity: "WARN",
-            actorType: "TRUSTED_CONTACT",
-            actorId: contact.id,
-            redactedMeta: JSON.stringify({
-              contactId: contact.id,
-              verifierName: contact.fullName,
-              previousState: current.state,
-            }),
           },
         });
         return NextResponse.json({ schedule: updated });
