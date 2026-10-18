@@ -466,6 +466,27 @@ export default function DashboardPage() {
     }
   };
 
+  const handleScheduleAction = async (
+    action: string,
+    extra: Record<string, unknown> = {}
+  ) => {
+    setStatusError("");
+    setStatusSuccess("");
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...extra }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setStatusSuccess(`Schedule action "${action}" executed! Current state: ${data.schedule.state}`);
+      await fetchDashboard();
+    } catch (err: unknown) {
+      setStatusError(err instanceof Error ? err.message : "Action failed.");
+    }
+  };
+
   const handleSignOut = async () => {
     await fetch("/api/dashboard", {
       method: "POST",
@@ -529,41 +550,106 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Check-In Schedule Status Panel */}
+        {/* Check-In Schedule & Escalation Control Panel (THE-102 & THE-103) */}
         <Card className="border-primary/20 bg-card">
-          <CardContent className="p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center bg-background">
-                <Clock strokeWidth={1.5} className="w-7 h-7 text-primary" />
+          <CardContent className="p-6 space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-full border-2 border-primary flex items-center justify-center bg-background shrink-0">
+                  <Clock strokeWidth={1.5} className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="text-xl font-bold">
+                      Switch State: {schedule?.state || "HEALTHY"}
+                    </h2>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      v{schedule?.version || 1} • Reminders Sent:{" "}
+                      {schedule?.remindersSentCount || 0}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Interval: {schedule?.intervalDays || 90}d • Grace:{" "}
+                    {schedule?.gracePeriodDays || 14}d • Next Due:{" "}
+                    {schedule?.nextDueAt
+                      ? new Date(schedule.nextDueAt).toLocaleDateString()
+                      : "N/A"}{" "}
+                    • Vault Memory:{" "}
+                    <span className="font-semibold text-foreground">
+                      {!vault
+                        ? "Not Initialized"
+                        : unlockedVmkBase64
+                        ? "Unlocked"
+                        : "Locked"}
+                    </span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold">
-                  Dead-Man&apos;s Switch State: {schedule?.state || "HEALTHY"}
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Interval: {schedule?.intervalDays || 90} days • Grace Period:{" "}
-                  {schedule?.gracePeriodDays || 14} days • Vault Status:{" "}
-                  <span className="font-semibold text-foreground">
-                    {!vault
-                      ? "Not Initialized"
-                      : unlockedVmkBase64
-                      ? "Unlocked in Browser Memory"
-                      : "Locked (Ciphertext Only)"}
-                  </span>
-                </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => handleScheduleAction("CHECK_IN_NOW")}
+                  className="rounded-full"
+                >
+                  I Am Alive (Check In / Reset)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => handleScheduleAction("ADVANCE_STAGE_STEP")}
+                >
+                  Simulate Missed Stage (+1 Step)
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    handleScheduleAction("PAUSE_SCHEDULE", {
+                      pauseDays: 14,
+                      reason: "Travel / Snooze 14d",
+                    })
+                  }
+                >
+                  Pause 14d
+                </Button>
+                {unlockedVmkBase64 && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setUnlockedVmkBase64(null);
+                      setDecryptedItems({});
+                      setStatusSuccess("Vault Master Key wiped from browser memory.");
+                    }}
+                  >
+                    <Lock className="w-4 h-4 mr-1" /> Lock Memory
+                  </Button>
+                )}
               </div>
             </div>
-            {unlockedVmkBase64 && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setUnlockedVmkBase64(null);
-                  setDecryptedItems({});
-                  setStatusSuccess("Vault Master Key wiped from browser memory.");
-                }}
-              >
-                <Lock className="w-4 h-4 mr-2" /> Lock Vault Memory
-              </Button>
+
+            {/* Trusted Verifier Alive Signal Simulator (THE-103) */}
+            {contacts.length > 0 && schedule?.state !== "HEALTHY" && (
+              <div className="pt-4 border-t border-border flex flex-wrap items-center justify-between gap-4 text-sm">
+                <span className="text-muted-foreground">
+                  <strong>Escalation Active ({schedule?.state}):</strong> Test a Contact signaling &ldquo;User is Alive&rdquo; (Verifier-only allowed; Beneficiary-only blocked):
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {contacts.map((c) => (
+                    <Button
+                      key={c.id}
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleScheduleAction("TRUSTED_VERIFIER_ALIVE_SIGNAL", {
+                          contactId: c.id,
+                          attestationNote: `Verified alive by ${c.fullName}`,
+                        })
+                      }
+                    >
+                      Signal Alive as {c.fullName} (
+                      {c.isTrustedVerifier ? "Verifier" : "Recipient-Only"})
+                    </Button>
+                  ))}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
