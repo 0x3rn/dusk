@@ -13,7 +13,7 @@ const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_A
 const CHECK_IN_LIMIT_DAYS = 90;
 const WARNING_DAYS_BEFORE = 7;
 
-export const deadMansSwitchCron = onSchedule("every 24 hours", async (event: any) => {
+export const deadMansSwitchCron = onSchedule("every 24 hours", async () => {
   const now = admin.firestore.Timestamp.now().toMillis();
   const msPerDay = 1000 * 60 * 60 * 24;
 
@@ -36,14 +36,14 @@ export const deadMansSwitchCron = onSchedule("every 24 hours", async (event: any
         await resend.emails.send({
           from: "Dusk Vault <alerts@dusk.app>",
           to: userData.email,
-          subject: "ACTION REQUIRED: Dusk Vault Warning",
-          html: "<p>You have not checked into your Dusk Vault recently. If you do not check in within 7 days, your Dead Man's Switch will trigger, and your vault will be unlocked for your emergency contacts.</p><p><a href='https://dusk.app/dashboard'>Check In Now</a></p>"
+          subject: "ACTION REQUIRED: Dusk check-in reminder",
+          html: "<p>You have not checked into your Dusk vault recently. If you do not check in within 7 days, Dusk will start its release process.</p><p><a href='https://dusk.app/dashboard'>Check In Now</a></p>"
         });
 
         // Use Twilio to send an SMS warning if the user has a phone number
         if (userData.phone) {
           await twilioClient.messages.create({
-            body: "DUSK ALERT: You have 7 days to check in before your vault unlocks. Visit dusk.app/dashboard",
+            body: "DUSK ALERT: You have 7 days to check in. Visit dusk.app/dashboard",
             from: process.env.TWILIO_PHONE_NUMBER || "+1234567890",
             to: userData.phone,
           });
@@ -71,8 +71,8 @@ export const deadMansSwitchCron = onSchedule("every 24 hours", async (event: any
           await resend.emails.send({
             from: "Dusk Vault <alerts@dusk.app>",
             to: contactData.email,
-            subject: "URGENT: Dusk Vault Unlocked",
-            html: `<p>Hello ${contactData.name},</p><p>${userData.email} has failed to check into their Dusk Digital Vault, and the Dead Man's Switch has been triggered.</p><p>As their designated emergency contact, their vault is now available to you.</p><p>Please use the secure link previously provided to you in your invitation email to view the decrypted contents.</p>`
+            subject: "URGENT: Dusk release process started",
+            html: `<p>Hello ${contactData.name},</p><p>${userData.email} has not checked in, and Dusk has started its release process.</p><p>As their designated beneficiary, their vault is now available to you.</p><p>Please use the secure link previously provided to you in your invitation email to view the decrypted contents.</p>`
           });
         } catch (err) {
           console.error(`Failed to send trigger email to contact ${contactData.email}`, err);

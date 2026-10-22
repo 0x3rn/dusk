@@ -27,7 +27,7 @@ export const ContactRoleSchema = z
   })
   .refine((r) => r.isBeneficiary || r.isTrustedVerifier, {
     message:
-      "A contact must have at least one role: Beneficiary (recipient), Trusted Verifier, or both.",
+      "A contact must have at least one role: beneficiary, trusted verifier, or both.",
   });
 
 export const CreateContactInputSchema = z
@@ -40,7 +40,7 @@ export const CreateContactInputSchema = z
   })
   .refine((c) => c.isBeneficiary || c.isTrustedVerifier, {
     message:
-      "A contact must be designated as a Beneficiary (recipient), a Trusted Verifier, or both.",
+      "A contact must be a beneficiary, a trusted verifier, or both.",
   });
 
 export const AcceptContactInviteInputSchema = z.object({
@@ -301,7 +301,7 @@ export class ContactService {
 
     if (contact.isBeneficiary && !input.publicKeyBase64) {
       throw new ValidationError(
-        "Beneficiary contacts must provide a publicKeyBase64 during invitation acceptance for zero-knowledge key wrapping."
+        "Beneficiary contacts must provide a publicKeyBase64 during invitation acceptance so items can be encrypted to them."
       );
     }
 

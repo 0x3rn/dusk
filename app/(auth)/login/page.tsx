@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { DuskLogo } from "@/components/landing/dusk-logo";
 import { auth } from "@/lib/firebase";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 
@@ -38,7 +39,7 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
-      setError("Google Sign-In is not configured in this environment.");
+      setError("Google sign-in is not configured in this environment.");
       return;
     }
     setError("");
@@ -74,28 +75,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary opacity-[0.05] blur-[100px] rounded-full pointer-events-none hidden dark:block -z-10" />
+    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
+      <div className="mb-8">
+        <DuskLogo size={28} />
+      </div>
 
-      <Link
-        href="/"
-        className="mb-8 text-2xl font-bold tracking-tight text-foreground hover:opacity-80 transition-opacity"
-      >
-        Dusk
-      </Link>
-
-      <div className="w-full max-w-md border border-border bg-card backdrop-blur-md rounded-2xl p-8 shadow-none">
+      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 shadow-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
-            Welcome Back
+            Welcome back
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-foreground-secondary">
             Unlock your encrypted vault.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm text-center">
+          <div className="mb-4 p-3 rounded-lg bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-sm text-center">
             {error}
           </div>
         )}
@@ -104,7 +100,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full border border-border hover:bg-muted text-foreground font-medium transition-colors p-3 rounded-lg flex items-center justify-center gap-3 shadow-none disabled:opacity-50"
+          className="w-full border border-border bg-elevated hover:bg-hover text-foreground font-medium transition-colors p-3 rounded-lg flex items-center justify-center gap-3 disabled:opacity-50"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -129,7 +125,7 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-muted-foreground uppercase tracking-wider">
+          <span className="text-xs text-foreground-muted uppercase tracking-wider">
             or
           </span>
           <div className="flex-1 h-px bg-border" />
@@ -139,7 +135,7 @@ export default function LoginPage() {
           <div>
             <label
               htmlFor="login-email"
-              className="block text-xs font-medium text-muted-foreground mb-2 ml-1"
+              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
             >
               Email
             </label>
@@ -149,7 +145,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-foreground outline-none transition-all"
+              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
               placeholder="you@example.com"
             />
           </div>
@@ -157,12 +153,12 @@ export default function LoginPage() {
             <div className="flex items-center justify-between mb-2 ml-1 mr-1">
               <label
                 htmlFor="login-password"
-                className="block text-xs font-medium text-muted-foreground"
+                className="block text-xs font-medium text-foreground-secondary"
               >
                 Password
               </label>
-              <Link href="/recovery" className="text-xs text-primary hover:underline">
-                Use Recovery Kit?
+              <Link href="/recovery" className="text-xs text-accent-text hover:underline">
+                Use your recovery kit?
               </Link>
             </div>
             <input
@@ -171,7 +167,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-transparent border border-border focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-3 text-foreground outline-none transition-all"
+              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
               placeholder="••••••••••••"
             />
           </div>
@@ -179,16 +175,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-primary-foreground hover:bg-emerald-700 dark:hover:bg-[#00FFA3]/80 font-medium transition-colors p-3 rounded-lg flex items-center justify-center gap-2 mt-2 shadow-none disabled:opacity-50"
+            className="w-full bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg flex items-center justify-center gap-2 mt-2 shadow-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
-            <Lock strokeWidth={1.5} className="w-4 h-4" />
-            {loading ? "Signing in..." : "Sign In"}
+            <Lock strokeWidth={1.75} className="w-4 h-4" />
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-muted-foreground">
+        <div className="mt-8 text-center text-sm text-foreground-secondary">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-primary hover:underline font-medium">
+          <Link href="/register" className="text-accent-text hover:underline font-medium">
             Create one
           </Link>
         </div>

@@ -2,7 +2,6 @@
 
 import { useState, use } from "react";
 import {
-  Shield,
   LockOpen,
   AlertTriangle,
   KeyRound,
@@ -20,7 +19,9 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { DuskLogo } from "@/components/landing/dusk-logo";
 import { decryptAssignedItemAsBeneficiary } from "@/lib/crypto/beneficiary-wrapping";
+import { formatCount } from "@/lib/display-format";
 
 export default function UnlockPage({
   params,
@@ -46,7 +47,7 @@ export default function UnlockPage({
   const [error, setError] = useState<string | null>(null);
   const [grantEventId, setGrantEventId] = useState<string | null>(null);
   const [manifestHash, setManifestHash] = useState<string>("");
-  const [rawPackage, setRawPackage] = useState<any>(null);
+  const [rawPackage, setRawPackage] = useState<unknown>(null);
   const [decryptedSecrets, setDecryptedSecrets] = useState<
     Array<{ itemId: string; title: string; content: string; category: string }>
   >([]);
@@ -62,7 +63,7 @@ export default function UnlockPage({
         privateKeyInput.trim() || window.location.hash.replace("#", "").trim();
       if (!privKey) {
         throw new Error(
-          "Beneficiary Private Key is missing. Ensure it is in the URL #hash or pasted below."
+          "Beneficiary private key is missing. Ensure it is in the URL #hash or pasted below."
         );
       }
 
@@ -166,27 +167,24 @@ export default function UnlockPage({
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="flex items-center gap-2 mb-8">
-        <div className="w-10 h-10 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-          <Shield className="w-5 h-5 text-primary" />
-        </div>
-        <span className="text-3xl font-bold tracking-tight">Dusk.</span>
+      <div className="mb-8">
+        <DuskLogo size={28} />
       </div>
 
       <Card className="w-full max-w-2xl bg-card border-border">
         <CardHeader className="text-center pb-6 border-b border-border">
-          <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+          <div className="mx-auto w-14 h-14 rounded-full bg-accent-surface flex items-center justify-center mb-4">
             {error ? (
               <AlertTriangle className="w-7 h-7 text-destructive" />
             ) : (
-              <LockOpen className="w-7 h-7 text-primary" />
+              <LockOpen className="w-7 h-7 text-accent-text" />
             )}
           </div>
           <CardTitle className="text-2xl font-bold">
-            Emergency Estate Release Access (THE-104 & THE-105)
+            Release access
           </CardTitle>
           <CardDescription>
-            Scoped Beneficiary ID: <code className="text-primary">{contactId}</code>
+            Scoped beneficiary ID: <code className="text-accent-text">{contactId}</code>
           </CardDescription>
         </CardHeader>
 
@@ -201,7 +199,7 @@ export default function UnlockPage({
             <form onSubmit={handleRetrieveAndDecrypt} className="space-y-4">
               <div>
                 <label className="text-xs font-medium block mb-1">
-                  Verify Your Beneficiary Email Address
+                  Verify your beneficiary email address
                 </label>
                 <Input
                   type="email"
@@ -213,7 +211,7 @@ export default function UnlockPage({
               </div>
               <div>
                 <label className="text-xs font-medium block mb-1">
-                  Single-Use Release Access Grant Token
+                  Single-use release access grant token
                 </label>
                 <Input
                   type="text"
@@ -225,30 +223,30 @@ export default function UnlockPage({
               </div>
               <div>
                 <label className="text-xs font-medium block mb-1">
-                  Beneficiary Private Key (Client-Only; Never Sent to Server)
+                  Beneficiary private key (client-only; never sent to server)
                 </label>
                 <Input
                   type="text"
                   required
                   value={privateKeyInput}
                   onChange={(e) => setPrivateKeyInput(e.target.value)}
-                  placeholder="Base64 PKCS#8 Private Key (or via URL #hash)"
+                  placeholder="Base64 PKCS#8 private key (or via URL #hash)"
                 />
               </div>
               <Button type="submit" disabled={isAttempting} className="w-full h-11">
                 <KeyRound className="w-4 h-4 mr-2" />
                 {isAttempting
-                  ? "Verifying Grant & Decrypting Locally..."
-                  : "Verify Grant & Decrypt Assigned Package"}
+                  ? "Verifying grant and decrypting locally..."
+                  : "Verify grant and decrypt assigned package"}
               </Button>
             </form>
           ) : (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-primary/10 border border-primary/30 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-primary font-medium">
+              <div className="p-4 rounded-xl bg-accent-surface border border-brand/25 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-accent-text font-medium">
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span>
-                    Decrypted {decryptedSecrets.length} Assigned Item(s) Locally
+                    Decrypted {formatCount(decryptedSecrets.length, "assigned item")} locally
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -257,15 +255,15 @@ export default function UnlockPage({
                     variant="outline"
                     onClick={handleDownloadEncryptedBundle}
                   >
-                    <Download className="w-4 h-4 mr-1" /> Download Encrypted Bundle
+                    <Download className="w-4 h-4 mr-1" /> Download encrypted bundle
                   </Button>
                   {!acknowledged ? (
                     <Button size="sm" onClick={handleAcknowledgeReceipt}>
-                      <FileCheck className="w-4 h-4 mr-1" /> Acknowledge Receipt
+                      <FileCheck className="w-4 h-4 mr-1" /> Acknowledge receipt
                     </Button>
                   ) : (
-                    <span className="text-xs text-primary font-semibold">
-                      ✓ Receipt Acknowledged
+                    <span className="text-xs text-accent-text font-semibold">
+                      ✓ Receipt acknowledged
                     </span>
                   )}
                 </div>
@@ -282,7 +280,7 @@ export default function UnlockPage({
                     className="p-5 rounded-xl border border-border bg-background space-y-2"
                   >
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-primary">
+                      <h3 className="font-bold text-base text-foreground">
                         {sec.title}
                       </h3>
                       <span className="text-xs text-muted-foreground font-mono">
@@ -300,7 +298,7 @@ export default function UnlockPage({
         </CardContent>
 
         <CardFooter className="flex justify-center border-t border-border pt-4 text-xs text-muted-foreground">
-          Zero-Knowledge Architecture • Scoped ECDH P-256 + AES-256-GCM Client Decryption
+          Encrypted on your device • Scoped ECDH P-256 + AES-256-GCM decryption
         </CardFooter>
       </Card>
     </div>

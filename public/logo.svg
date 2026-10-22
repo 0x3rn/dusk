@@ -1,0 +1,20 @@
+<svg viewBox="0 0 64 64" width="512" height="512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 1:1 Transparent Canvas -->
+  <style>
+    .dusk-pillar, .dusk-crescent { fill: #17191F; }
+    @media (prefers-color-scheme: dark) {
+      .dusk-pillar, .dusk-crescent { fill: #F3F4F6; }
+    }
+  </style>
+  <!-- Left Architectural Pillar -->
+  <rect class="dusk-pillar" x="10" y="10" width="10" height="44" rx="2.5" />
+  <!-- Outer Eclipse 'D' Crescent -->
+  <path
+    class="dusk-crescent"
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M26 10H32C44.1503 10 54 19.8497 54 32C54 44.1503 44.1503 54 32 54H26V44.5H31.5C38.9558 44.5 45 38.4558 45 31C45 23.5442 38.9558 17.5 31.5 17.5H26V10Z"
+  />
+  <!-- Inner Dusk Horizon Core (#00FFA3) -->
+  <circle cx="31" cy="32" r="7.5" fill="#00FFA3" />
+</svg>

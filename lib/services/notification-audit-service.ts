@@ -172,16 +172,13 @@ export interface NotificationAndAuditPersistencePort {
 }
 
 const TEMPLATE_SUBJECTS: Record<NotificationTemplateKey, string> = {
-  CHECKIN_REMINDER: "Dusk Proof-of-Life Check-In Reminder",
-  MISSED_CHECKIN_ESCALATION:
-    "URGENT: Dusk Missed Check-In Escalation Warning",
-  BENEFICIARY_INVITATION:
-    "You have been designated as a Dusk Digital Estate Contact",
+  CHECKIN_REMINDER: "Dusk check-in reminder",
+  MISSED_CHECKIN_ESCALATION: "URGENT: Dusk missed check-in warning",
+  BENEFICIARY_INVITATION: "You've been added to a Dusk release plan",
   TRUSTED_VERIFIER_CHALLENGE:
-    "Action Required: Dusk Trusted Verifier Status Check",
-  RELEASE_PACKAGE_READY:
-    "Dusk Digital Estate Release Package Authorized",
-  SECURITY_ALERT: "Dusk Account Security Alert",
+    "Action required: Dusk trusted verifier check",
+  RELEASE_PACKAGE_READY: "Dusk release package ready",
+  SECURITY_ALERT: "Dusk account security alert",
 };
 
 export function classifyAuditEventCategory(eventType: string): AuditCategory {

@@ -89,7 +89,7 @@ export async function decryptVaultData(
   ciphertextBase64: string,
   ivBase64: string,
   base64Key: string
-): Promise<any> {
+): Promise<unknown> {
   const rawKey = base64ToArrayBuffer(base64Key);
   const key = await window.crypto.subtle.importKey(
     "raw",

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     // In a real app, you would extract the user ID from the request or session
     // const body = await req.json();
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
             currency: "usd",
             product_data: {
               name: "Dusk Lifetime Access",
-              description: "Secure Digital Vault and Dead Man's Switch.",
+              description: "Encrypted digital vault with a staged release process.",
               images: ["https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop"],
             },
             unit_amount: 5000, // $50.00 in cents
@@ -38,8 +38,9 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err: any) {
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Stripe Checkout Error:", err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

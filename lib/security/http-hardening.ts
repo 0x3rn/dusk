@@ -193,9 +193,9 @@ export class SlidingWindowRateLimiter {
 export const LEGAL_SCOPE_AND_ESTATE_DISCLAIMER = {
   version: "2026-10-01",
   notALegalWillHeadline:
-    "Dusk is a cryptographic digital-estate delivery system, NOT a legal will, trust, or substitute for statutory estate planning.",
+    "Dusk is an encrypted vault and delivery system, NOT a legal will, trust, or substitute for statutory estate planning.",
   zeroKnowledgeCustodyNotice:
-    "Dusk operates on a strict zero-knowledge architecture. Dusk Technologies never possesses your Master Passphrase, Vault Master Key, or offline Recovery Kit, and cannot decrypt your vault under any circumstances—including lost credentials or legal compulsion.",
+    "Your vault is encrypted on your device. Dusk Technologies operates a zero-knowledge architecture: we never possess your master passphrase, vault keys, or recovery kit, and cannot decrypt your vault under any circumstances—including lost credentials or legal compulsion.",
   estatePlanningGuidance:
     "Transferring technical access to accounts, cryptographic keys, or instructions does not automatically transfer legal title or ownership under applicable probate or inheritance laws. Consult a qualified estate-planning attorney in your jurisdiction to execute a valid Last Will and Testament or Living Trust.",
 } as const;

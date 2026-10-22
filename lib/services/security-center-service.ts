@@ -355,7 +355,7 @@ export class SecurityCenterService {
             ? "SECURE"
             : "AT_RISK",
         detail: scheduleState
-          ? `Dead-Man's Switch is ${scheduleState.state} (${scheduleState.remindersSentCount} missed-check-in reminders sent).`
+          ? `Your check-in plan is ${scheduleState.state} (${scheduleState.remindersSentCount} missed-check-in reminders sent).`
           : "Check-in schedule not initialized.",
       },
     ];

@@ -46,58 +46,228 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Dusk */
+  --color-canvas: var(--canvas);
+  --color-elevated: var(--elevated);
+  --color-hover: var(--hover);
+  --color-sunken: var(--sunken);
+  --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-accent-surface: var(--accent-surface);
+  --color-accent-text: var(--accent-text);
+  --color-on-brand: var(--on-brand);
 }
 
 :root {
-  --background: #FCFCFD;
-  --foreground: #111827;
+  /* shadcn */
+  --background: #FFFFFF;
+  --foreground: #17191F;
   --card: #FFFFFF;
-  --card-foreground: #111827;
+  --card-foreground: #17191F;
   --popover: #FFFFFF;
-  --popover-foreground: #111827;
-  --primary: #059669;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F3F4F6;
-  --secondary-foreground: #111827;
-  --muted: #F3F4F6;
-  --muted-foreground: #6B7280;
-  --accent: #F3F4F6;
-  --accent-foreground: #111827;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --border: rgba(0, 0, 0, 0.1);
-  --input: rgba(0, 0, 0, 0.1);
-  --ring: #059669;
-  --radius: 0.5rem;
+  --popover-foreground: #17191F;
+  --primary: #00FFA3;
+  --primary-foreground: #17191F;
+  --secondary: #F7F8FA;
+  --secondary-foreground: #17191F;
+  --muted: #F7F8FA;
+  --muted-foreground: #656B76;
+  --accent: #C2FFE8;
+  --accent-foreground: #17191F;
+  --destructive: #B91C1C;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #00FFA3;
+  --radius: 0.75rem;
+
+  /* Dusk */
+  --canvas: #F7F8FA;
+  --elevated: #F7F8FA;
+  --hover: #F7F8FA;
+  --sunken: #FFFFFF;
+  --foreground-secondary: #656B76;
+  --foreground-muted: #656B76;
+  --brand: #00FFA3;
+  --brand-hover: #00C982;
+  --accent-surface: #C2FFE8;
+  --accent-text: #007A52;
+  --on-brand: #17191F;
+
+  --success-fg: #17191F;
+  --success-bg: #C2FFE8;
+  --warning-fg: #92400E;
+  --warning-bg: #FEF3C7;
+  --danger-fg: #B91C1C;
+  --danger-bg: #FEE2E2;
+  --info-fg: #2563EB;
+  --info-bg: #EFF6FF;
+
+  --cta-band: #17191F;
+  --cta-band-text: #FFFFFF;
+  --cta-band-text-secondary: #A4ADBC;
+
+  color-scheme: light;
 }
 
-.dark {
-  --background: #0A0A0A;
-  --foreground: #F3F4F6;
-  --card: rgba(255, 255, 255, 0.02);
-  --card-foreground: #F3F4F6;
-  --popover: rgba(255, 255, 255, 0.02);
-  --popover-foreground: #F3F4F6;
+.dark,
+[data-theme="dark"] {
+  --background: #141820;
+  --foreground: #F0F2F5;
+  --card: #1B212B;
+  --card-foreground: #F0F2F5;
+  --popover: #242C38;
+  --popover-foreground: #F0F2F5;
   --primary: #00FFA3;
-  --primary-foreground: #000000;
-  --secondary: rgba(255, 255, 255, 0.05);
-  --secondary-foreground: #F3F4F6;
-  --muted: rgba(255, 255, 255, 0.05);
-  --muted-foreground: #9CA3AF;
-  --accent: rgba(255, 255, 255, 0.05);
-  --accent-foreground: #F3F4F6;
-  --destructive: #7f1d1d;
-  --destructive-foreground: #F3F4F6;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.1);
+  --primary-foreground: #10141B;
+  --secondary: #242C38;
+  --secondary-foreground: #F0F2F5;
+  --muted: #1B212B;
+  --muted-foreground: #A4ADBC;
+  --accent: #123B30;
+  --accent-foreground: #00FFA3;
+  --destructive: #FF7B86;
+  --destructive-foreground: #10141B;
+  --border: #303947;
+  --input: #303947;
   --ring: #00FFA3;
+
+  --canvas: #141820;
+  --elevated: #242C38;
+  --hover: #293341;
+  --sunken: #10141B;
+  --foreground-secondary: #A4ADBC;
+  --foreground-muted: #778294;
+  --brand: #00FFA3;
+  --brand-hover: #00C982;
+  --accent-surface: #123B30;
+  --accent-text: #00FFA3;
+  --on-brand: #10141B;
+
+  --success-fg: #00FFA3;
+  --success-bg: #123B30;
+  --warning-fg: #F5C76B;
+  --warning-bg: #3A2E19;
+  --danger-fg: #FF7B86;
+  --danger-bg: #3D1B22;
+  --info-fg: #8AB4FF;
+  --info-bg: #1A2B47;
+
+  --cta-band: #10141B;
+  --cta-band-text: #F0F2F5;
+  --cta-band-text-secondary: #A4ADBC;
+
+  --sidebar-background: #10141B;
+  --sidebar-foreground: #F0F2F5;
+  --sidebar-border: #303947;
+  --sidebar-accent: #123B30;
+  --sidebar-accent-foreground: #00FFA3;
+
+  color-scheme: dark;
+}
+
+::selection {
+  background: var(--accent-surface);
+  color: var(--accent-text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Auto-hiding Scrollbar (Hidden when not actively scrolling)
+   ========================================================================== */
+
+/* Firefox: Hide thumb by default; reveal when data-scrolling="true" */
+html,
+body,
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+[data-scrolling="true"],
+html[data-scrolling="true"] * {
+  scrollbar-color: rgba(23, 25, 31, 0.28) transparent;
+}
+
+.dark [data-scrolling="true"],
+.dark html[data-scrolling="true"] * {
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+/* WebKit (Chrome, Safari, Edge, Opera) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 9999px;
+  transition: background-color 0.3s ease;
+}
+
+/* Reveal thumb when actively scrolling */
+[data-scrolling="true"]::-webkit-scrollbar-thumb,
+html[data-scrolling="true"] *::-webkit-scrollbar-thumb {
+  background-color: rgba(23, 25, 31, 0.28);
+}
+
+.dark [data-scrolling="true"]::-webkit-scrollbar-thumb,
+.dark html[data-scrolling="true"] *::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+/* Maintain visibility when user is directly hovering or dragging the thumb */
+::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(23, 25, 31, 0.45) !important;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+.dark ::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Utility to completely suppress scrollbars where needed */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
