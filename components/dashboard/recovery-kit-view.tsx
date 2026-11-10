@@ -49,15 +49,15 @@ export function RecoveryKitView({
 
       {/* Newly Created Kit Prompt (if just generated) */}
       {newlyCreatedRecoveryKit && (
-        <div className="border border-brand/25 bg-accent-surface/40 rounded-[14px] p-6 sm:p-7">
+        <div className="border border-brand/25 bg-accent-surface/40 rounded-[14px] p-5 sm:p-7">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-brand/25 dark:border-brand/20 mb-5">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <FileKey className="w-5 h-5 text-accent-text shrink-0" />
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-[18px] font-semibold text-foreground">
                   New recovery kit created
                 </h2>
-                <span className="text-[12px] text-foreground font-mono">
+                <span className="text-[12px] text-foreground font-mono break-all">
                   Fingerprint: {formatFingerprint(newlyCreatedRecoveryKit.fingerprintHex)}
                 </span>
               </div>
@@ -66,7 +66,7 @@ export function RecoveryKitView({
             <button
               type="button"
               onClick={() => onDownloadKit(newlyCreatedRecoveryKit)}
-              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[8px] bg-brand text-on-brand text-[13px] font-semibold hover:bg-brand-hover transition-colors shrink-0 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="inline-flex items-center justify-center gap-1.5 h-11 sm:pointer-fine:h-10 px-4 rounded-[8px] bg-brand text-on-brand text-[13px] font-semibold hover:bg-brand-hover transition-colors shrink-0 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               <Download className="w-4 h-4" />
               <span>Download recovery kit (.json)</span>
@@ -78,24 +78,24 @@ export function RecoveryKitView({
           </p>
 
           <div className="relative mb-3">
-            <div className="p-3.5 rounded-[8px] bg-background border border-brand/25 font-mono text-[13px] text-foreground select-all break-all">
+            <div className="p-3.5 sm:pr-24 rounded-[8px] bg-background border border-brand/25 font-mono text-[13px] text-foreground select-all break-all">
               {newlyCreatedRecoveryKit.recoveryCode}
             </div>
             <button
               type="button"
               onClick={() => handleCopy(newlyCreatedRecoveryKit.recoveryCode)}
-              className="absolute right-2.5 top-2.5 p-1.5 rounded-[6px] border border-border bg-elevated text-foreground-secondary hover:text-foreground text-[11px] flex items-center gap-1"
+              className="mt-2 w-full justify-center min-h-11 sm:mt-0 sm:w-auto sm:pointer-fine:min-h-0 sm:absolute sm:right-2.5 sm:top-2.5 p-1.5 rounded-[6px] border border-border bg-elevated text-foreground-secondary hover:text-foreground text-[12px] flex items-center gap-1"
             >
               {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
               <span>{copiedCode ? "Copied" : "Copy"}</span>
             </button>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex sm:justify-end">
             <button
               type="button"
               onClick={onDismissNewlyCreated}
-              className="text-[12px] font-medium text-accent-text hover:underline"
+              className="min-h-11 sm:pointer-fine:min-h-0 text-left sm:text-right text-[12px] font-medium text-accent-text hover:underline"
             >
               I have saved this code in a secure offline location
             </button>
@@ -104,10 +104,10 @@ export function RecoveryKitView({
       )}
 
       {/* 2. Recovery Status Card */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
-        <div className="flex items-center justify-between pb-5 border-b border-border mb-6">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-5 border-b border-border mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text">
+            <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text shrink-0">
               <FileKey className="w-5 h-5 stroke-[1.75]" />
             </div>
             <div>
@@ -134,7 +134,7 @@ export function RecoveryKitView({
                 <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
                   Kit fingerprint
                 </span>
-                <span className="font-mono font-semibold text-foreground text-[13px] tabular-nums">
+                <span className="font-mono font-semibold text-foreground text-[13px] tabular-nums break-all">
                   {formatFingerprint(activeArtifact.fingerprintHex)}
                 </span>
                 <p className="text-[12px] text-foreground-secondary mt-0.5">
@@ -187,7 +187,7 @@ export function RecoveryKitView({
       </div>
 
       {/* 3. Physical Storage Guidance */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <h3 className="text-[17px] font-semibold text-foreground mb-2">
           Where to keep your recovery kit
         </h3>

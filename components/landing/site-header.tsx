@@ -24,15 +24,17 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll and close on Escape while the mobile menu is open
   useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
     return () => {
       document.body.style.overflow = "";
+      document.removeEventListener("keydown", onKeyDown);
     };
   }, [mobileMenuOpen]);
 
@@ -45,7 +47,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
 
   return (
     <header className="sticky top-0 z-50 bg-sunken border-b border-border transition-colors">
-      <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12 h-[72px] flex items-center justify-between">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-8 lg:px-12 h-16 sm:h-[72px] flex items-center justify-between gap-2">
         {/* Left: Dusk Brand */}
         <div className="flex items-center">
           <DuskLogo />
@@ -60,7 +62,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
             <a
               key={link.label}
               href={link.href}
-              className="hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-1.5 py-1"
+              className="hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md min-w-11 text-center px-2 py-3"
             >
               {link.label}
             </a>
@@ -68,21 +70,21 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
         </nav>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="flex items-center gap-1 sm:gap-4">
           <ThemeToggle />
           {isAuthenticated ? (
             <Link
               href="/dashboard"
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 rounded-[10px] bg-brand text-on-brand hover:bg-brand-hover text-[14px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand"
+              className="inline-flex items-center justify-center gap-2 h-11 px-3.5 sm:px-5 rounded-[10px] bg-brand text-on-brand hover:bg-brand-hover text-[14px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand"
             >
               <span>Dashboard</span>
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="hidden sm:block w-4 h-4" />
             </Link>
           ) : (
             <div className="hidden sm:flex items-center gap-5">
               <Link
                 href="/login"
-                className="text-[14px] font-medium text-foreground-secondary hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-2 py-1"
+                className="text-[14px] font-medium text-foreground-secondary hover:text-foreground transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-2 py-3"
               >
                 Sign in
               </Link>
@@ -99,7 +101,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
           {!isAuthenticated && (
             <Link
               href="/register"
-              className="sm:hidden inline-flex items-center justify-center h-10 px-3.5 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="sm:hidden inline-flex items-center justify-center h-11 px-3.5 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               Get Dusk
             </Link>
@@ -109,7 +111,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="md:hidden inline-flex items-center justify-center size-11 shrink-0 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             aria-expanded={mobileMenuOpen}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
@@ -120,14 +122,14 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-x-0 top-[72px] bottom-0 bg-sunken z-50 border-t border-border flex flex-col justify-between p-6 overflow-y-auto">
-          <nav className="flex flex-col gap-5 pt-2" aria-label="Mobile Navigation">
+        <div className="md:hidden fixed inset-x-0 top-16 sm:top-[72px] bottom-0 bg-sunken z-50 border-t border-border flex flex-col justify-between gap-6 p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto overscroll-contain">
+          <nav className="flex flex-col gap-1 pt-2" aria-label="Mobile Navigation">
             {navLinks.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-[17px] font-medium text-foreground hover:text-accent-text py-2 border-b border-border/50 transition-colors"
+                className="text-[17px] font-medium text-foreground hover:text-accent-text py-3.5 border-b border-border/50 transition-colors"
               >
                 {link.label}
               </a>

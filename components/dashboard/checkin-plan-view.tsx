@@ -75,10 +75,10 @@ export function CheckinPlanView({
       </div>
 
       {/* 2. Current Schedule Health Overview */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border mb-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text shrink-0">
               <Clock className="w-5 h-5 stroke-[1.75]" />
             </div>
             <div>
@@ -92,7 +92,7 @@ export function CheckinPlanView({
           </div>
 
           <span
-            className={`px-3 py-1 rounded-[6px] text-[12px] font-semibold border ${ isPaused ? "bg-elevated border-border text-foreground-secondary" : "bg-accent-surface border-brand/25 text-accent-text" }`}
+            className={`self-start sm:self-auto px-3 py-1 rounded-[6px] text-[12px] font-semibold border ${ isPaused ? "bg-elevated border-border text-foreground-secondary" : "bg-accent-surface border-brand/25 text-accent-text" }`}
           >
             {isPaused
               ? "Paused for 30 days"
@@ -142,7 +142,7 @@ export function CheckinPlanView({
       </div>
 
       {/* 3. Schedule Settings Form */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <div className="pb-4 border-b border-border mb-6">
           <h2 className="text-[18px] font-semibold text-foreground">
             Change your schedule
@@ -153,13 +153,14 @@ export function CheckinPlanView({
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-[13px] font-medium text-foreground mb-1.5">
                 How often (days)
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 min={7}
                 max={365}
                 required
@@ -178,6 +179,7 @@ export function CheckinPlanView({
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 min={3}
                 max={90}
                 required
@@ -206,11 +208,11 @@ export function CheckinPlanView({
             </div>
           </div>
 
-          <div className="pt-2 flex justify-end">
+          <div className="pt-2 flex sm:justify-end">
             <button
               type="submit"
               disabled={isSaving}
-              className="h-11 px-6 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[14px] font-semibold disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="h-11 w-full sm:w-auto px-6 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[14px] font-semibold disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               {isSaving ? "Saving changes..." : "Save schedule"}
             </button>
@@ -219,7 +221,7 @@ export function CheckinPlanView({
       </div>
 
       {/* 4. Pause Check-ins Card */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text shrink-0 mt-0.5">
@@ -235,7 +237,7 @@ export function CheckinPlanView({
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 [&>button]:w-full sm:[&>button]:w-auto [&>button]:justify-center">
             {isPaused ? (
               <button
                 type="button"

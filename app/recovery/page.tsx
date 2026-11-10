@@ -10,21 +10,21 @@ export const metadata = {
 
 export default function RecoveryPage() {
   return (
-    <div className="min-h-screen bg-canvas text-foreground transition-colors flex flex-col">
+    <div className="min-h-dvh bg-canvas text-foreground transition-colors flex flex-col">
       {/* Navigation Header */}
-      <header className="h-[68px] bg-sunken border-b border-border px-6 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <header className="h-16 sm:h-[68px] bg-sunken border-b border-border px-4 sm:px-8 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 min-w-0">
           <DuskLogo size={24} />
           <span className="hidden sm:inline text-[13px] text-foreground-muted">/</span>
           <span className="hidden sm:inline text-[14px] font-medium text-foreground-secondary">
             Recovery guide
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           <ThemeToggle />
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-[8px] border border-border bg-elevated text-[13px] font-medium text-foreground hover:bg-hover transition-colors"
+            className="inline-flex items-center gap-1.5 h-11 px-3.5 rounded-[8px] border border-border bg-elevated text-[13px] font-medium text-foreground hover:bg-hover transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Return to sign in</span>
@@ -33,7 +33,7 @@ export default function RecoveryPage() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-3xl w-full mx-auto px-6 py-12 sm:py-16">
+      <main className="flex-1 max-w-3xl w-full mx-auto px-4 sm:px-8 py-10 sm:py-16">
         <div className="text-left space-y-8">
           <div>
             <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-2 block">
@@ -63,7 +63,7 @@ export default function RecoveryPage() {
           {/* Recovery Paths Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Path 1: Forgot Master Passphrase */}
-            <div className="border border-border bg-card rounded-[12px] p-6 flex flex-col justify-between">
+            <div className="border border-border bg-card rounded-[12px] p-5 sm:p-6 flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-foreground dark:text-accent-text mb-4">
                   <KeyRound className="w-5 h-5 stroke-[1.75]" />
@@ -78,7 +78,7 @@ export default function RecoveryPage() {
               <div className="pt-2">
                 <Link
                   href="/login"
-                  className="w-full inline-flex items-center justify-center h-10 px-4 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full inline-flex items-center justify-center h-11 px-4 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   Sign in to access your vault
                 </Link>
@@ -86,7 +86,7 @@ export default function RecoveryPage() {
             </div>
 
             {/* Path 2: Beneficiary Estate Access */}
-            <div className="border border-border bg-card rounded-[12px] p-6 flex flex-col justify-between">
+            <div className="border border-border bg-card rounded-[12px] p-5 sm:p-6 flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-foreground dark:text-accent-text mb-4">
                   <FileText className="w-5 h-5 stroke-[1.75]" />
@@ -101,7 +101,7 @@ export default function RecoveryPage() {
               <div className="pt-2">
                 <Link
                   href="/security"
-                  className="w-full inline-flex items-center justify-center h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
+                  className="w-full inline-flex items-center justify-center h-11 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
                 >
                   Read the beneficiary protocol
                 </Link>
@@ -118,7 +118,7 @@ export default function RecoveryPage() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="w-4 h-4 text-accent-text shrink-0 mt-0.5" />
                 <span>
-                  <strong>JSON bundle:</strong> Search your offline storage for a file named <code className="text-[12px] font-mono px-1.5 py-0.5 rounded bg-elevated text-foreground dark:text-accent-text">dusk-recovery-kit-[timestamp].json</code>.
+                  <strong>JSON bundle:</strong> Search your offline storage for a file named <code className="text-[12px] font-mono px-1.5 py-0.5 rounded bg-elevated text-foreground dark:text-accent-text break-all">dusk-recovery-kit-[timestamp].json</code>.
                 </span>
               </div>
               <div className="flex items-start gap-3">

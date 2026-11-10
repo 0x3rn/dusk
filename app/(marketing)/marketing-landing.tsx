@@ -41,7 +41,7 @@ export function MarketingLanding({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-accent-surface selection:text-foreground overflow-x-hidden antialiased">
+    <div className="min-h-dvh bg-background text-foreground selection:bg-accent-surface selection:text-foreground overflow-x-clip antialiased">
       {/* 1. Navigation */}
       <SiteHeader isAuthenticated={isAuthenticated} />
 

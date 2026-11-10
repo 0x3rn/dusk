@@ -50,12 +50,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
-      <div className="mb-8">
+    <div className="min-h-dvh bg-canvas flex flex-col items-center justify-center px-4 py-8 sm:p-6 relative overflow-x-clip transition-colors">
+      <div className="mb-6 sm:mb-8">
         <DuskLogo size={28} />
       </div>
 
-      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 shadow-sm">
+      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-5 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
             Welcome back
@@ -117,6 +117,8 @@ export default function LoginPage() {
             <input
               id="login-email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -125,20 +127,21 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-2 ml-1 mr-1">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 mb-2 ml-1 mr-1">
               <label
                 htmlFor="login-password"
                 className="block text-xs font-medium text-foreground-secondary"
               >
                 Password
               </label>
-              <Link href="/recovery" className="text-xs text-accent-text hover:underline">
+              <Link href="/recovery" className="inline-flex items-center py-3 -my-3 text-xs text-accent-text hover:underline">
                 Use your recovery kit?
               </Link>
             </div>
             <input
               id="login-password"
               type="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -157,9 +160,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-foreground-secondary">
+        <div className="mt-6 sm:mt-8 text-center text-sm text-foreground-secondary">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent-text hover:underline font-medium">
+          <Link href="/register" className="inline-flex min-h-11 items-center text-accent-text hover:underline font-medium">
             Create one
           </Link>
         </div>

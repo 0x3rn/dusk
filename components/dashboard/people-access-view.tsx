@@ -105,16 +105,16 @@ export function PeopleAccessView({
 
       {/* Emergency Key Share URL Banner if a new beneficiary was created */}
       {newlyCreatedBeneficiaryKit && (
-        <div className="border border-brand/25 bg-accent-surface/40 rounded-[12px] p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="font-semibold text-[15px] text-foreground flex items-center gap-2">
-              <KeyRound className="w-4 h-4 text-accent-text" />
+        <div className="border border-brand/25 bg-accent-surface/40 rounded-[12px] p-4 sm:p-5">
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <span className="font-semibold text-[15px] text-foreground flex items-start gap-2 min-w-0">
+              <KeyRound className="w-4 h-4 mt-1 shrink-0 text-accent-text" />
               Share private key material with {newlyCreatedBeneficiaryKit.contactName}
             </span>
             <button
               type="button"
               onClick={onDismissBeneficiaryKit}
-              className="text-[12px] text-accent-text hover:underline font-medium"
+              className="shrink-0 -m-2 p-2 min-h-11 sm:pointer-fine:min-h-0 text-[12px] text-accent-text hover:underline font-medium"
             >
               Dismiss
             </button>
@@ -122,17 +122,18 @@ export function PeopleAccessView({
           <p className="text-[13px] text-foreground mb-3 leading-relaxed">
             Dusk never stores a beneficiary&apos;s private key on the server. Send this secure unlock URL (with its offline #hash decryption key fragment) to {newlyCreatedBeneficiaryKit.contactName}:
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <input
               type="text"
               readOnly
+              aria-label="Secure unlock link"
               value={unlockUrl}
-              className="flex-1 h-10 px-3 rounded-[6px] border border-border bg-background font-mono text-[12px] text-foreground select-all"
+              className="w-full sm:w-auto sm:flex-1 min-w-0 h-11 sm:pointer-fine:h-10 px-3 rounded-[6px] border border-border bg-background font-mono text-[12px] text-foreground select-all"
             />
             <button
               type="button"
               onClick={handleCopyUnlockLink}
-              className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[6px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="inline-flex items-center justify-center gap-1.5 h-11 sm:pointer-fine:h-10 px-4 rounded-[6px] bg-brand text-on-brand hover:bg-brand-hover text-[13px] font-semibold transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               <span>{copiedLink ? "Copied" : "Copy link"}</span>
@@ -142,9 +143,9 @@ export function PeopleAccessView({
       )}
 
       {/* 2. Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 items-start">
         {/* Left Column: Add Person Form (approx 4.5 cols on lg) */}
-        <div className="lg:col-span-5 bg-card border border-border rounded-[14px] p-6">
+        <div className="xl:col-span-5 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
           <div className="pb-4 border-b border-border mb-5">
             <h2 className="text-[18px] font-semibold text-foreground">
               Add a trusted person
@@ -160,14 +161,15 @@ export function PeopleAccessView({
                 Full name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-foreground-secondary absolute left-3 top-3" />
+                <User className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" />
                 <input
                   type="text"
                   required
+                  autoComplete="off"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Eleanor Vance"
-                  className="w-full h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full h-11 sm:pointer-fine:h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 />
               </div>
             </div>
@@ -177,14 +179,16 @@ export function PeopleAccessView({
                 Email address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-foreground-secondary absolute left-3 top-3" />
+                <Mail className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" />
                 <input
                   type="email"
+                  inputMode="email"
+                  autoComplete="off"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="eleanor@example.com"
-                  className="w-full h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full h-11 sm:pointer-fine:h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 />
               </div>
             </div>
@@ -194,25 +198,27 @@ export function PeopleAccessView({
                 Phone number (optional)
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-foreground-secondary absolute left-3 top-3" />
+                <Phone className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" />
                 <input
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="off"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+1 (555) 000-0000"
-                  className="w-full h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full h-11 sm:pointer-fine:h-10 pl-9 pr-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 />
               </div>
             </div>
 
             {/* Role Options */}
             <div className="space-y-3 pt-2">
-              <label className="flex items-start gap-2.5 cursor-pointer">
+              <label className="flex items-start gap-3 cursor-pointer min-h-11 py-1">
                 <input
                   type="checkbox"
                   checked={isBeneficiary}
                   onChange={(e) => setIsBeneficiary(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-border bg-background text-accent-text focus:ring-brand"
+                  className="mt-0.5 size-5 shrink-0 rounded border-border bg-background text-accent-text focus:ring-brand"
                 />
                 <div>
                   <span className="block text-[13px] font-medium text-foreground">
@@ -224,12 +230,12 @@ export function PeopleAccessView({
                 </div>
               </label>
 
-              <label className="flex items-start gap-2.5 cursor-pointer">
+              <label className="flex items-start gap-3 cursor-pointer min-h-11 py-1">
                 <input
                   type="checkbox"
                   checked={isTrustedVerifier}
                   onChange={(e) => setIsTrustedVerifier(e.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-border bg-background text-accent-text focus:ring-brand"
+                  className="mt-0.5 size-5 shrink-0 rounded border-border bg-background text-accent-text focus:ring-brand"
                 />
                 <div>
                   <span className="block text-[13px] font-medium text-foreground">
@@ -256,28 +262,31 @@ export function PeopleAccessView({
         </div>
 
         {/* Right Column: People Listing & Tabs (approx 7.5 cols on lg) */}
-        <div className="lg:col-span-7 bg-card border border-border rounded-[14px] p-6">
+        <div className="xl:col-span-7 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
           {/* Sub-tabs for filtering */}
-          <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
-            <div className="flex items-center gap-1.5">
+          <div className="pb-4 border-b border-border mb-5">
+            <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter people">
               <button
                 type="button"
                 onClick={() => setActiveTab("all")}
-                className={`text-[13px] px-3 py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "all" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
+                aria-pressed={activeTab === "all"}
+                className={`text-[13px] px-3 min-h-11 sm:pointer-fine:min-h-0 sm:py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "all" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
               >
                 All people ({contacts.length})
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("beneficiaries")}
-                className={`text-[13px] px-3 py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "beneficiaries" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
+                aria-pressed={activeTab === "beneficiaries"}
+                className={`text-[13px] px-3 min-h-11 sm:pointer-fine:min-h-0 sm:py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "beneficiaries" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
               >
                 Beneficiaries ({beneficiaries.length})
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("verifiers")}
-                className={`text-[13px] px-3 py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "verifiers" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
+                aria-pressed={activeTab === "verifiers"}
+                className={`text-[13px] px-3 min-h-11 sm:pointer-fine:min-h-0 sm:py-1.5 rounded-[6px] transition-colors font-medium border ${ activeTab === "verifiers" ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:text-foreground" }`}
               >
                 Trusted verifiers ({verifiers.length})
               </button>
@@ -300,14 +309,14 @@ export function PeopleAccessView({
               {displayedContacts.map((contact) => {
                 const assignedCount = assignments.filter((a) => a.contactId === contact.id).length;
                 return (
-                  <div key={contact.id} className="py-4 flex items-center justify-between gap-4">
-                    <div className="flex items-start gap-3">
+                  <div key={contact.id} className="py-4 flex items-center justify-between gap-2 sm:gap-4">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-elevated border border-border flex items-center justify-center shrink-0 text-foreground font-semibold text-[13px] mt-0.5">
                         {contact.fullName.slice(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-semibold text-[15px] text-foreground">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
+                          <span className="font-semibold text-[15px] text-foreground break-words">
                             {contact.fullName}
                           </span>
                           {contact.isBeneficiary && (
@@ -321,7 +330,7 @@ export function PeopleAccessView({
                             </span>
                           )}
                         </div>
-                        <span className="text-[13px] text-foreground-secondary block">
+                        <span className="text-[13px] text-foreground-secondary block break-words">
                           {contact.email} {contact.phone ? `· ${contact.phone}` : ""}
                         </span>
                         {contact.isBeneficiary && (
@@ -338,7 +347,7 @@ export function PeopleAccessView({
                       <button
                         type="button"
                         onClick={() => onRevokeContact(contact.id)}
-                        className="p-2 text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[6px] transition-colors"
+                        className="inline-flex size-11 items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[6px] transition-colors"
                         title="Remove contact"
                         aria-label="Remove contact"
                       >

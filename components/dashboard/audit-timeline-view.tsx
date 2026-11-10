@@ -53,7 +53,7 @@ export function AuditTimelineView({
     <div className="space-y-8 text-left">
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-[28px] sm:text-[32px] font-semibold text-foreground tracking-tight">
             Audit timeline
           </h1>
@@ -68,7 +68,7 @@ export function AuditTimelineView({
           <button
             type="button"
             onClick={() => onNavigate("overview")}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
+            className="inline-flex items-center gap-1.5 h-11 sm:pointer-fine:h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Return to overview</span>
@@ -77,8 +77,8 @@ export function AuditTimelineView({
       </div>
 
       {/* 2. Timeline Card */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-8">
-        <div className="flex items-center justify-between pb-4 border-t border-b border-border py-4 mb-6">
+      <div className="border border-border bg-card rounded-[14px] p-4 sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pb-4 border-t border-b border-border py-4 mb-6">
           <span className="text-[12px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary tabular-nums">
             Activity log · {formatCount(auditEvents.length, "event")}
           </span>
@@ -97,7 +97,7 @@ export function AuditTimelineView({
             <button
               type="button"
               onClick={() => onNavigate("overview")}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
+              className="inline-flex items-center justify-center h-11 sm:pointer-fine:h-10 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
             >
               Return to overview
             </button>
@@ -115,11 +115,11 @@ export function AuditTimelineView({
                   </div>
 
                   {/* Event Content Card */}
-                  <div className="flex-1 border border-border rounded-[10px] p-4 bg-elevated/60">
+                  <div className="flex-1 min-w-0 border border-border rounded-[10px] p-4 bg-elevated/60">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
                         <Icon className="w-4 h-4 text-foreground stroke-[1.75] shrink-0" />
-                        <span className="font-semibold text-[14px] text-foreground">
+                        <span className="font-semibold text-[14px] text-foreground break-words">
                           {display.title}
                         </span>
                       </div>
@@ -136,7 +136,7 @@ export function AuditTimelineView({
                     </p>
 
                     <details className="mt-2.5 group">
-                      <summary className="text-[12px] font-medium text-foreground-secondary cursor-pointer select-none hover:text-foreground">
+                      <summary className="inline-flex min-h-11 min-w-11 sm:pointer-fine:min-h-0 sm:pointer-fine:min-w-0 items-center text-[12px] font-medium text-foreground-secondary cursor-pointer select-none hover:text-foreground">
                         Details
                       </summary>
                       <div className="mt-2 p-2.5 rounded-[6px] bg-background border border-border font-mono text-[12px] text-foreground-secondary break-all">

@@ -7,7 +7,7 @@ interface FinalCTASectionProps {
 
 export function FinalCTASection({ isAuthenticated = false }: FinalCTASectionProps) {
   return (
-    <section className="py-24 sm:py-28 lg:py-32 bg-[var(--cta-band)] text-[var(--cta-band-text)] text-center transition-colors">
+    <section className="py-16 sm:py-24 lg:py-32 bg-[var(--cta-band)] text-[var(--cta-band-text)] text-center transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12">
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           {/* Headline */}

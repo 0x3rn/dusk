@@ -51,7 +51,7 @@ export function DuskLogo({
   return (
     <Link
       href={href}
-      className={`inline-flex items-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md transition-opacity hover:opacity-90 ${className}`}
+      className={`inline-flex min-h-11 items-center gap-2.5 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md transition-opacity hover:opacity-90 ${className}`}
       aria-label="Dusk - Home"
     >
       <div className="flex items-center justify-center shrink-0">

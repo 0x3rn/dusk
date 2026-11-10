@@ -3,10 +3,10 @@ import { KeyRound, Users, Clock } from "lucide-react";
 
 export function ProblemSection() {
   return (
-    <section className="py-24 sm:py-28 lg:py-32 bg-background border-t border-border transition-colors">
+    <section className="py-16 sm:py-24 lg:py-32 bg-background border-t border-border transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12 text-left">
         {/* Section Header */}
-        <div className="max-w-3xl mb-16 sm:mb-20">
+        <div className="max-w-3xl mb-10 sm:mb-16 lg:mb-20">
           <span className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-3 block">
             The problem
           </span>

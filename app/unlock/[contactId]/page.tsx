@@ -166,7 +166,7 @@ export default function UnlockPage({
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-dvh bg-background flex flex-col items-center justify-center px-4 py-8 sm:p-6 relative overflow-x-clip">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
@@ -183,7 +183,7 @@ export default function UnlockPage({
           <CardTitle className="text-2xl font-bold">
             Release access
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="break-all">
             Scoped beneficiary ID: <code className="text-accent-text">{contactId}</code>
           </CardDescription>
         </CardHeader>
@@ -198,11 +198,15 @@ export default function UnlockPage({
           {!decryptedSecrets.length && !rawPackage ? (
             <form onSubmit={handleRetrieveAndDecrypt} className="space-y-4">
               <div>
-                <label className="text-xs font-medium block mb-1">
+                <label htmlFor="unlock-email" className="text-sm font-medium block mb-1.5">
                   Verify your beneficiary email address
                 </label>
                 <Input
+                  id="unlock-email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  className="h-11 sm:h-10"
                   required
                   value={beneficiaryEmail}
                   onChange={(e) => setBeneficiaryEmail(e.target.value)}
@@ -210,11 +214,16 @@ export default function UnlockPage({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium block mb-1">
+                <label htmlFor="unlock-token" className="text-sm font-medium block mb-1.5">
                   Single-use release access grant token
                 </label>
                 <Input
+                  id="unlock-token"
                   type="text"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  className="h-11 sm:h-10"
                   required
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
@@ -222,19 +231,24 @@ export default function UnlockPage({
                 />
               </div>
               <div>
-                <label className="text-xs font-medium block mb-1">
+                <label htmlFor="unlock-private-key" className="text-sm font-medium block mb-1.5">
                   Beneficiary private key (client-only; never sent to server)
                 </label>
                 <Input
+                  id="unlock-private-key"
                   type="text"
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  className="h-11 sm:h-10"
                   required
                   value={privateKeyInput}
                   onChange={(e) => setPrivateKeyInput(e.target.value)}
                   placeholder="Base64 PKCS#8 private key (or via URL #hash)"
                 />
               </div>
-              <Button type="submit" disabled={isAttempting} className="w-full h-11">
-                <KeyRound className="w-4 h-4 mr-2" />
+              <Button type="submit" disabled={isAttempting} className="w-full h-auto min-h-11 py-2.5 whitespace-normal text-center">
+                <KeyRound className="w-4 h-4 mr-2 shrink-0" />
                 {isAttempting
                   ? "Verifying grant and decrypting locally..."
                   : "Verify grant and decrypt assigned package"}
@@ -242,23 +256,24 @@ export default function UnlockPage({
             </form>
           ) : (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-accent-surface border border-brand/25 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 rounded-xl bg-accent-surface border border-brand/25 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-accent-text font-medium">
                   <CheckCircle2 className="w-5 h-5 shrink-0" />
                   <span>
                     Decrypted {formatCount(decryptedSecrets.length, "assigned item")} locally
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
+                    className="h-auto min-h-11 sm:min-h-9 py-2 whitespace-normal"
                     onClick={handleDownloadEncryptedBundle}
                   >
                     <Download className="w-4 h-4 mr-1" /> Download encrypted bundle
                   </Button>
                   {!acknowledged ? (
-                    <Button size="sm" onClick={handleAcknowledgeReceipt}>
+                    <Button size="sm" className="h-auto min-h-11 sm:min-h-9 py-2 whitespace-normal" onClick={handleAcknowledgeReceipt}>
                       <FileCheck className="w-4 h-4 mr-1" /> Acknowledge receipt
                     </Button>
                   ) : (
@@ -277,17 +292,17 @@ export default function UnlockPage({
                 {decryptedSecrets.map((sec) => (
                   <div
                     key={sec.itemId}
-                    className="p-5 rounded-xl border border-border bg-background space-y-2"
+                    className="p-4 sm:p-5 rounded-xl border border-border bg-background space-y-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-base text-foreground">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <h3 className="font-bold text-base text-foreground break-words min-w-0">
                         {sec.title}
                       </h3>
                       <span className="text-xs text-muted-foreground font-mono">
                         {sec.category}
                       </span>
                     </div>
-                    <p className="font-mono text-sm text-foreground whitespace-pre-wrap">
+                    <p className="font-mono text-sm text-foreground whitespace-pre-wrap break-words">
                       {sec.content}
                     </p>
                   </div>
@@ -297,7 +312,7 @@ export default function UnlockPage({
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-center border-t border-border pt-4 text-xs text-muted-foreground">
+        <CardFooter className="flex justify-center border-t border-border pt-4 text-xs text-center text-muted-foreground">
           Encrypted on your device • Scoped ECDH P-256 + AES-256-GCM decryption
         </CardFooter>
       </Card>

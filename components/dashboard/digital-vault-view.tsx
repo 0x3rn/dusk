@@ -130,7 +130,7 @@ export function DigitalVaultView({
       {/* 1. Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-border">
         <div>
-          <div className="flex items-center gap-2.5 mb-1">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-2 mb-1">
             <h1 className="text-[28px] sm:text-[32px] font-semibold text-foreground tracking-tight">
               Digital vault
             </h1>
@@ -149,7 +149,7 @@ export function DigitalVaultView({
             <button
               type="button"
               onClick={onLockVault}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
+              className="inline-flex items-center gap-2 h-11 sm:pointer-fine:h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
             >
               <Lock className="w-4 h-4" />
               <span>Lock vault</span>
@@ -161,7 +161,7 @@ export function DigitalVaultView({
       {/* 2. Locked State vs Unlocked State */}
       {!vault ? (
         /* Initialization Card */
-        <div className="border border-border bg-card rounded-[14px] p-8 max-w-xl mx-auto text-center">
+        <div className="border border-border bg-card rounded-[14px] p-6 sm:p-8 max-w-xl mx-auto text-center">
           <div className="w-12 h-12 rounded-full bg-accent-surface text-accent-text flex items-center justify-center mx-auto mb-4">
             <KeyRound className="w-6 h-6 stroke-[1.75]" />
           </div>
@@ -198,7 +198,7 @@ export function DigitalVaultView({
         </div>
       ) : !isVaultUnlocked ? (
         /* Locked Vault Card */
-        <div className="border border-border bg-card rounded-[14px] p-8 sm:p-10 max-w-xl mx-auto text-center">
+        <div className="border border-border bg-card rounded-[14px] p-6 sm:p-10 max-w-xl mx-auto text-center">
           <div className="w-14 h-14 rounded-full bg-elevated border border-border flex items-center justify-center mx-auto mb-5 text-accent-text">
             <Lock className="w-6 h-6 stroke-[1.75]" />
           </div>
@@ -222,12 +222,12 @@ export function DigitalVaultView({
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
                     placeholder="Enter your passphrase..."
-                    className="w-full h-11 pl-3.5 pr-10 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                    className="w-full h-11 pl-3.5 pr-11 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassphrase(!showPassphrase)}
-                    className="absolute right-3 top-3 text-foreground-secondary hover:text-foreground"
+                    className="absolute right-0 top-0 inline-flex size-11 items-center justify-center text-foreground-secondary hover:text-foreground"
                     aria-label={showPassphrase ? "Hide passphrase" : "Show passphrase"}
                   >
                     {showPassphrase ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -263,7 +263,7 @@ export function DigitalVaultView({
             <button
               type="button"
               onClick={() => setShowRecoveryUnlock(!showRecoveryUnlock)}
-              className="text-[13px] text-foreground-secondary hover:text-foreground underline transition-colors"
+              className="inline-flex min-h-11 items-center px-2 text-[13px] text-foreground-secondary hover:text-foreground underline transition-colors"
             >
               {showRecoveryUnlock
                 ? "Use master passphrase instead"
@@ -276,9 +276,9 @@ export function DigitalVaultView({
         </div>
       ) : (
         /* 3. Unlocked Workspace */
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 items-start">
           {/* Left Column: Create an encrypted item (approx 5 cols on lg) */}
-          <div className="lg:col-span-5 bg-card border border-border rounded-[14px] p-6">
+          <div className="xl:col-span-5 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
             <div className="pb-4 border-b border-border mb-5">
               <h2 className="text-[18px] font-semibold text-foreground">
                 Create an encrypted item
@@ -299,7 +299,7 @@ export function DigitalVaultView({
                   value={itemTitle}
                   onChange={(e) => setItemTitle(e.target.value)}
                   placeholder="e.g. Master Password Manager Sheet"
-                  className="w-full h-10 px-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full h-11 sm:pointer-fine:h-10 px-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 />
               </div>
 
@@ -310,7 +310,7 @@ export function DigitalVaultView({
                 <select
                   value={itemCategory}
                   onChange={(e) => setItemCategory(e.target.value)}
-                  className="w-full h-10 px-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="w-full h-11 sm:pointer-fine:h-10 px-3 rounded-[8px] border border-border bg-background text-[14px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   {ITEM_CATEGORIES.map((cat) => (
                     <option key={cat.value} value={cat.value}>
@@ -354,10 +354,10 @@ export function DigitalVaultView({
                                 : [...prev, c.id]
                             );
                           }}
-                          className={`text-[12px] px-3 py-1.5 rounded-[6px] border transition-colors flex items-center gap-1.5 ${ isSelected ? "bg-accent-surface border-brand/40 text-accent-text font-semibold" : "bg-elevated border-border text-foreground-secondary hover:text-foreground" }`}
+                          className={`text-[12px] px-3 min-h-11 sm:pointer-fine:min-h-0 sm:py-1.5 max-w-full text-left rounded-[6px] border transition-colors flex items-center gap-1.5 ${ isSelected ? "bg-accent-surface border-brand/40 text-accent-text font-semibold" : "bg-elevated border-border text-foreground-secondary hover:text-foreground" }`}
                         >
-                          <span>{isSelected ? "✓" : "+"}</span>
-                          <span>{c.fullName}</span>
+                          <span className="shrink-0">{isSelected ? "✓" : "+"}</span>
+                          <span className="min-w-0 break-words">{c.fullName}</span>
                         </button>
                       );
                     })}
@@ -378,9 +378,9 @@ export function DigitalVaultView({
           </div>
 
           {/* Right Column: Encrypted Items List (approx 7 cols on lg) */}
-          <div className="lg:col-span-7 bg-card border border-border rounded-[14px] p-6">
+          <div className="xl:col-span-7 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border mb-4">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-[18px] font-semibold text-foreground tabular-nums">
                   Encrypted items ({formatCount(items.length, "item")})
                 </h2>
@@ -390,21 +390,21 @@ export function DigitalVaultView({
               </div>
 
               {/* Filter / Search controls */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-foreground-secondary absolute left-2.5 top-2.5" />
+                  <Search className="w-3.5 h-3.5 text-foreground-secondary absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search..."
-                    className="h-8 pl-8 pr-2.5 rounded-[6px] border border-border bg-background text-[12px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand w-32 sm:w-40"
+                    className="h-11 sm:pointer-fine:h-8 pl-8 pr-2.5 rounded-[6px] border border-border bg-background text-[12px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand w-full sm:w-40"
                   />
                 </div>
                 <select
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="h-8 px-2 rounded-[6px] border border-border bg-background text-[12px] text-foreground-secondary focus-visible:outline-none"
+                  className="h-11 sm:pointer-fine:h-8 w-full sm:w-auto sm:max-w-44 px-2 rounded-[6px] border border-border bg-background text-[12px] text-foreground-secondary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
                 >
                   <option value="ALL">All categories</option>
                   {ITEM_CATEGORIES.map((c) => (
@@ -433,13 +433,13 @@ export function DigitalVaultView({
                   const isRevealed = revealedSecretIds[item.id] || false;
                   return (
                     <div key={item.id} className="py-4 space-y-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex items-start gap-3 min-w-0">
                           <div className="w-8 h-8 rounded-[8px] bg-elevated border border-border flex items-center justify-center shrink-0 text-accent-text mt-0.5">
                             <KeyRound className="w-4 h-4 stroke-[1.75]" />
                           </div>
-                          <div>
-                            <span className="text-[15px] font-semibold text-foreground block">
+                          <div className="min-w-0">
+                            <span className="text-[15px] font-semibold text-foreground block break-words">
                               {dec ? dec.title : `Encrypted item (${item.id.slice(0, 8)})`}
                             </span>
                             <span className="text-[12px] text-foreground-secondary tabular-nums">
@@ -448,12 +448,12 @@ export function DigitalVaultView({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           {dec && (
                             <button
                               type="button"
                               onClick={() => toggleRevealSecret(item.id)}
-                              className="text-[12px] px-2.5 py-1 rounded-[6px] border border-border bg-elevated hover:bg-hover text-foreground transition-colors font-medium"
+                              className="text-[12px] px-3 min-h-11 sm:pointer-fine:min-h-0 sm:py-1 rounded-[6px] border border-border bg-elevated hover:bg-hover text-foreground transition-colors font-medium"
                             >
                               {isRevealed ? "Hide secret" : "View secret"}
                             </button>
@@ -461,7 +461,7 @@ export function DigitalVaultView({
                           <button
                             type="button"
                             onClick={() => onDeleteItem(item.id)}
-                            className="p-1.5 text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[6px] transition-colors"
+                            className="inline-flex size-11 sm:pointer-fine:size-8 items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[6px] transition-colors"
                             title="Delete item"
                             aria-label="Delete item"
                           >
@@ -492,7 +492,7 @@ export function DigitalVaultView({
                                 key={c.id}
                                 type="button"
                                 onClick={() => onToggleBeneficiaryAssignment(item, c)}
-                                className={`text-[11px] px-2 py-0.5 rounded-[4px] border transition-colors ${ isAssigned ? "bg-accent-surface border-brand/40 text-accent-text font-semibold" : "bg-elevated border-border text-foreground-secondary hover:text-foreground" }`}
+                                className={`text-[11px] px-2.5 min-h-11 sm:pointer-fine:min-h-0 sm:py-0.5 max-w-full text-left break-words rounded-[4px] border transition-colors ${ isAssigned ? "bg-accent-surface border-brand/40 text-accent-text font-semibold" : "bg-elevated border-border text-foreground-secondary hover:text-foreground" }`}
                               >
                                 {isAssigned ? "✓ " : "+ "}
                                 {c.fullName}

@@ -29,27 +29,27 @@ export default async function SecurityArchitecturePage() {
   const isAuthenticated = await isSignedIn();
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">
+    <div className="min-h-dvh bg-background text-foreground selection:bg-primary/20">
       {/* Navbar */}
       <nav className="border-b border-border sticky top-0 z-50 bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-6">
-            <Link href="/" className="text-xl font-bold tracking-tight">
+            <Link href="/" className="inline-flex min-h-11 items-center text-xl font-bold tracking-tight">
               Dusk
             </Link>
             <Link
               href="/"
-              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+              className="hidden sm:flex min-h-11 whitespace-nowrap text-sm text-muted-foreground hover:text-foreground items-center gap-1.5 transition-colors"
             >
               <ArrowLeft strokeWidth={1.5} className="w-4 h-4" /> Back to Home
             </Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-4">
             <ThemeToggle />
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
-                className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-5 py-2 rounded-md text-sm flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-4 sm:px-5 min-h-11 whitespace-nowrap rounded-md text-sm flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
                 Go to Dashboard <ArrowRight strokeWidth={1.5} className="w-4 h-4" />
               </Link>
@@ -57,13 +57,13 @@ export default async function SecurityArchitecturePage() {
               <>
                 <Link
                   href="/login"
-                  className="text-sm font-medium hover:text-foreground transition-colors hidden sm:block"
+                  className="text-sm font-medium hover:text-foreground transition-colors hidden sm:inline-flex min-h-11 items-center px-2"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-5 py-2 rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                  className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-4 sm:px-5 min-h-11 inline-flex items-center whitespace-nowrap rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   Get Started
                 </Link>
@@ -73,7 +73,7 @@ export default async function SecurityArchitecturePage() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-6 py-20 max-w-4xl space-y-20">
+      <main className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-4xl space-y-14 sm:space-y-20">
         {/* Header */}
         <header className="space-y-6 border-b border-border pb-12">
           <Badge
@@ -167,31 +167,31 @@ export default async function SecurityArchitecturePage() {
             beneficiary sharing without re-encrypting your entire vault.
           </p>
 
-          <div className="border border-border bg-card rounded-2xl p-6 font-mono text-xs md:text-sm space-y-3 overflow-x-auto">
+          <div className="border border-border bg-card rounded-2xl p-4 sm:p-6 font-mono text-xs md:text-sm space-y-3 overflow-x-auto">
             <div className="text-accent-text font-semibold">
               [User Master Passphrase] + [16-Byte CSPRNG Salt]
             </div>
-            <div className="pl-4 text-muted-foreground">
+            <div className="pl-2 sm:pl-4 text-muted-foreground">
               └── PBKDF2-HMAC-SHA256 (600,000 Iterations) ──►{" "}
               <span className="text-foreground">
                 256-bit Passphrase Key Encryption Key (KEK)
               </span>
             </div>
-            <div className="pl-10 text-muted-foreground">
+            <div className="pl-4 sm:pl-10 text-muted-foreground">
               └── AES-256-GCM Wraps ──►{" "}
               <span className="text-accent-text font-semibold">
                 256-bit Vault Master Key (VMK)
               </span>
             </div>
-            <div className="pl-16 text-muted-foreground">
+            <div className="pl-6 sm:pl-16 text-muted-foreground">
               ├── HKDF-SHA256 (&quot;dusk-v1-item-kek&quot;) ──► Wraps unique
               256-bit <span className="text-foreground">Item Keys (IEK)</span>
             </div>
-            <div className="pl-16 text-muted-foreground">
+            <div className="pl-6 sm:pl-16 text-muted-foreground">
               ├── HKDF-SHA256 (&quot;dusk-v1-file-kek&quot;) ──► Wraps unique
               256-bit <span className="text-foreground">File Keys (FEK)</span>
             </div>
-            <div className="pl-16 text-muted-foreground">
+            <div className="pl-6 sm:pl-16 text-muted-foreground">
               └── HKDF-SHA256 (&quot;dusk-v1-folder-key&quot;) ──► Encrypts{" "}
               <span className="text-foreground">Vault Folder Names</span>
             </div>
@@ -293,7 +293,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 1</div>
               <div className="font-bold mb-1">HEALTHY &amp; REMINDER_DUE</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Normal check-in countdown (e.g., 90 days) with pre-due email
                 reminders. Any check-in immediately resets the timer.
               </p>
@@ -301,7 +301,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 2</div>
               <div className="font-bold mb-1">GRACE_PERIOD</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Configurable buffer window after a missed due date before
                 escalation begins.
               </p>
@@ -309,7 +309,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 3</div>
               <div className="font-bold mb-1">ESCALATION_PENDING</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Multi-channel Email + SMS fallback warnings. If providers have
                 an outage, the timer fails closed and refuses to advance.
               </p>
@@ -317,7 +317,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 4</div>
               <div className="font-bold mb-1">VERIFICATION_REQUIRED</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Trusted Verifiers (who do not receive vault secrets) can attest
                 that you are alive to stop a false alarm, or approve release.
               </p>
@@ -325,7 +325,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 5</div>
               <div className="font-bold mb-1">RELEASE_HOLD</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Immediate freeze state if you or a Trusted Verifier flags a
                 medical recovery, travel delay, or contested trigger.
               </p>
@@ -333,7 +333,7 @@ export default async function SecurityArchitecturePage() {
             <div className="border border-border rounded-xl p-4 bg-card">
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 6</div>
               <div className="font-bold mb-1">SCOPED RELEASE</div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Only after all grace windows, confirmed deliveries, and verifier
                 quorum rules pass are time-bounded, single-use beneficiary
                 grants issued.
@@ -343,7 +343,7 @@ export default async function SecurityArchitecturePage() {
         </section>
 
         {/* Section 5: Legal Scope Disclaimer */}
-        <section className="border border-border bg-card rounded-2xl p-8 space-y-4">
+        <section className="border border-border bg-card rounded-2xl p-5 sm:p-8 space-y-4">
           <div className="flex items-center gap-3">
             <AlertTriangle
               strokeWidth={1.5}

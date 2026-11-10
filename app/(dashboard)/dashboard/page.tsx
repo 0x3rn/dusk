@@ -643,7 +643,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-elevated flex items-center justify-center">
+      <div className="min-h-dvh bg-elevated flex items-center justify-center">
         <div className="flex flex-col items-center gap-2">
           <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
           <span className="text-[13px] text-foreground-secondary font-medium">
@@ -667,15 +667,16 @@ export default function DashboardPage() {
     >
       {/* Alert Banners */}
       {errorBanner && (
-        <div className="mb-6 p-4 rounded-[10px] bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-[13px] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-[var(--danger-fg)]" />
-            <span>{errorBanner}</span>
+        <div role="alert" className="sticky top-[4.75rem] sm:top-[5.25rem] z-30 mb-6 p-4 rounded-[10px] bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-[13px] flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2 min-w-0">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-[var(--danger-fg)]" />
+            <span className="min-w-0 break-words">{errorBanner}</span>
           </div>
           <button
             type="button"
             onClick={() => setErrorBanner("")}
-            className="text-[var(--danger-fg)] hover:opacity-80"
+            aria-label="Dismiss message"
+            className="-m-3 p-3 shrink-0 text-[var(--danger-fg)] hover:opacity-80"
           >
             <X className="w-4 h-4" />
           </button>
@@ -683,15 +684,16 @@ export default function DashboardPage() {
       )}
 
       {successBanner && (
-        <div className="mb-6 p-4 rounded-[10px] bg-accent-surface border border-brand/25 text-accent-text text-[13px] font-medium flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-accent-text shrink-0" />
-            <span>{successBanner}</span>
+        <div role="status" className="sticky top-[4.75rem] sm:top-[5.25rem] z-30 mb-6 p-4 rounded-[10px] bg-accent-surface border border-brand/25 text-accent-text text-[13px] font-medium flex items-start justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-2 min-w-0">
+            <CheckCircle2 className="w-4 h-4 mt-0.5 text-accent-text shrink-0" />
+            <span className="min-w-0 break-words">{successBanner}</span>
           </div>
           <button
             type="button"
             onClick={() => setSuccessBanner("")}
-            className="text-accent-text hover:text-accent-text"
+            aria-label="Dismiss message"
+            className="-m-3 p-3 shrink-0 text-accent-text hover:text-accent-text"
           >
             <X className="w-4 h-4" />
           </button>

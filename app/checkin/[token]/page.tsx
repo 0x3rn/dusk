@@ -34,11 +34,11 @@ export default function CheckInLinkPage({ params }: { params: Promise<{ token: s
   };
 
   return (
-    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6">
+    <main className="min-h-dvh bg-canvas flex flex-col items-center justify-center px-4 py-8 sm:p-6">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
-      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 shadow-sm text-center">
+      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-5 sm:p-8 shadow-sm text-center">
         {status === "done" ? (
           <>
             <CheckCircle2 className="w-10 h-10 mx-auto mb-4 text-brand" aria-hidden="true" />
@@ -48,7 +48,7 @@ export default function CheckInLinkPage({ params }: { params: Promise<{ token: s
             <p className="text-sm text-foreground-secondary mb-6">
               Thank you. Any reminders have stopped and your next check-in date has been reset.
             </p>
-            <Link href="/dashboard" className="text-sm text-accent-text hover:underline font-medium">
+            <Link href="/dashboard" className="inline-flex min-h-11 items-center text-sm text-accent-text hover:underline font-medium">
               Go to your dashboard
             </Link>
           </>
