@@ -7,6 +7,7 @@ import {
   FoundationService,
   TrustBoundaryViolationError,
   UniqueConstraintError,
+  ValidationError,
   type AuditEventRecord,
   type CheckInScheduleRecord,
   type EncryptedItemRecord,
@@ -20,6 +21,7 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
   public schedules = new Map<string, CheckInScheduleRecord>();
   public vaults = new Map<string, VaultRecord>();
   public items = new Map<string, EncryptedItemRecord>();
+  public folders = new Map<string, { id: string; vaultId: string }>();
   public audits: AuditEventRecord[] = [];
 
   /** Set by a test to simulate another request winning the creation race. */
@@ -161,6 +163,10 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
     };
     this.items.set(record.id, record);
     return record;
+  }
+
+  async findFolderById(folderId: string) {
+    return this.folders.get(folderId) ?? null;
   }
 
   async findEncryptedItemById(itemId: string): Promise<EncryptedItemRecord | null> {
@@ -375,6 +381,40 @@ describe("FoundationService: vault creation and ownership", () => {
     for (const audit of audits) {
       expect(audit.redactedMeta).not.toContain(item.ciphertextBase64);
     }
+  });
+
+  it("refuses a folder that belongs to another vault and oversized envelopes", async () => {
+    const alice = await service.resolveUserFromIdentity(identity());
+    const bob = await service.resolveUserFromIdentity(identity({ authUserId: "neon_bob", email: "bob@example.com" }));
+    const bundle = {
+      wrappedMasterKeyCiphertext: Buffer.alloc(48, 7).toString("base64"),
+      wrappedMasterKeyIv: Buffer.alloc(12, 8).toString("base64"),
+      kdfSaltBase64: Buffer.alloc(16, 9).toString("base64"),
+    };
+    const aliceVault = await service.createEmptyVault(alice.id, bundle);
+    const bobVault = await service.createEmptyVault(bob.id, bundle);
+    store.folders.set("fld_alice", { id: "fld_alice", vaultId: aliceVault.id });
+    store.folders.set("fld_bob", { id: "fld_bob", vaultId: bobVault.id });
+    const envelope = {
+      vaultId: aliceVault.id,
+      ciphertextBase64: Buffer.alloc(64, 1).toString("base64"),
+      ivBase64: Buffer.alloc(12, 2).toString("base64"),
+      wrappedItemKeyBase64: Buffer.alloc(48, 3).toString("base64"),
+      wrappedItemKeyIvBase64: Buffer.alloc(12, 4).toString("base64"),
+      aadResourceId: "res_1",
+    };
+
+    expect((await service.addEncryptedItem(alice.id, { ...envelope, folderId: "fld_alice" })).folderId).toBe("fld_alice");
+    await expect(service.addEncryptedItem(alice.id, { ...envelope, folderId: "fld_bob" })).rejects.toThrowError(
+      ValidationError
+    );
+    await expect(service.addEncryptedItem(alice.id, { ...envelope, folderId: "fld_missing" })).rejects.toThrowError(
+      ValidationError
+    );
+    await expect(
+      service.addEncryptedItem(alice.id, { ...envelope, ciphertextBase64: "A".repeat(2_000_004) })
+    ).rejects.toThrowError(ValidationError);
+    expect(await service.listVaultItemsForOwner(alice.id, aliceVault.id)).toHaveLength(1);
   });
 
   it("rejects vault creation for an unauthenticated caller and a duplicate vault", async () => {

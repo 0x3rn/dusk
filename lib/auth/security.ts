@@ -73,9 +73,9 @@ export function assertResourceOwnership<T extends { userId: string }>(
     throw new AuthorizationError(`${resourceName} not found or access denied.`);
   }
   if (resource.userId !== authenticatedUserId) {
-    throw new AuthorizationError(
-      `Horizontal privilege escalation blocked: caller ${authenticatedUserId} does not own ${resourceName}.`
-    );
+    // Same message as "missing" so a caller cannot tell another user's id from one that does not
+    // exist, and the caller's own account id is never echoed back.
+    throw new AuthorizationError(`${resourceName} not found or access denied.`);
   }
   return resource;
 }

@@ -96,6 +96,14 @@ describe("THE-97: Foundation, Auth Primitives, Env Validation & Ownership Guards
       ).toThrowError(AuthorizationError);
     });
 
+    it("gives the same message for another user's resource as for a missing one, without echoing ids", () => {
+      const foreign = () => assertResourceOwnership(vaultRecord, "user_attacker_999", "Vault");
+      const missing = () => assertResourceOwnership(null, "user_attacker_999", "Vault");
+      expect(foreign).toThrowError("Vault not found or access denied.");
+      expect(missing).toThrowError("Vault not found or access denied.");
+      expect(foreign).not.toThrowError(/user_attacker_999|user_owner_123/);
+    });
+
     it("throws AuthorizationError (403) when resource is null/missing", () => {
       expect(() =>
         assertResourceOwnership(null, "user_owner_123", "Vault")

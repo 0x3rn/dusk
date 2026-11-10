@@ -53,4 +53,15 @@ describe("errorToResponse", () => {
     expect(JSON.stringify(body)).not.toContain("secret");
     expect(spy).toHaveBeenCalledOnce();
   });
+
+  it("scrubs emails and ciphertext out of the server log line for unexpected errors", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    errorToResponse(
+      new Error(`Invalid prisma.contact.upsert() invocation: { email: 'victim@example.com', c: '${"QUJD".repeat(30)}' }`),
+      "test"
+    );
+    const logged = spy.mock.calls.flat().join(" ");
+    expect(logged).not.toMatch(/victim@|QUJDQUJD/);
+    expect(logged).toContain("[test]");
+  });
 });

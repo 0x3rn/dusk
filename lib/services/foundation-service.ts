@@ -32,15 +32,15 @@ export const AuthIdentitySchema = z.object({
 export type AuthIdentity = z.input<typeof AuthIdentitySchema>;
 
 export const InitializeVaultInputSchema = z.object({
-  wrappedMasterKeyCiphertext: z.string().min(16),
-  wrappedMasterKeyIv: z.string().min(12),
-  kdfSaltBase64: z.string().min(16),
-  kdfAlgorithm: z.string().min(1).default("PBKDF2-SHA256-600000"),
+  wrappedMasterKeyCiphertext: z.string().min(16).max(2_000),
+  wrappedMasterKeyIv: z.string().min(12).max(100),
+  kdfSaltBase64: z.string().min(16).max(200),
+  kdfAlgorithm: z.string().min(1).max(100).default("PBKDF2-SHA256-600000"),
 });
 
 export const CreateEncryptedItemInputSchema = z.object({
-  vaultId: z.string().min(1),
-  folderId: z.string().optional(),
+  vaultId: z.string().min(1).max(64),
+  folderId: z.string().min(1).max(64).optional(),
   category: z
     .enum([
       "CREDENTIAL",
@@ -54,11 +54,12 @@ export const CreateEncryptedItemInputSchema = z.object({
     .default("SECURE_NOTE"),
   schemaVersion: z.number().int().positive().default(1),
   keyVersion: z.number().int().positive().default(1),
-  ciphertextBase64: z.string().min(24),
-  ivBase64: z.string().min(16),
-  wrappedItemKeyBase64: z.string().min(24),
-  wrappedItemKeyIvBase64: z.string().min(16),
-  aadResourceId: z.string().min(1),
+  // The cap (about 1.5 MB of ciphertext) keeps one request inside the platform body limit.
+  ciphertextBase64: z.string().min(24).max(2_000_000),
+  ivBase64: z.string().min(16).max(100),
+  wrappedItemKeyBase64: z.string().min(24).max(2_000),
+  wrappedItemKeyIvBase64: z.string().min(16).max(100),
+  aadResourceId: z.string().min(1).max(200),
 });
 
 export interface UserRecord {
@@ -180,6 +181,7 @@ export interface FoundationPersistencePort {
     wrappedItemKeyIvBase64: string;
     aadResourceId: string;
   }): Promise<EncryptedItemRecord>;
+  findFolderById(folderId: string): Promise<{ id: string; vaultId: string } | null>;
   findEncryptedItemById(itemId: string): Promise<EncryptedItemRecord | null>;
   listEncryptedItemsByVaultId(vaultId: string): Promise<EncryptedItemRecord[]>;
   appendAuditEvent(data: {
@@ -344,6 +346,15 @@ export class FoundationService {
       authenticatedUserId,
       "Vault"
     );
+
+    // A folder id from the request is only usable if the folder sits in this same vault, so an
+    // item can never be filed under another account's folder.
+    if (input.folderId) {
+      const folder = await this.store.findFolderById(input.folderId);
+      if (!folder || folder.vaultId !== vault.id) {
+        throw new ValidationError("Folder not found.");
+      }
+    }
 
     const item = await this.store.createEncryptedItem({
       vaultId: vault.id,

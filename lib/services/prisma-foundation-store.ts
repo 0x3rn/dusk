@@ -126,6 +126,10 @@ export class PrismaFoundationStore implements FoundationPersistencePort {
     return this.db.encryptedItem.create({ data });
   }
 
+  async findFolderById(folderId: string): Promise<{ id: string; vaultId: string } | null> {
+    return this.db.vaultFolder.findUnique({ where: { id: folderId }, select: { id: true, vaultId: true } });
+  }
+
   async findEncryptedItemById(itemId: string): Promise<EncryptedItemRecord | null> {
     return this.db.encryptedItem.findUnique({ where: { id: itemId } });
   }

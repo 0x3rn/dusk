@@ -160,6 +160,11 @@ export const RATE_LIMIT_POLICIES = {
     maxAttempts: 10,
     windowMs: 60 * 60 * 1000, // 10 checkout sessions per hour per user
   },
+  DASHBOARD_MUTATION: {
+    bucketName: "dashboard_mutation",
+    maxAttempts: 120,
+    windowMs: 5 * 60 * 1000, // 120 vault/contact/schedule changes per 5 minutes per user
+  },
   SCHEDULER_TICK: {
     bucketName: "scheduler_tick",
     maxAttempts: 60,

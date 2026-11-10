@@ -9,6 +9,7 @@ import {
 } from "../auth/security";
 import { TrustBoundaryViolationError } from "../domain/trust-boundary";
 import { RateLimitExceededError } from "../security/http-hardening";
+import { scrubText } from "../observability/sentry-scrub";
 
 export interface ApiErrorBody {
   error: string;
@@ -54,7 +55,8 @@ export function errorToResponse(err: unknown, routeLabel: string): NextResponse<
     }
   }
   // Unexpected: log the detail server-side, return a generic message.
-  console.error(`[${routeLabel}]`, err instanceof Error ? err.stack ?? err.message : err);
+  // Database errors echo the failing query's arguments (emails, ciphertext), so scrub before logging.
+  console.error(`[${routeLabel}]`, scrubText(err instanceof Error ? err.stack ?? err.message : String(err)));
   return NextResponse.json(
     { error: "Something went wrong. Please try again.", code: "INTERNAL_ERROR" },
     { status: 500 }

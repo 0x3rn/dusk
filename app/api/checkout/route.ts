@@ -8,11 +8,15 @@ import { getServerEnv } from "@/lib/env";
 import { getStripe, StripeNotConfiguredError } from "@/lib/stripe";
 import { ValidationError } from "@/lib/auth/security";
 import { buildLifetimeCheckoutParams } from "@/lib/billing/lifetime-access";
+import { RATE_LIMIT_POLICIES } from "@/lib/security/http-hardening";
+import { consumeRateLimit } from "@/lib/security/db-rate-limiter";
 
 export async function POST(req: Request) {
   try {
     assertSameOrigin(req);
     const { user } = await requireUser();
+    // Every call creates a Stripe Checkout Session, so cap how many one account can open.
+    await consumeRateLimit(prisma, RATE_LIMIT_POLICIES.CHECKOUT_START, user.id);
 
     if (user.hasLifetimeAccess) {
       throw new ValidationError("This account already has lifetime access.");

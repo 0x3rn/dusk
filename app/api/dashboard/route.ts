@@ -5,8 +5,12 @@ import { auth } from "@/lib/auth/server";
 import { getFoundationService, requireUser } from "@/lib/auth/current-user";
 import { errorToResponse } from "@/lib/api/errors";
 import { assertSameOrigin } from "@/lib/api/csrf";
+import { readJsonBody } from "@/lib/api/body";
+import { parseDashboardAction } from "@/lib/api/dashboard-actions";
+import { RATE_LIMIT_POLICIES } from "@/lib/security/http-hardening";
+import { consumeRateLimit } from "@/lib/security/db-rate-limiter";
 import { createEngine } from "@/lib/engine/engine";
-import { AuthorizationError, ValidationError } from "@/lib/services/foundation-service";
+import { AuthorizationError } from "@/lib/services/foundation-service";
 import { redactForAuditLog } from "@/lib/domain/trust-boundary";
 
 export async function GET() {
@@ -36,6 +40,8 @@ export async function GET() {
       }),
       prisma.contact.findMany({
         where: { userId: user.id, status: { not: "REVOKED" } },
+        // Invite token hashes are credentials-at-rest; the browser never needs them.
+        omit: { inviteTokenHash: true },
         orderBy: { createdAt: "desc" },
       }),
       prisma.recoveryArtifact.findMany({
@@ -72,9 +78,10 @@ export async function POST(req: Request) {
   try {
     assertSameOrigin(req);
     const { user } = await requireUser();
+    await consumeRateLimit(prisma, RATE_LIMIT_POLICIES.DASHBOARD_MUTATION, user.id);
     const service = getFoundationService();
     const engine = createEngine();
-    const body = await req.json();
+    const body = parseDashboardAction(await readJsonBody(req));
 
     switch (body.action) {
       case "LOGOUT": {
@@ -96,6 +103,7 @@ export async function POST(req: Request) {
         const vault = await service.createEmptyVault(user.id, body.vaultBundle);
         let recoveryArtifact = null;
         if (body.recoveryServerArtifact) {
+          const artifact = body.recoveryServerArtifact;
           await prisma.recoveryArtifact.updateMany({
             where: { userId: user.id, isActive: true },
             data: { isActive: false, revokedAt: new Date() },
@@ -103,14 +111,14 @@ export async function POST(req: Request) {
           recoveryArtifact = await prisma.recoveryArtifact.create({
             data: {
               userId: user.id,
-              keyVersion: body.recoveryServerArtifact.keyVersion,
+              keyVersion: artifact.keyVersion,
               recoveryWrappedVmKBase64:
-                body.recoveryServerArtifact.recoveryWrappedVmKBase64,
+                artifact.recoveryWrappedVmKBase64,
               recoveryWrappedVmKIv:
-                body.recoveryServerArtifact.recoveryWrappedVmKIv,
-              kdfSaltBase64: body.recoveryServerArtifact.kdfSaltBase64,
-              kdfAlgorithm: body.recoveryServerArtifact.kdfAlgorithm,
-              fingerprintHex: body.recoveryServerArtifact.fingerprintHex,
+                artifact.recoveryWrappedVmKIv,
+              kdfSaltBase64: artifact.kdfSaltBase64,
+              kdfAlgorithm: artifact.kdfAlgorithm,
+              fingerprintHex: artifact.fingerprintHex,
               isActive: true,
             },
           });
@@ -167,22 +175,17 @@ export async function POST(req: Request) {
           publicKeyBase64,
         } = body.contact;
 
-        if (!isBeneficiary && !isTrustedVerifier) {
-          throw new ValidationError(
-            "A contact must be designated as a Beneficiary, a Trusted Verifier, or both."
-          );
-        }
-
-        const normalizedEmail = email.trim().toLowerCase();
+        // Already trimmed, lower-cased and checked by parseDashboardAction.
+        const normalizedEmail = email;
         const contact = await prisma.contact.upsert({
           where: {
             userId_email: { userId: user.id, email: normalizedEmail },
           },
           update: {
-            fullName: fullName.trim(),
-            phone: phone?.trim() || null,
-            isBeneficiary: Boolean(isBeneficiary),
-            isTrustedVerifier: Boolean(isTrustedVerifier),
+            fullName,
+            phone: phone || null,
+            isBeneficiary,
+            isTrustedVerifier,
             status: "VERIFIED",
             verifiedAt: new Date(),
             publicKeyBase64: isBeneficiary ? publicKeyBase64 : null,
@@ -190,11 +193,11 @@ export async function POST(req: Request) {
           },
           create: {
             userId: user.id,
-            fullName: fullName.trim(),
+            fullName,
             email: normalizedEmail,
-            phone: phone?.trim() || null,
-            isBeneficiary: Boolean(isBeneficiary),
-            isTrustedVerifier: Boolean(isTrustedVerifier),
+            phone: phone || null,
+            isBeneficiary,
+            isTrustedVerifier,
             status: "VERIFIED",
             verifiedAt: new Date(),
             publicKeyBase64: isBeneficiary ? publicKeyBase64 : null,
@@ -338,7 +341,7 @@ export async function POST(req: Request) {
       case "CHECK_IN_NOW": {
         // The browser sends a fresh key per click so a double-click is one check-in, not two.
         const idempotencyKey =
-          typeof body.idempotencyKey === "string" && body.idempotencyKey.length >= 8
+          body.idempotencyKey !== undefined && body.idempotencyKey.length >= 8
             ? `checkin_ui_${user.id}_${body.idempotencyKey.slice(0, 64)}`
             : undefined;
         const { schedule } = await engine.checkIn.recordAuthenticatedCheckIn(user.id, idempotencyKey);
@@ -349,10 +352,10 @@ export async function POST(req: Request) {
         const current = await prisma.checkInSchedule.findUniqueOrThrow({
           where: { userId: user.id },
         });
-        const intervalDays = Number(body.intervalDays) || current.intervalDays;
+        const intervalDays = body.intervalDays || current.intervalDays;
         const schedule = await engine.checkIn.updateScheduleConfiguration(user.id, {
           intervalDays,
-          gracePeriodDays: Number(body.gracePeriodDays) || current.gracePeriodDays,
+          gracePeriodDays: body.gracePeriodDays || current.gracePeriodDays,
           // Keep the reminder window valid if the interval was shortened below it.
           reminderDaysBeforeDue: Math.min(current.reminderDaysBeforeDue, Math.max(1, intervalDays - 1)),
           minRequiredReminders: current.minRequiredReminders,
@@ -363,21 +366,18 @@ export async function POST(req: Request) {
 
       case "PAUSE_SCHEDULE": {
         const { schedule } = await engine.escalation().pauseSchedule(user.id, {
-          pauseDays: Number(body.pauseDays) || 14,
-          reason: typeof body.reason === "string" && body.reason.trim().length >= 3 ? body.reason : "Paused by owner",
+          pauseDays: body.pauseDays || 14,
+          reason: body.reason && body.reason.length >= 3 ? body.reason : "Paused by owner",
         });
         return NextResponse.json({ schedule });
       }
 
       case "CANCEL_FALSE_TRIGGER": {
         const { schedule } = await engine.escalation().cancelFalseTrigger(user.id, {
-          reason: typeof body.reason === "string" && body.reason.trim().length >= 3 ? body.reason : undefined,
+          reason: body.reason && body.reason.length >= 3 ? body.reason : undefined,
         });
         return NextResponse.json({ schedule });
       }
-
-      default:
-        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (err: unknown) {
     return errorToResponse(err, "POST /api/dashboard");

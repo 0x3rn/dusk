@@ -4,11 +4,18 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 import { getProductionSecurityHeaders } from "./lib/security/http-hardening";
 
 const nextConfig: NextConfig = {
+  // Do not advertise the framework in an X-Powered-By header.
+  poweredByHeader: false,
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: getProductionSecurityHeaders(),
+      },
+      {
+        // API responses hold personal and encrypted data: never let a browser or CDN reuse them.
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
       },
     ];
   },
