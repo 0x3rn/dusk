@@ -41,7 +41,7 @@ export default async function SecurityArchitecturePage() {
               href="/"
               className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
             >
-              <ArrowLeft strokeWidth={1.5} className="w-4 h-4" /> Back to Home
+              <ArrowLeft strokeWidth={1.5} className="w-4 h-4" aria-hidden="true" /> Back to home
             </Link>
           </div>
           <div className="flex items-center gap-4">
@@ -51,7 +51,7 @@ export default async function SecurityArchitecturePage() {
                 href="/dashboard"
                 className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-5 py-2 rounded-md text-sm flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
-                Go to Dashboard <ArrowRight strokeWidth={1.5} className="w-4 h-4" />
+                Dashboard <ArrowRight strokeWidth={1.5} className="w-4 h-4" />
               </Link>
             ) : (
               <>
@@ -59,13 +59,13 @@ export default async function SecurityArchitecturePage() {
                   href="/login"
                   className="text-sm font-medium hover:text-foreground transition-colors hidden sm:block"
                 >
-                  Sign In
+                  Sign in
                 </Link>
                 <Link
                   href="/register"
                   className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-5 py-2 rounded-md text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
-                  Get Started
+                  Get Dusk
                 </Link>
               </>
             )}
@@ -85,6 +85,10 @@ export default async function SecurityArchitecturePage() {
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">
             Dusk Zero-Knowledge Security Architecture
           </h1>
+          <p className="text-lg md:text-xl text-foreground leading-relaxed max-w-prose">
+            In plain words: your vault is locked on your own device before it is sent to Dusk, so Dusk can&apos;t read
+            it. The rest of this page is the technical detail, for people who want to check our work.
+          </p>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
             Dusk is engineered under a single foundational assumption:{" "}
             <strong className="text-foreground">

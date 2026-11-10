@@ -24,6 +24,16 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Escape closes the mobile menu
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
+
   // Lock body scroll when mobile menu is open
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -53,8 +63,8 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
 
         {/* Center: Navigation Links (Desktop) */}
         <nav
-          className="hidden md:flex items-center gap-8 text-[14px] font-medium text-foreground-secondary"
-          aria-label="Main Navigation"
+                  className="hidden md:flex items-center gap-8 text-[14px] font-medium text-foreground-secondary"
+                  aria-label="Main navigation"
         >
           {navLinks.map((link) => (
             <a
@@ -121,7 +131,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
         <div className="md:hidden fixed inset-x-0 top-[72px] bottom-0 bg-sunken z-50 border-t border-border flex flex-col justify-between p-6 overflow-y-auto">
-          <nav className="flex flex-col gap-5 pt-2" aria-label="Mobile Navigation">
+          <nav className="flex flex-col gap-5 pt-2" aria-label="Mobile navigation">
             {navLinks.map((link) => (
               <a
                 key={link.label}

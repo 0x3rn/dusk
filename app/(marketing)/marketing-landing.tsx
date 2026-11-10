@@ -42,10 +42,13 @@ export function MarketingLanding({
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-accent-surface selection:text-foreground overflow-x-hidden antialiased">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       {/* 1. Navigation */}
       <SiteHeader isAuthenticated={isAuthenticated} />
 
-      <main>
+      <main id="main-content">
         {/* 2. Hero and Product Preview */}
         <HeroSection isAuthenticated={isAuthenticated} />
 

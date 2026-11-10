@@ -6,29 +6,48 @@ export interface SiteDoc {
   body: React.ReactNode;
 }
 
+// Same heading style for every document page, so the structure is easy to scan.
+function H({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-lg font-semibold text-foreground pt-2">{children}</h2>;
+}
+
 export const SITE_DOCS: Record<string, SiteDoc> = {
   "help-center": {
     category: "Support",
     title: "Dusk help center",
     body: (
       <div className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-foreground">
-          How check-in schedules work
-        </h2>
+        <H>How do check-ins work?</H>
         <p>
-          You configure check-in intervals (e.g., every 30, 90, or 180 days). Dusk sends reminders by email or SMS. Confirming your check-in resets your timer.
+          You choose how often to check in, for example every 30, 90 or 180 days. Dusk reminds you by email or SMS
+          before each check-in is due. When you check in, the timer starts again.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          What happens if a check-in is missed?
-        </h2>
+        <H>What happens if I miss a check-in?</H>
         <p>
-          A missed deadline enters a configurable grace period with reminders. Release cannot occur without completing the full staged verification workflow.
+          Nothing is sent right away. You get a grace period and more reminders first. If you still don&apos;t check in,
+          Dusk asks your trusted verifiers to confirm. Your items are only released after those steps are finished.
+          You can stop the process at any time before release by checking in.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Separation of trusted verifiers and beneficiaries
-        </h2>
+        <H>What is the difference between a trusted verifier and a beneficiary?</H>
         <p>
-          Trusted verifiers (who attest to your status) and beneficiaries (who receive access packages) are distinct roles. You may configure them independently.
+          A trusted verifier confirms whether you are okay, or whether a release is real. A beneficiary receives the
+          items you choose for them. They are separate roles. One person can have both, but they don&apos;t have to.
+        </p>
+        <H>What is my master passphrase?</H>
+        <p>
+          It is the passphrase that locks your vault. It is different from your account password. It never leaves your
+          device, so Dusk can&apos;t see it or reset it.
+        </p>
+        <H>What if I forget my passphrase?</H>
+        <p>
+          Use the recovery code from your recovery kit. Open the Digital vault page and choose to use your recovery
+          code. If you have lost both your passphrase and your recovery code, nobody, including Dusk, can open your
+          vault.
+        </p>
+        <H>How do my beneficiaries get what I gave them?</H>
+        <p>
+          When you add a beneficiary, Dusk gives you a private unlock link to send to them yourself. After a release is
+          confirmed, they use that link to open only the items you assigned to them.
         </p>
       </div>
     ),
@@ -39,22 +58,21 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
     body: (
       <div className="space-y-4">
         <p>
-          Dusk is designed with privacy as a core engineering invariant, not merely a legal policy.
+          Dusk is built so that we can&apos;t read what you store. This page explains what we do keep.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Data minimization
-        </h2>
+        <H>What we collect</H>
         <p>
-          We do not collect tracker cookies, commercial marketing analytics, or profile data. We retain only the minimum metadata required to operate your account and execute your check-in notifications.
+          Only what we need to run your account and send your check-in reminders. We don&apos;t use tracking cookies,
+          marketing analytics or advertising profiles.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Encrypted vault storage
-        </h2>
+        <H>Your vault</H>
         <p>
-          Vault contents are stored solely in encrypted form. Dusk personnel, service providers, and automated pipelines have no capability to read your stored content.
+          Your vault is stored only in encrypted form. Dusk staff, service providers and our automated systems can&apos;t
+          read it.
         </p>
+        <H>Who is responsible</H>
         <p>
-          Dusk Technologies operates Dusk and is responsible for the practices described in this policy.
+          Dusk Technologies operates Dusk and is responsible for the practices described on this page.
         </p>
       </div>
     ),
@@ -64,23 +82,20 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
     title: "Terms of service",
     body: (
       <div className="space-y-4">
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Scope of service
-        </h2>
+        <H>What Dusk does</H>
         <p>
-          Dusk provides digital instruction organization and encrypted delivery infrastructure. Dusk does not provide legal, probate, estate-planning, or financial advisory services.
+          Dusk keeps your instructions and login details in an encrypted vault and delivers them to the people you
+          choose. Dusk does not give legal, probate, estate-planning or financial advice.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Legal estates and asset transfers
-        </h2>
+        <H>What Dusk does not do</H>
         <p>
-          Dusk organizes your instructions and credentials; it does not legally transfer legal title to assets, real estate, bank accounts, or financial holdings. Legal disposition remains governed by applicable jurisdiction laws and valid wills.
+          Dusk does not transfer ownership of property, real estate, bank accounts or other assets. That is decided by
+          the laws where you live and by a valid will.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          User key responsibility
-        </h2>
+        <H>Your responsibility for your keys</H>
         <p>
-          Users are solely responsible for securing their credentials and recovery kits. Dusk cannot bypass the encryption in the event of lost credentials.
+          You are responsible for keeping your passphrase and recovery kit safe. If you lose them, Dusk can&apos;t open
+          your vault for you.
         </p>
         <p>
           These terms are provided by Dusk Technologies, the operator of Dusk.
@@ -90,23 +105,21 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
   },
   "security-disclosures": {
     category: "Security",
-    title: "Security disclosures and vulnerability reporting",
+    title: "Report a security problem",
     body: (
       <div className="space-y-4">
         <p>
-          Dusk welcomes responsible disclosures from security researchers and cryptographers.
+          If you have found a security problem in Dusk, we want to hear about it.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Reporting process
-        </h2>
+        <H>How to report it</H>
         <p>
-          Send encrypted reports to security@dusk.infrastructure with detailed steps to reproduce, cryptographic proof of concept, and environment specifications.
+          Send encrypted reports to security@dusk.infrastructure. Include the steps to reproduce the problem, a proof
+          of concept, and the environment you tested in.
         </p>
-        <h2 className="text-[15px] font-semibold text-foreground">
-          Response commitment
-        </h2>
+        <H>What to expect from us</H>
         <p>
-          We acknowledge valid submissions within 24 business hours and prioritize remediation for any findings affecting our trust boundaries or encryption guarantees.
+          We acknowledge valid reports within 24 business hours. Problems that affect your encryption or who can
+          access what are fixed first.
         </p>
       </div>
     ),

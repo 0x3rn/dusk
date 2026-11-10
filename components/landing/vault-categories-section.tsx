@@ -44,7 +44,7 @@ export function VaultCategoriesSection() {
             What you can store
           </span>
           <h2 className="text-[28px] sm:text-[34px] lg:text-[38px] font-semibold text-foreground leading-[1.18] tracking-[-0.02em] mb-5">
-            Store what matters. Share only what you choose.
+            What you can keep in your vault
           </h2>
           <p className="text-[16px] sm:text-[17px] text-foreground-secondary leading-[1.65]">
             Add the details your people will need, then decide who gets which item.

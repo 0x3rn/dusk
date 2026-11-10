@@ -7,6 +7,13 @@ import { Lock } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/client-errors";
+import { Notice } from "@/components/ui/notice";
+import {
+  buttonPrimaryClass,
+  buttonSecondaryClass,
+  fieldInputClass,
+  fieldLabelClass,
+} from "@/components/ui/form-field";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,7 +33,7 @@ export default function LoginPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Sign in failed."));
+      setError(authErrorMessage(err, "We couldn't sign you in. Check your connection and try again."));
     } finally {
       setLoading(false);
     }
@@ -44,13 +51,13 @@ export default function LoginPage() {
       });
       if (result?.error) throw result.error;
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Google sign-in failed."));
+      setError(authErrorMessage(err, "We couldn't sign you in with Google. Try again, or use your email and password."));
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
+    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
@@ -61,23 +68,23 @@ export default function LoginPage() {
             Welcome back
           </h1>
           <p className="text-sm text-foreground-secondary">
-            Unlock your encrypted vault.
+            Sign in to your Dusk account.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-sm text-center">
+          <Notice tone="error" className="mb-4">
             {error}
-          </div>
+          </Notice>
         )}
 
         <button
           type="button"
           onClick={handleGoogleSignIn}
           disabled={loading}
-          className="w-full border border-border bg-elevated hover:bg-hover text-foreground font-medium transition-colors p-3 rounded-lg flex items-center justify-center gap-3 disabled:opacity-50"
+          className={`${buttonSecondaryClass} w-full gap-3`}
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
               fill="#4285F4"
@@ -100,70 +107,68 @@ export default function LoginPage() {
 
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-foreground-muted uppercase tracking-wider">
-            or
-          </span>
+          <span className="text-xs text-foreground-secondary uppercase tracking-wider">
+                      or
+                    </span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label
-              htmlFor="login-email"
-              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-            >
+            <label htmlFor="login-email" className={fieldLabelClass}>
               Email
             </label>
             <input
               id="login-email"
               type="email"
               required
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
+              className={fieldInputClass}
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <div className="flex items-center justify-between mb-2 ml-1 mr-1">
-              <label
-                htmlFor="login-password"
-                className="block text-xs font-medium text-foreground-secondary"
-              >
-                Password
-              </label>
-              <Link href="/recovery" className="text-xs text-accent-text hover:underline">
-                Use your recovery kit?
-              </Link>
-            </div>
+            <label htmlFor="login-password" className={fieldLabelClass}>
+              Password
+            </label>
             <input
               id="login-password"
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
-              placeholder="••••••••••••"
+              className={fieldInputClass}
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg flex items-center justify-center gap-2 mt-2 shadow-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            <Lock strokeWidth={1.75} className="w-4 h-4" />
-            {loading ? "Signing in..." : "Sign in"}
+            className={`${buttonPrimaryClass} w-full mt-2`}
+                      >
+                        <Lock strokeWidth={1.75} className="w-4 h-4" aria-hidden="true" />
+                        {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-foreground-secondary">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent-text hover:underline font-medium">
-            Create one
-          </Link>
+        <div className="mt-8 text-center text-sm text-foreground-secondary space-y-2">
+          <p>
+            Don&apos;t have an account?{" "}
+            <Link href="/register" className="text-accent-text underline underline-offset-2 font-medium">
+              Create one
+            </Link>
+          </p>
+          <p>
+            Locked out of your vault?{" "}
+            <Link href="/recovery" className="text-accent-text underline underline-offset-2 font-medium">
+              Read the recovery guide
+            </Link>
+          </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

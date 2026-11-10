@@ -192,7 +192,9 @@ export function getAuditEventDisplay(
 
     case "CHECKIN_SCHEDULE_PAUSED": {
       const pauseDays = asNumber(meta.pauseDays) ?? 0;
-      const reason = asString(meta.reason);
+      // The dashboard's own default reason adds nothing for the reader, so leave it out.
+      const rawReason = asString(meta.reason);
+      const reason = rawReason === "Paused from dashboard console" ? undefined : rawReason;
       return {
         title: "Check-ins paused",
         description: withPeriod(
@@ -229,10 +231,102 @@ export function getAuditEventDisplay(
       };
     }
 
+    case "ACCOUNT_CREATED":
+      return {
+        title: "Account created",
+        description: "Your Dusk account was set up.",
+      };
+
+    case "AUTH_IDENTITY_LINKED":
+      return {
+        title: "Sign-in method linked",
+        description: "A sign-in method was linked to your account.",
+      };
+
+    case "AUTH_SIGNED_OUT":
+      return {
+        title: "You signed out",
+        description: "You ended your session on a device.",
+      };
+
+    case "LIFETIME_ACCESS_GRANTED":
+      return {
+        title: "Payment received",
+        description: "Your one-time payment was received and your lifetime access is active.",
+      };
+
+    case "CONTACT_INVITED":
+    case "CONTACT_REINVITED": {
+      const name = resolveContactName(meta, contacts, "A contact");
+      return {
+        title: eventType === "CONTACT_INVITED" ? "Invitation sent" : "Invitation sent again",
+        description: `${name} was asked to confirm their email address.`,
+      };
+    }
+
+    case "CONTACT_INVITE_ACCEPTED": {
+      const name = resolveContactName(meta, contacts, "A contact");
+      return {
+        title: "Invitation accepted",
+        description: `${name} accepted their invitation.`,
+      };
+    }
+
+    case "VERIFIER_CHALLENGE_ISSUED": {
+      const name = resolveContactName(meta, contacts, "A trusted verifier");
+      return {
+        title: "Verifier asked to confirm",
+        description: `${name} was sent a link to confirm whether you are okay.`,
+      };
+    }
+
+    case "VERIFIER_ATTESTED_ALIVE": {
+      const name = resolveContactName(meta, contacts);
+      return {
+        title: `${name} confirmed you're okay`,
+        description: "The release process was stopped.",
+      };
+    }
+
+    case "FALSE_TRIGGER_CANCELED":
+    case "FALSE_TRIGGER_CANCELED_BY_OWNER":
+      return {
+        title: "Release process stopped",
+        description: "The process was canceled before anything was released.",
+      };
+
+    case "BENEFICIARY_ACCESS_GRANT_ISSUED": {
+      const beneficiary = resolveContactName(meta, contacts, "A beneficiary");
+      return {
+        title: "Access link sent",
+        description: `${beneficiary} was sent a one-time link to open their items.`,
+      };
+    }
+
+    case "PACKAGE_RECEIPT_ACKNOWLEDGED": {
+      const beneficiary = resolveContactName(meta, contacts, "A beneficiary");
+      return {
+        title: "Items received",
+        description: `${beneficiary} confirmed they received their items.`,
+      };
+    }
+
+    case "RECOVERY_KIT_REVOKED":
+      return {
+        title: "Recovery kit replaced",
+        description: "An earlier recovery kit can no longer be used.",
+      };
+
+    case "RECOVERY_KIT_ROTATED":
+      return {
+        title: "Recovery kit replaced",
+        description: "A new recovery kit was made and the old one can no longer be used.",
+      };
+
     default:
       return {
         title: humanizeEventType(eventType),
-        description: "This action was recorded in your activity log.",
+        description: "Recorded on your account.",
       };
   }
 }

@@ -7,6 +7,14 @@ import { Shield } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/client-errors";
+import { Notice } from "@/components/ui/notice";
+import {
+  buttonPrimaryClass,
+  buttonSecondaryClass,
+  fieldHintClass,
+  fieldInputClass,
+  fieldLabelClass,
+} from "@/components/ui/form-field";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -37,7 +45,7 @@ export default function RegisterPage() {
         setStep("verify");
       }
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Registration failed."));
+      setError(authErrorMessage(err, "We couldn't create your account. Check your details and try again."));
     } finally {
       setLoading(false);
     }
@@ -55,7 +63,7 @@ export default function RegisterPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Verification failed."));
+      setError(authErrorMessage(err, "We couldn't verify that code. Check it and try again."));
     } finally {
       setLoading(false);
     }
@@ -74,7 +82,7 @@ export default function RegisterPage() {
       if (result.error) throw result.error;
       setNotice("We sent you a new code.");
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Could not send a new code."));
+      setError(authErrorMessage(err, "We couldn't send a new code. Wait a minute and try again."));
     } finally {
       setLoading(false);
     }
@@ -91,13 +99,13 @@ export default function RegisterPage() {
       });
       if (result?.error) throw result.error;
     } catch (err: unknown) {
-      setError(authErrorMessage(err, "Google sign-up failed."));
+      setError(authErrorMessage(err, "We couldn't sign you up with Google. Try again, or use your email."));
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
+    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
@@ -108,14 +116,14 @@ export default function RegisterPage() {
             Create your account
           </h1>
           <p className="text-sm text-foreground-secondary">
-            Start securing your digital legacy.
+            You will choose a separate passphrase for your vault after this.
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-sm text-center">
+          <Notice tone="error" className="mb-4">
             {error}
-          </div>
+          </Notice>
         )}
 
         {step === "verify" ? (
@@ -130,12 +138,9 @@ export default function RegisterPage() {
               </p>
             )}
             <div>
-              <label
-                htmlFor="register-otp"
-                className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-              >
-                Verification code
-              </label>
+              <label htmlFor="register-otp" className={fieldLabelClass}>
+                  Verification code
+                </label>
               <input
                 id="register-otp"
                 type="text"
@@ -144,22 +149,22 @@ export default function RegisterPage() {
                 required
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted tracking-widest"
+                className={`${fieldInputClass} tracking-widest`}
                 placeholder="123456"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {loading ? "Checking..." : "Verify email"}
+              className={`${buttonPrimaryClass} w-full`}
+                          >
+                            {loading ? "Checking..." : "Verify email"}
             </button>
             <button
               type="button"
               onClick={handleResend}
               disabled={loading}
-              className="w-full text-sm text-accent-text hover:underline disabled:opacity-50"
+              className="w-full min-h-11 text-sm text-accent-text underline underline-offset-2 disabled:opacity-50"
             >
               Send a new code
             </button>
@@ -170,9 +175,9 @@ export default function RegisterPage() {
           type="button"
           onClick={handleGoogleSignUp}
           disabled={loading}
-          className="w-full border border-border bg-elevated hover:bg-hover text-foreground font-medium transition-colors p-3 rounded-lg flex items-center justify-center gap-3 disabled:opacity-50"
+          className={`${buttonSecondaryClass} w-full gap-3`}
         >
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
+          <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
             <path
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
               fill="#4285F4"
@@ -195,18 +200,15 @@ export default function RegisterPage() {
 
         <div className="flex items-center gap-4 my-6">
           <div className="flex-1 h-px bg-border" />
-          <span className="text-xs text-foreground-muted uppercase tracking-wider">
-            or
-          </span>
+          <span className="text-xs text-foreground-secondary uppercase tracking-wider">
+                      or
+                    </span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label
-              htmlFor="register-name"
-              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-            >
+            <label htmlFor="register-name" className={fieldLabelClass}>
               Full name
             </label>
             <input
@@ -215,15 +217,12 @@ export default function RegisterPage() {
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
-              placeholder="Satoshi Nakamoto"
+              autoComplete="name"
+                            className={fieldInputClass}
             />
           </div>
           <div>
-            <label
-              htmlFor="register-email"
-              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-            >
+            <label htmlFor="register-email" className={fieldLabelClass}>
               Email
             </label>
             <input
@@ -232,15 +231,13 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
-              placeholder="you@example.com"
+              autoComplete="email"
+                            className={fieldInputClass}
+                            placeholder="you@example.com"
             />
           </div>
           <div>
-            <label
-              htmlFor="register-password"
-              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-            >
+            <label htmlFor="register-password" className={fieldLabelClass}>
               Password
             </label>
             <input
@@ -248,19 +245,23 @@ export default function RegisterPage() {
               type="password"
               required
               minLength={10}
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted"
-              placeholder="At least 10 characters"
+              aria-describedby="register-password-hint"
+              className={fieldInputClass}
             />
+            <span id="register-password-hint" className={fieldHintClass}>
+              At least 10 characters.
+            </span>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg flex items-center justify-center gap-2 mt-4 shadow-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-          >
-            <Shield strokeWidth={1.75} className="w-4 h-4" />
+            className={`${buttonPrimaryClass} w-full mt-4`}
+                      >
+                        <Shield strokeWidth={1.75} className="w-4 h-4" aria-hidden="true" />
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
@@ -269,11 +270,11 @@ export default function RegisterPage() {
 
         <div className="mt-8 text-center text-sm text-foreground-secondary">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent-text hover:underline font-medium">
+          <Link href="/login" className="text-accent-text underline underline-offset-2 font-medium">
             Sign in
           </Link>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -3,6 +3,8 @@
 import { use, useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
+import { Notice } from "@/components/ui/notice";
+import { buttonPrimaryClass, fieldLabelClass, fieldTextareaClass } from "@/components/ui/form-field";
 
 type Action = "ALIVE" | "HOLD" | "APPROVE";
 type Status = "idle" | "working" | "done" | "error";
@@ -44,11 +46,18 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
         body: JSON.stringify({ token, action, statement }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "We couldn't record your answer.");
+      if (!res.ok) {
+        const invalid = /token|invalid|expired|already used/i.test(String(data.error ?? ""));
+        throw new Error(
+          invalid
+            ? "This link isn't valid. It may have expired or already been used."
+            : data.error || "We couldn't record your answer. Try again in a moment."
+        );
+      }
       setStatus("done");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "We couldn't record your answer.");
+      setMessage(err instanceof Error ? err.message : "We couldn't record your answer. Try again in a moment.");
     }
   };
 
@@ -60,7 +69,7 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
       <div className="w-full max-w-lg border border-border bg-card rounded-2xl p-8 shadow-sm">
         {status === "done" ? (
           <div className="text-center">
-            <CheckCircle2 className="w-10 h-10 mx-auto mb-4 text-brand" aria-hidden="true" />
+            <CheckCircle2 className="w-10 h-10 mx-auto mb-4 text-accent-text" aria-hidden="true" />
             <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">Thank you</h1>
             <p className="text-sm text-foreground-secondary">
               Your answer was recorded. You don&apos;t need to do anything else.
@@ -91,7 +100,7 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
                 <label
                   key={o.value}
                   className={`flex gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
-                    action === o.value ? "border-brand bg-hover" : "border-border hover:bg-hover"
+                    action === o.value ? "border-accent-text bg-accent-surface/40" : "border-border hover:bg-hover"
                   }`}
                 >
                   <input
@@ -110,10 +119,7 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
               ))}
             </fieldset>
 
-            <label
-              htmlFor="verify-statement"
-              className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
-            >
+            <label htmlFor="verify-statement" className={fieldLabelClass}>
               In a sentence, how do you know?
             </label>
             <textarea
@@ -124,17 +130,25 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
               rows={3}
               value={statement}
               onChange={(e) => setStatement(e.target.value)}
-              className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none"
-            />
+              className={fieldTextareaClass}
+                          />
+
+                          {action === "APPROVE" && (
+                            <Notice tone="error" className="mt-4">
+                              You are about to confirm that this person has died or cannot act. This moves their plan toward
+                              release and can&apos;t be undone from this page. If you are not sure, choose &quot;pause everything&quot;
+                              instead.
+                            </Notice>
+                          )}
 
             <button
               type="submit"
               disabled={!action || status === "working"}
-              className="w-full mt-6 bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              {status === "working" ? "Sending..." : "Send my answer"}
+              className={`${buttonPrimaryClass} w-full mt-6`}
+                          >
+                            {status === "working" ? "Sending..." : action === "APPROVE" ? "Yes, I'm sure. Send my answer" : "Send my answer"}
             </button>
-            <p className="mt-4 text-xs text-foreground-muted">This link works once.</p>
+            <p className="mt-4 text-sm text-foreground-secondary">This link works once.</p>
           </form>
         )}
       </div>

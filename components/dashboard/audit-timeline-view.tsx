@@ -58,9 +58,9 @@ export function AuditTimelineView({
             Audit timeline
           </h1>
           <p className="text-[14px] sm:text-[15px] text-foreground-secondary mt-1">
-            Review the security-sensitive actions and check-in events recorded for your account.
+            Everything that has happened on your account: check-ins, changes and releases.
           </p>
-          <p className="text-[12px] text-foreground-secondary mt-1">
+          <p className="text-[13px] text-foreground-secondary mt-1">
             Entries can&apos;t be edited or deleted. Vault contents are never logged.
           </p>
         </div>
@@ -68,9 +68,9 @@ export function AuditTimelineView({
           <button
             type="button"
             onClick={() => onNavigate("overview")}
-            className="inline-flex items-center gap-1.5 h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[13px] font-medium hover:bg-hover transition-colors"
+            className="inline-flex items-center gap-1.5 h-11 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
             <span>Return to overview</span>
           </button>
         </div>
@@ -79,20 +79,20 @@ export function AuditTimelineView({
       {/* 2. Timeline Card */}
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-8">
         <div className="flex items-center justify-between pb-4 border-t border-b border-border py-4 mb-6">
-          <span className="text-[12px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary tabular-nums">
-            Activity log · {formatCount(auditEvents.length, "event")}
+          <span className="text-[13px] font-semibold text-foreground-secondary tabular-nums">
+            {formatCount(auditEvents.length, "event")} recorded
           </span>
-          <span className="text-[12px] text-foreground flex items-center gap-1.5 font-semibold">
-            <CheckCircle2 className="w-3.5 h-3.5 text-accent-text" />
-            No vault contents recorded
+          <span className="text-[13px] text-foreground flex items-center gap-1.5 font-semibold">
+            <CheckCircle2 className="w-4 h-4 text-accent-text" aria-hidden="true" />
+                        Vault contents are never logged
           </span>
         </div>
 
         {auditEvents.length === 0 ? (
           <div className="py-16 text-center text-foreground-secondary space-y-4">
-            <Activity className="w-10 h-10 stroke-[1.5] mx-auto text-foreground-secondary/50" />
+            <Activity className="w-10 h-10 stroke-[1.5] mx-auto text-foreground-secondary/50" aria-hidden="true" />
             <p className="text-[15px] max-w-sm mx-auto">
-              Your audit history will appear here as Dusk records activity on your account.
+              Nothing has happened yet. Check-ins and changes to your vault or people will be listed here.
             </p>
             <button
               type="button"
@@ -118,13 +118,13 @@ export function AuditTimelineView({
                   <div className="flex-1 border border-border rounded-[10px] p-4 bg-elevated/60">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">
-                        <Icon className="w-4 h-4 text-foreground stroke-[1.75] shrink-0" />
+                        <Icon className="w-4 h-4 text-foreground stroke-[1.75] shrink-0" aria-hidden="true" />
                         <span className="font-semibold text-[14px] text-foreground">
                           {display.title}
                         </span>
                       </div>
                       <span
-                        className="text-[12px] text-foreground-secondary shrink-0 tabular-nums"
+                        className="text-[13px] text-foreground-secondary shrink-0 tabular-nums"
                         title={formatDateTime(ev.createdAt)}
                       >
                         {formatRelativeTime(ev.createdAt)}
@@ -136,10 +136,10 @@ export function AuditTimelineView({
                     </p>
 
                     <details className="mt-2.5 group">
-                      <summary className="text-[12px] font-medium text-foreground-secondary cursor-pointer select-none hover:text-foreground">
-                        Details
+                      <summary className="text-[13px] font-medium text-foreground-secondary cursor-pointer select-none hover:text-foreground py-1">
+                        Technical details
                       </summary>
-                      <div className="mt-2 p-2.5 rounded-[6px] bg-background border border-border font-mono text-[12px] text-foreground-secondary break-all">
+                      <div className="mt-2 p-2.5 rounded-[6px] bg-background border border-border font-mono text-[13px] text-foreground-secondary break-all">
                         {ev.redactedMeta}
                       </div>
                     </details>

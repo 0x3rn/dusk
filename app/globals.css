@@ -81,7 +81,7 @@
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #E5E7EB;
-  --ring: #00FFA3;
+  --ring: #007A52; /* darker than the brand mint so the focus outline shows on white (5:1) */
   --radius: 0.75rem;
 
   /* Dusk */
@@ -140,7 +140,7 @@
   --hover: #293341;
   --sunken: #10141B;
   --foreground-secondary: #A4ADBC;
-  --foreground-muted: #778294;
+  --foreground-muted: #8E99AA; /* 5:1 on card surfaces; was 4.1:1 */
   --brand: #00FFA3;
   --brand-hover: #00C982;
   --accent-surface: #123B30;
@@ -177,6 +177,33 @@
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+  /* Keeps ring utilities (focus-visible:ring-brand) the same visible colour as the outline. */
+  --tw-ring-color: var(--ring);
+}
+
+/* Native form controls: real focus ring, never rely on a border colour change alone. */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline-offset: 0;
+}
+
+/* Skip link: hidden until it receives keyboard focus. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  background: var(--cta-band);
+  color: var(--cta-band-text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: top 150ms ease-out;
+}
+.skip-link:focus {
+  top: 1rem;
 }
 
 @layer base {
