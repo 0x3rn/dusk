@@ -139,9 +139,10 @@ export function PeopleAccessView({
               id="unlock-link"
               type="text"
               readOnly
+              aria-label="Secure unlock link"
               value={unlockUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="flex-1 h-11 px-3 rounded-[8px] border border-border bg-background font-mono text-[13px] text-foreground"
+              className="h-11 px-3 rounded-[8px] border border-border bg-background font-mono text-[13px] text-foreground w-full sm:w-auto sm:flex-1 min-w-0 sm:pointer-fine:h-10"
             />
             <button type="button" onClick={handleCopyUnlockLink} className={`${buttonPrimaryClass} shrink-0`}>
               {copiedLink ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
@@ -174,9 +175,9 @@ export function PeopleAccessView({
       )}
 
       {/* 2. Workspace Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8 items-start">
         {/* Left Column: Add Person Form (approx 4.5 cols on lg) */}
-        <div className="lg:col-span-5 bg-card border border-border rounded-[14px] p-6">
+        <div className="xl:col-span-5 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
           <div className="pb-4 border-b border-border mb-5">
             <h2 className="text-[18px] font-semibold text-foreground">
               Add a person
@@ -192,7 +193,7 @@ export function PeopleAccessView({
                 Full name
               </label>
               <div className="relative">
-                <User className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5" aria-hidden="true" />
+                <User className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" aria-hidden="true" />
                 <input
                   id="person-name"
                   type="text"
@@ -201,7 +202,7 @@ export function PeopleAccessView({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Eleanor Vance"
-                  className={`${fieldInputClass} pl-9`}
+                  className={`${fieldInputClass} pl-9 h-11 sm:pointer-fine:h-10`}
                 />
               </div>
             </div>
@@ -211,16 +212,17 @@ export function PeopleAccessView({
                 Email address
               </label>
               <div className="relative">
-                <Mail className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5" aria-hidden="true" />
+                <Mail className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" aria-hidden="true" />
                 <input
                   id="person-email"
                   type="email"
-                  required
+                  inputMode="email"
                   autoComplete="off"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="eleanor@example.com"
-                  className={`${fieldInputClass} pl-9`}
+                  className={`${fieldInputClass} pl-9 h-11 sm:pointer-fine:h-10`}
                 />
               </div>
             </div>
@@ -230,7 +232,7 @@ export function PeopleAccessView({
                 Phone number (optional)
               </label>
               <div className="relative">
-                <Phone className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5" aria-hidden="true" />
+                <Phone className="w-4 h-4 text-foreground-secondary absolute left-3 top-3.5 sm:top-3 pointer-events-none" aria-hidden="true" />
                 <input
                   id="person-phone"
                   type="tel"
@@ -238,7 +240,7 @@ export function PeopleAccessView({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+1 (555) 000-0000"
-                  className={`${fieldInputClass} pl-9`}
+                  className={`${fieldInputClass} pl-9 h-11 sm:pointer-fine:h-10`}
                 />
               </div>
             </div>
@@ -246,12 +248,12 @@ export function PeopleAccessView({
             {/* Role Options */}
             <fieldset className="space-y-3 pt-2">
               <legend className="text-sm font-medium text-foreground mb-2">Their role (choose one or both)</legend>
-              <label className="flex items-start gap-2.5 cursor-pointer">
+              <label className="flex items-start cursor-pointer gap-3 min-h-11 py-1">
                 <input
                   type="checkbox"
                   checked={isBeneficiary}
                   onChange={(e) => setIsBeneficiary(e.target.checked)}
-                  className="mt-1 h-4 w-4"
+                  className="mt-0.5 size-5 shrink-0"
                 />
                 <div>
                   <span className="block text-[14px] font-medium text-foreground">
@@ -263,12 +265,12 @@ export function PeopleAccessView({
                 </div>
               </label>
 
-              <label className="flex items-start gap-2.5 cursor-pointer">
+              <label className="flex items-start gap-3 cursor-pointer min-h-11 py-1">
                 <input
                   type="checkbox"
                   checked={isTrustedVerifier}
                   onChange={(e) => setIsTrustedVerifier(e.target.checked)}
-                  className="mt-1 h-4 w-4"
+                  className="mt-0.5 size-5 shrink-0"
                 />
                 <div>
                   <span className="block text-[14px] font-medium text-foreground">
@@ -295,7 +297,7 @@ export function PeopleAccessView({
         </div>
 
         {/* Right Column: People Listing & Tabs (approx 7.5 cols on lg) */}
-        <div className="lg:col-span-7 bg-card border border-border rounded-[14px] p-6">
+        <div className="xl:col-span-7 bg-card border border-border rounded-[14px] p-4 sm:p-6 min-w-0">
           {/* Sub-tabs for filtering */}
           <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
             <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Show people by role">
@@ -344,15 +346,15 @@ export function PeopleAccessView({
               {displayedContacts.map((contact) => {
                 const assignedCount = assignments.filter((a) => a.contactId === contact.id).length;
                 return (
-                  <div key={contact.id} className="py-4 space-y-3">
+                  <div key={contact.id} className="py-4 space-y-3 gap-2 sm:gap-4">
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-start gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
                       <div className="w-9 h-9 rounded-full bg-elevated border border-border flex items-center justify-center shrink-0 text-foreground font-semibold text-[13px] mt-0.5">
                         {contact.fullName.slice(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-semibold text-[15px] text-foreground">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mb-0.5">
+                          <span className="font-semibold text-[15px] text-foreground break-words">
                             {contact.fullName}
                           </span>
                           {contact.isBeneficiary && (
@@ -366,7 +368,7 @@ export function PeopleAccessView({
                             </span>
                           )}
                         </div>
-                        <span className="text-[14px] text-foreground-secondary block break-all">
+                        <span className="text-foreground-secondary block text-[14px] break-all break-words">
                           {contact.email}{contact.phone ? ` · ${contact.phone}` : ""}
                         </span>
                         {contact.isBeneficiary && (
@@ -384,7 +386,7 @@ export function PeopleAccessView({
                         <button
                           type="button"
                           onClick={() => setPendingRemoveId(contact.id)}
-                          className="h-10 w-10 flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[8px] transition-colors"
+                          className="h-10 w-10 flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] rounded-[8px] transition-colors inline-flex size-11"
                           title={`Remove ${contact.fullName}`}
                           aria-label={`Remove ${contact.fullName}`}
                         >

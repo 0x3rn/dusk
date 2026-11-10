@@ -105,12 +105,12 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
-      <div className="mb-8">
+    <main className="bg-canvas flex flex-col items-center justify-center relative transition-colors min-h-dvh px-4 py-8 sm:p-6 overflow-x-clip">
+      <div className="mb-6 sm:mb-8">
         <DuskLogo size={28} />
       </div>
 
-      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 shadow-sm">
+      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-5 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
             Create your account
@@ -129,7 +129,7 @@ export default function RegisterPage() {
         {step === "verify" ? (
           <form onSubmit={handleVerify} className="space-y-4">
             <p className="text-sm text-foreground-secondary text-center">
-              We emailed a code to <span className="font-medium text-foreground">{email}</span>.
+              We emailed a code to <span className="font-medium text-foreground break-all">{email}</span>.
               Enter it below to finish creating your account.
             </p>
             {notice && (
@@ -164,7 +164,7 @@ export default function RegisterPage() {
               type="button"
               onClick={handleResend}
               disabled={loading}
-              className="w-full min-h-11 text-sm text-accent-text underline underline-offset-2 disabled:opacity-50"
+              className="w-full text-sm text-accent-text disabled:opacity-50 min-h-11 underline underline-offset-2"
             >
               Send a new code
             </button>
@@ -214,10 +214,10 @@ export default function RegisterPage() {
             <input
               id="register-name"
               type="text"
+              autoComplete="name"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
                             className={fieldInputClass}
             />
           </div>
@@ -228,10 +228,11 @@ export default function RegisterPage() {
             <input
               id="register-email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
                             className={fieldInputClass}
                             placeholder="you@example.com"
             />
@@ -243,9 +244,9 @@ export default function RegisterPage() {
             <input
               id="register-password"
               type="password"
+              autoComplete="new-password"
               required
               minLength={10}
-              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               aria-describedby="register-password-hint"
@@ -268,9 +269,9 @@ export default function RegisterPage() {
           </>
         )}
 
-        <div className="mt-8 text-center text-sm text-foreground-secondary">
+        <div className="mt-6 sm:mt-8 text-center text-sm text-foreground-secondary">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent-text underline underline-offset-2 font-medium">
+          <Link href="/login" className="text-accent-text font-medium underline underline-offset-2 inline-flex min-h-11 items-center">
             Sign in
           </Link>
         </div>

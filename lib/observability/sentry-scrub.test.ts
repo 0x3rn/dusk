@@ -60,30 +60,6 @@ describe("scrubSentryEvent", () => {
 
   it("scrubs error messages, log lines, span data and contexts that echo emails or tokens", () => {
     const prismaLike =
-      'Invalid  invocation: data: { email: "victim@example.com", ciphertextBase64: "' +
-      'QUJD'.repeat(30) +
-      '" } at https://dusk.app/unlock/c1?token=SECRETTOKEN';
-    const e = scrubSentryEvent({
-      message: prismaLike,
-      logentry: { message: prismaLike, params: ["victim@example.com"] },
-      exception: {
-        values: [{ value: prismaLike, stacktrace: { frames: [{ function: "f", vars: { body: "secret" } }] } }],
-      },
-      breadcrumbs: [{ category: "console", message: prismaLike }],
-      spans: [{ description: "GET https://dusk.app/verify/TOK?x=1", data: { "url.full": "https://dusk.app/checkin/TOK?t=1" } }],
-      contexts: { trace: { data: { "http.url": "https://dusk.app/unlock/c1?token=SECRETTOKEN" } } },
-    });
-    expect(JSON.stringify(e)).not.toMatch(/victim@|QUJDQUJD|SECRETTOKEN|TOK|secret"/);
-    expect(e.exception?.values?.[0].stacktrace?.frames?.[0]).toEqual({ function: "f" });
-  });
-
-  it("scrubText keeps ordinary words and short ids", () => {
-    expect(scrubText("Contact cmwaqb2sw0000pcbwc1wmtpnk not found")).toBe("Contact cmwaqb2sw0000pcbwc1wmtpnk not found");
-    expect(scrubText("mail a.b+c@x.co now")).toBe("mail [email] now");
-  });
-
-  it("scrubs error messages, log lines, span data and contexts that echo emails or tokens", () => {
-    const prismaLike =
       "Invalid prisma.contact.upsert() invocation: data: { email: 'victim@example.com', ciphertextBase64: '" +
       "QUJD".repeat(30) +
       "' } at https://dusk.app/unlock/c1?token=SECRETTOKEN";

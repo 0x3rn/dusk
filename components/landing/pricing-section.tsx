@@ -18,10 +18,10 @@ const features = [
 
 export function PricingSection({ onCheckout, isLoading = false }: PricingSectionProps) {
   return (
-    <section id="pricing" className="py-24 sm:py-28 lg:py-32 bg-canvas dark:bg-sunken border-t border-b border-border transition-colors">
+    <section id="pricing" className="py-16 sm:py-24 lg:py-32 bg-canvas dark:bg-sunken border-t border-b border-border transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12 text-center">
         {/* Section Header */}
-        <div className="max-w-2xl mx-auto mb-16">
+        <div className="max-w-2xl mx-auto mb-10 sm:mb-16">
           <span className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-3 block">
             Pricing
           </span>

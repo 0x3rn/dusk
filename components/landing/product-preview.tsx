@@ -7,8 +7,8 @@ export function ProductPreview() {
       {/* Outer Card */}
       <div className="border border-border bg-card rounded-[14px] overflow-hidden text-left shadow-xs">
         {/* Window / App Header */}
-        <div className="px-5 py-3.5 border-b border-border bg-elevated flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
+        <div className="px-4 sm:px-5 py-3.5 border-b border-border bg-elevated flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />
             <span className="text-[13px] font-medium text-foreground">
               Your vault
@@ -21,7 +21,7 @@ export function ProductPreview() {
         </div>
 
         {/* Dashboard Status Strip */}
-        <div className="grid grid-cols-3 divide-x divide-border border-b border-border bg-card">
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border border-b border-border bg-card">
           <div className="p-3.5 sm:p-4">
             <span className="block text-xs font-medium uppercase tracking-wider text-foreground-secondary mb-1">
               Vault Status
@@ -51,8 +51,8 @@ export function ProductPreview() {
 
         {/* Plan Features / Summary Matrix */}
         {/* Plan Features / Summary Matrix */}
-        <div className="p-5 sm:p-6 bg-card">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-4 sm:p-6 bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 mb-4">
             <div>
               <span className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary">
                 YOUR DIGITAL ESTATE
@@ -119,30 +119,30 @@ export function ProductPreview() {
 
           {/* Sample Assigned Packages Snippet */}
           <div className="border border-border rounded-[10px] overflow-hidden bg-card">
-            <div className="bg-elevated px-3.5 py-2 border-b border-border flex items-center justify-between text-xs font-medium text-foreground-secondary">
+            <div className="bg-elevated px-3.5 py-2 border-b border-border items-center justify-between font-medium text-foreground-secondary text-xs hidden sm:flex">
               <span>Assigned package</span>
               <span>Goes to, and when</span>
             </div>
             <div className="divide-y divide-border text-[12px]">
-              <div className="px-3.5 py-2.5 flex items-center justify-between">
+              <div className="px-3.5 py-2.5 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-3.5 h-3.5 text-accent-text" />
                   <span className="font-medium text-foreground">
                     Family &amp; Estate Instructions
                   </span>
                 </div>
-                <span className="text-foreground-secondary">
+                <span className="text-foreground-secondary pl-[22px] sm:pl-0">
                   Elena · after 2 verifiers confirm
                 </span>
               </div>
-              <div className="px-3.5 py-2.5 flex items-center justify-between">
+              <div className="px-3.5 py-2.5 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-3.5 h-3.5 text-accent-text" />
                   <span className="font-medium text-foreground">
                     System &amp; Recovery Keys
                   </span>
                 </div>
-                <span className="text-foreground-secondary">
+                <span className="text-foreground-secondary pl-[22px] sm:pl-0">
                   Marcus · after missed check-ins
                 </span>
               </div>
@@ -151,7 +151,7 @@ export function ProductPreview() {
         </div>
 
         {/* Footer Caption */}
-        <div className="px-5 py-3 border-t border-border bg-elevated text-xs text-foreground-muted flex items-center justify-between">
+        <div className="py-3 border-t border-border bg-elevated text-foreground-muted flex items-center justify-between text-xs px-4 sm:px-5">
           <span>Illustrative product preview — not a live vault or a security certification.</span>
         </div>
       </div>

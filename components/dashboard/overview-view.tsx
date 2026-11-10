@@ -131,7 +131,7 @@ export function OverviewView({
     <div className="space-y-8 text-left">
       {/* 1. Page Heading */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-[28px] sm:text-[32px] font-semibold text-foreground tracking-tight">
             Good to see you, {firstName}.
           </h1>
@@ -139,11 +139,11 @@ export function OverviewView({
             Check in, see who receives what, and keep your vault up to date.
           </p>
         </div>
-        <div>
+        <div className="shrink-0">
           <button
             type="button"
             onClick={() => onNavigate("vault")}
-            className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="inline-flex w-full sm:w-auto items-center justify-center gap-2 h-11 sm:pointer-fine:h-10 px-4 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             <Plus className="w-4 h-4 stroke-[2]" />
             <span>Add to vault</span>
@@ -152,14 +152,14 @@ export function OverviewView({
       </div>
 
       {/* 2. Check-In Status Card */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-border">
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-4 min-w-0">
             <div className="w-12 h-12 rounded-[12px] bg-elevated border border-border flex items-center justify-center shrink-0 text-accent-text">
               <Clock className="w-6 h-6 stroke-[1.75]" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5 mb-1">
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 mb-1">
                 <h2 className="text-[20px] font-semibold text-foreground">
                   {statusCopy}
                 </h2>
@@ -175,12 +175,12 @@ export function OverviewView({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="grid grid-cols-[1fr_auto] gap-2.5 sm:flex sm:flex-wrap sm:items-center">
             <button
               type="button"
               disabled={isCheckingIn}
               onClick={handleCheckInClick}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center h-11 sm:pointer-fine:h-10 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
               {isCheckingIn ? "Checking in..." : "Check in now"}
             </button>
@@ -338,9 +338,9 @@ export function OverviewView({
       </div>
 
       {/* 4. Vault Preview (Locked / Unlocked) */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
-        <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
-          <div>
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-border mb-5">
+          <div className="min-w-0">
             <h2 className="text-[18px] font-semibold text-foreground">
               Your vault
             </h2>
@@ -352,7 +352,7 @@ export function OverviewView({
             <button
               type="button"
               onClick={onLockVault}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-border bg-elevated text-[13px] font-medium text-foreground hover:bg-hover transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 rounded-[6px] border border-border bg-elevated font-medium text-foreground hover:bg-hover transition-colors text-[13px] min-h-11 sm:pointer-fine:min-h-0 sm:py-1.5"
             >
               <Lock className="w-3.5 h-3.5" aria-hidden="true" />
               <span>Lock vault</span>
@@ -384,12 +384,12 @@ export function OverviewView({
                 value={passphraseInput}
                 onChange={(e) => setPassphraseInput(e.target.value)}
                 placeholder="Master passphrase"
-                className={`${fieldInputClass} flex-1`}
+                className={`${fieldInputClass} w-full sm:w-auto sm:flex-1 min-w-0`}
               />
               <button
                 type="submit"
                 disabled={isSubmittingPassphrase}
-                className="h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-60 transition-colors shrink-0"
+                className="h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-60 transition-colors shrink-0 w-full sm:w-auto"
               >
                 {isSubmittingPassphrase ? "Unlocking..." : "Unlock vault"}
               </button>
@@ -399,7 +399,7 @@ export function OverviewView({
               <button
                 type="button"
                 onClick={() => onNavigate("recovery")}
-                className="text-[13px] text-foreground-secondary hover:text-foreground underline transition-colors"
+                className="inline-flex min-h-11 items-center px-2 text-[13px] text-foreground-secondary hover:text-foreground underline transition-colors"
               >
                 Lost your passphrase? Use your recovery kit
               </button>
@@ -410,7 +410,7 @@ export function OverviewView({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pb-3">
               <span className="text-[13px] font-medium text-accent-text flex items-center gap-1.5 tabular-nums">
                 <CheckCircle2 className="w-4 h-4 text-accent-text" />
                 Unlocked on this device ({formatCount(itemsCount, "item")})
@@ -418,7 +418,7 @@ export function OverviewView({
               <button
                 type="button"
                 onClick={() => onNavigate("vault")}
-                className="text-[13px] font-medium text-foreground hover:text-accent-text flex items-center gap-1 transition-colors"
+                className="text-[13px] font-medium text-foreground hover:text-accent-text inline-flex min-h-11 items-center gap-1 transition-colors"
               >
                 <span>View all in your vault</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -435,8 +435,8 @@ export function OverviewView({
                   const dec = decryptedItems[item.id];
                   const itemAssignments = assignments.filter((a) => a.itemId === item.id);
                   return (
-                    <div key={item.id} className="p-3.5 flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 overflow-hidden">
+                    <div key={item.id} className="p-3.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                      <div className="flex items-center gap-3 overflow-hidden min-w-0">
                         <KeyRound className="w-4 h-4 text-foreground-secondary shrink-0" />
                         <div className="overflow-hidden">
                           <span className="font-semibold text-[14px] text-foreground block truncate">
@@ -447,7 +447,7 @@ export function OverviewView({
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex flex-wrap items-center gap-2 sm:shrink-0 pl-7 sm:pl-0">
                         {itemAssignments.length > 0 && (
                           <span className="text-xs px-2 py-0.5 rounded-[4px] bg-accent-surface text-accent-text border border-brand/25 font-medium tabular-nums">
                             {formatCount(itemAssignments.length, "beneficiary", "beneficiaries")}
@@ -467,9 +467,9 @@ export function OverviewView({
       </div>
 
       {/* 5. Recent Activity */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
-        <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
-          <div>
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 pb-4 border-b border-border mb-4">
+          <div className="min-w-0">
             <h2 className="text-[18px] font-semibold text-foreground">
               Recent activity
             </h2>
@@ -480,7 +480,7 @@ export function OverviewView({
           <button
             type="button"
             onClick={() => onNavigate("audit")}
-            className="text-[13px] font-medium text-foreground hover:text-accent-text flex items-center gap-1 transition-colors"
+            className="text-[13px] font-medium text-foreground hover:text-accent-text inline-flex min-h-11 items-center gap-1 transition-colors"
           >
             <span>See all activity</span>
             <ArrowRight className="w-3.5 h-3.5" />

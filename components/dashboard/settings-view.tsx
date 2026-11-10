@@ -37,7 +37,7 @@ export function SettingsView({
       </div>
 
       {/* 2. Account Profile Card */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <h2 className="text-[18px] font-semibold text-foreground mb-1">
           Account details
         </h2>
@@ -46,7 +46,7 @@ export function SettingsView({
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-[14px] border-t border-border pt-5">
-          <div>
+          <div className="min-w-0">
             <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Full name
             </span>
@@ -55,11 +55,11 @@ export function SettingsView({
             </span>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Email address
             </span>
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-foreground break-all">
               {user.email}
             </span>
           </div>
@@ -86,7 +86,7 @@ export function SettingsView({
       </div>
 
       {/* 3. Session & Vault Security */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
         <h2 className="text-[18px] font-semibold text-foreground mb-1">
           Lock and sign out
                   </h2>
@@ -111,7 +111,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={onLockVault}
-                className="inline-flex items-center gap-2 h-11 px-4 rounded-[8px] border border-border bg-background text-foreground text-[14px] font-medium hover:bg-hover transition-colors shrink-0"
+                className="inline-flex items-center gap-2 px-4 rounded-[8px] border border-border bg-background text-foreground font-medium hover:bg-hover transition-colors shrink-0 h-11 text-[14px] justify-center sm:pointer-fine:h-10"
                             >
                               <Lock className="w-4 h-4" aria-hidden="true" />
                               <span>Lock vault now</span>
@@ -136,7 +136,7 @@ export function SettingsView({
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex items-center gap-2 h-11 px-4 rounded-[8px] border border-border bg-background text-[var(--danger-fg)] text-[14px] font-medium hover:bg-[var(--danger-bg)] transition-colors shrink-0"
+              className="inline-flex items-center gap-2 px-4 rounded-[8px] border border-border bg-background text-[var(--danger-fg)] font-medium hover:bg-[var(--danger-bg)] transition-colors shrink-0 h-11 text-[14px] justify-center sm:pointer-fine:h-10"
                           >
                             <LogOut className="w-4 h-4" aria-hidden="true" />
               <span>Sign out</span>
@@ -146,8 +146,8 @@ export function SettingsView({
       </div>
 
       {/* 4. Technical Security & Legal Notice */}
-      <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7 space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2 gap-x-4 gap-y-1">
                   <div className="flex items-center gap-2">
                     <Shield className="w-5 h-5 text-accent-text" aria-hidden="true" />
             <h2 className="text-[18px] font-semibold text-foreground">
@@ -158,7 +158,7 @@ export function SettingsView({
             href="/security"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent-text hover:underline"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent-text hover:underline min-h-11"
           >
             <span>Read the full explanation</span>
             <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />

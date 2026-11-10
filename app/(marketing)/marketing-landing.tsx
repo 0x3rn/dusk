@@ -41,7 +41,7 @@ export function MarketingLanding({
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-accent-surface selection:text-foreground overflow-x-hidden antialiased">
+    <div className="bg-background text-foreground selection:bg-accent-surface selection:text-foreground antialiased min-h-dvh overflow-x-clip">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>

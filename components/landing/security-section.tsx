@@ -1,16 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Lock, Shield, Users, RefreshCw, ArrowRight, X, Laptop, Server, KeyRound } from "lucide-react";
 
 export function SecuritySection() {
   const [modalOpen, setModalOpen] = useState(false);
 
+  // While the dialog is open: lock page scroll and close on Escape.
+  useEffect(() => {
+    if (!modalOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setModalOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [modalOpen]);
+
   return (
-    <section id="security" className="py-24 sm:py-28 lg:py-32 bg-background transition-colors">
+    <section id="security" className="py-16 sm:py-24 lg:py-32 bg-background transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12 text-left">
         {/* Section Header */}
-        <div className="max-w-3xl mb-16 sm:mb-20">
+        <div className="max-w-3xl mb-10 sm:mb-16 lg:mb-20">
           <span className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-3 block">
             Privacy and security
           </span>
@@ -23,7 +38,7 @@ export function SecuritySection() {
         </div>
 
         {/* 3-Stage Architecture Diagram */}
-        <div className="border border-border rounded-[14px] bg-elevated p-6 sm:p-8 lg:p-10 mb-14">
+        <div className="border border-border rounded-[14px] bg-elevated p-4 sm:p-8 lg:p-10 mb-14">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative">
             {/* Stage 01 */}
             <div className="bg-card border border-border rounded-[12px] p-6 flex flex-col justify-between">
@@ -155,7 +170,7 @@ export function SecuritySection() {
           <button
             type="button"
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center gap-2 text-[15px] font-semibold text-foreground hover:text-accent-text dark:hover:text-accent-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-1 py-1"
+            className="inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-foreground hover:text-accent-text dark:hover:text-accent-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-1 py-1"
           >
             <span>Read the security architecture</span>
             <ArrowRight className="w-4 h-4" />
@@ -169,11 +184,14 @@ export function SecuritySection() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="security-modal-title"
-          className="fixed inset-0 z-50 bg-[var(--cta-band)]/70 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
+          className="fixed inset-0 z-50 bg-[var(--cta-band)]/70 backdrop-blur-xs flex items-end sm:items-center justify-center sm:p-6"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) setModalOpen(false);
+          }}
         >
-          <div className="bg-elevated border border-border rounded-[14px] max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6 sm:p-8 text-left relative shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-border mb-6">
-              <div>
+          <div className="bg-elevated border border-border rounded-t-[14px] sm:rounded-[14px] max-w-2xl w-full max-h-[92dvh] sm:max-h-[85dvh] flex flex-col text-left relative shadow-xl">
+            <div className="flex items-center justify-between gap-4 px-5 sm:px-8 pt-5 sm:pt-8 pb-4 border-b border-border shrink-0">
+              <div className="min-w-0">
                 <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary">
                   Technical details
                 </span>
@@ -184,14 +202,14 @@ export function SecuritySection() {
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="w-8 h-8 rounded-[8px] border border-border flex items-center justify-center text-foreground hover:bg-hover transition-colors"
+                className="size-11 shrink-0 rounded-[8px] border border-border flex items-center justify-center text-foreground hover:bg-hover transition-colors"
                 aria-label="Close modal"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-6 text-[14px] text-foreground-secondary leading-relaxed">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-8 py-6 space-y-6 text-[14px] text-foreground-secondary leading-relaxed">
               <p className="text-foreground">
                 In short: your vault is locked with keys only you hold. Dusk runs the timers and release steps, but can&apos;t open your vault on its own.
               </p>
@@ -233,17 +251,17 @@ export function SecuritySection() {
               </div>
             </div>
 
-            <div className="mt-8 pt-5 border-t border-border flex items-center justify-between">
+            <div className="px-5 sm:px-8 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5 border-t border-border flex items-center justify-between gap-3 shrink-0">
               <a
                 href="/security"
-                className="text-[13px] font-medium text-accent-text hover:underline flex items-center gap-1"
+                className="min-h-11 text-[13px] font-medium text-accent-text hover:underline flex items-center gap-1"
               >
                 <span>Read the full whitepaper →</span>
               </a>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="h-10 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
+                className="h-11 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
               >
                 Close
               </button>

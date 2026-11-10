@@ -57,12 +57,12 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors">
-      <div className="mb-8">
+    <main className="bg-canvas flex flex-col items-center justify-center relative transition-colors min-h-dvh px-4 py-8 sm:p-6 overflow-x-clip">
+      <div className="mb-6 sm:mb-8">
         <DuskLogo size={28} />
       </div>
 
-      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 shadow-sm">
+      <div className="w-full max-w-md border border-border bg-card rounded-2xl p-5 sm:p-8 shadow-sm">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">
             Welcome back
@@ -121,8 +121,9 @@ export default function LoginPage() {
             <input
               id="login-email"
               type="email"
-              required
+              inputMode="email"
               autoComplete="email"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={fieldInputClass}
@@ -136,8 +137,8 @@ export default function LoginPage() {
             <input
               id="login-password"
               type="password"
-              required
               autoComplete="current-password"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={fieldInputClass}
@@ -154,10 +155,10 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-foreground-secondary space-y-2">
+        <div className="text-center text-sm text-foreground-secondary space-y-2 mt-6 sm:mt-8">
           <p>
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-accent-text underline underline-offset-2 font-medium">
+            <Link href="/register" className="text-accent-text underline underline-offset-2 font-medium inline-flex min-h-11 items-center">
               Create one
             </Link>
           </p>

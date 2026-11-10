@@ -62,11 +62,11 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
   };
 
   return (
-    <main className="min-h-screen bg-canvas flex flex-col items-center justify-center p-6">
+    <main className="min-h-dvh bg-canvas flex flex-col items-center justify-center px-4 py-8 sm:p-6">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
-      <div className="w-full max-w-lg border border-border bg-card rounded-2xl p-8 shadow-sm">
+      <div className="w-full max-w-lg border border-border bg-card rounded-2xl p-5 sm:p-8 shadow-sm">
         {status === "done" ? (
           <div className="text-center">
             <CheckCircle2 className="w-10 h-10 mx-auto mb-4 text-accent-text" aria-hidden="true" />
@@ -99,7 +99,7 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
               {OPTIONS.map((o) => (
                 <label
                   key={o.value}
-                  className={`flex gap-3 p-4 rounded-lg border cursor-pointer transition-colors ${
+                  className={`flex gap-3 p-4 min-h-11 rounded-lg border cursor-pointer transition-colors ${
                     action === o.value ? "border-accent-text bg-accent-surface/40" : "border-border hover:bg-hover"
                   }`}
                 >
@@ -109,9 +109,9 @@ export default function VerifierPage({ params }: { params: Promise<{ token: stri
                     value={o.value}
                     checked={action === o.value}
                     onChange={() => setAction(o.value)}
-                    className="mt-1"
+                    className="mt-0.5 size-5 shrink-0"
                   />
-                  <span>
+                  <span className="min-w-0">
                     <span className="block font-medium text-foreground">{o.title}</span>
                     <span className="block text-sm text-foreground-secondary">{o.help}</span>
                   </span>

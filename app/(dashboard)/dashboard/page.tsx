@@ -714,7 +714,7 @@ export default function DashboardPage() {
   if (loadError || !user) {
     return (
       <main className="min-h-screen bg-canvas flex items-center justify-center p-6">
-        <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 text-center">
+        <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 text-center min-h-dvh">
           <h1 className="text-xl font-semibold text-foreground mb-2">
             We couldn&apos;t load your dashboard
           </h1>
@@ -747,7 +747,7 @@ export default function DashboardPage() {
       onSignOut={handleSignOut}
     >
       {/* Messages: one box at a time, announced to screen readers, dismissible */}
-      <div ref={bannerRef} className="space-y-3 empty:hidden mb-6 scroll-mt-24">
+      <div ref={bannerRef} className="space-y-3 empty:hidden mb-6 scroll-mt-24 sticky top-[4.75rem] sm:top-[5.25rem] z-30">
         {errorBanner && (
           <Notice tone="error" onDismiss={() => setErrorBanner("")}>
             {errorBanner}

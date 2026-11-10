@@ -177,7 +177,7 @@ export default function UnlockPage({
   };
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <main className="bg-background flex flex-col items-center justify-center relative min-h-dvh px-4 py-8 sm:p-6 overflow-x-clip">
       <div className="mb-8">
         <DuskLogo size={28} />
       </div>
@@ -211,12 +211,13 @@ export default function UnlockPage({
                 <input
                   id="unlock-email"
                   type="email"
-                  required
+                  inputMode="email"
                   autoComplete="email"
+                  required
                   value={beneficiaryEmail}
                   onChange={(e) => setBeneficiaryEmail(e.target.value)}
                   aria-describedby="unlock-email-hint"
-                  className={fieldInputClass}
+                  className={`${fieldInputClass} h-11 sm:h-10`}
                 />
                 <span id="unlock-email-hint" className={fieldHintClass}>
                   The address the owner gave Dusk for you.
@@ -229,13 +230,14 @@ export default function UnlockPage({
                 <input
                   id="unlock-token"
                   type="text"
-                  required
                   autoComplete="off"
+                  autoCapitalize="none"
                   spellCheck={false}
+                  required
                   value={accessToken}
                   onChange={(e) => setAccessToken(e.target.value)}
                   aria-describedby="unlock-token-hint"
-                  className={fieldInputClass}
+                  className={`${fieldInputClass} h-11 sm:h-10`}
                 />
                 <span id="unlock-token-hint" className={fieldHintClass}>
                   Sent to you by Dusk when the release was confirmed. It works once.
@@ -248,42 +250,44 @@ export default function UnlockPage({
                 <input
                   id="unlock-key"
                   type="text"
-                  required
                   autoComplete="off"
+                  autoCapitalize="none"
                   spellCheck={false}
+                  required
                   value={privateKeyInput}
                   onChange={(e) => setPrivateKeyInput(e.target.value)}
                   aria-describedby="unlock-key-hint"
-                  className={`${fieldInputClass} font-mono text-[13px]`}
+                  className={`${fieldInputClass} h-11 sm:h-10 font-mono text-[13px]`}
                 />
                 <span id="unlock-key-hint" className={fieldHintClass}>
                   This is the long part of the link the owner gave you, after the # sign. If you opened that full link, it is already filled in. It never leaves this device.
                 </span>
               </div>
-              <Button type="submit" disabled={isAttempting} className="w-full h-11 text-[15px]">
-                <KeyRound className="w-4 h-4 mr-2" aria-hidden="true" />
+              <Button type="submit" disabled={isAttempting} className="w-full text-[15px] h-auto min-h-11 py-2.5 whitespace-normal text-center">
+                <KeyRound className="w-4 h-4 mr-2 shrink-0" aria-hidden="true" />
                 {isAttempting ? "Opening..." : "Open my items"}
               </Button>
             </form>
           ) : (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-accent-surface border border-brand/25 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="p-4 rounded-xl bg-accent-surface border border-brand/25 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-accent-text font-medium">
                   <CheckCircle2 className="w-5 h-5 shrink-0" aria-hidden="true" />
                   <span role="status">
                     Opened {formatCount(decryptedSecrets.length, "item")} for you
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
+                    className="h-auto min-h-11 sm:min-h-9 py-2 whitespace-normal"
                     onClick={handleDownloadEncryptedBundle}
                   >
                     <Download className="w-4 h-4 mr-1" aria-hidden="true" /> Save an encrypted copy
                   </Button>
                   {!acknowledged ? (
-                    <Button size="sm" onClick={handleAcknowledgeReceipt}>
+                    <Button size="sm" className="h-auto min-h-11 sm:min-h-9 py-2 whitespace-normal" onClick={handleAcknowledgeReceipt}>
                       <FileCheck className="w-4 h-4 mr-1" aria-hidden="true" /> Tell Dusk I received these
                     </Button>
                   ) : (
@@ -311,17 +315,17 @@ export default function UnlockPage({
                 {decryptedSecrets.map((sec) => (
                   <div
                     key={sec.itemId}
-                    className="p-5 rounded-xl border border-border bg-background space-y-2"
+                    className="p-4 sm:p-5 rounded-xl border border-border bg-background space-y-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-bold text-base text-foreground">
+                    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      <h2 className="font-bold text-base text-foreground break-words min-w-0">
                         {sec.title}
                       </h2>
                       <span className="text-sm text-muted-foreground">
                         {categoryLabel(sec.category)}
                       </span>
                     </div>
-                    <p className="font-mono text-[14px] text-foreground whitespace-pre-wrap break-words">
+                    <p className="font-mono text-foreground whitespace-pre-wrap text-[14px] break-words">
                       {sec.content}
                     </p>
                   </div>
@@ -331,7 +335,7 @@ export default function UnlockPage({
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-center border-t border-border pt-4 text-sm text-muted-foreground">
+        <CardFooter className="flex justify-center border-t border-border pt-4 text-muted-foreground text-sm text-center">
           Opened on this device. Dusk never sees what is inside.
         </CardFooter>
       </Card>

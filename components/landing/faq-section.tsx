@@ -49,7 +49,7 @@ export function FAQSection() {
   };
 
   return (
-    <section id="faq" className="py-24 sm:py-28 lg:py-32 bg-background transition-colors">
+    <section id="faq" className="py-16 sm:py-24 lg:py-32 bg-background transition-colors">
       <div className="max-w-3xl mx-auto px-6 sm:px-8 text-left">
         {/* Section Header */}
         <div className="mb-14 sm:mb-16">

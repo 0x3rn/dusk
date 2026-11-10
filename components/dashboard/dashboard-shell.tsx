@@ -90,12 +90,12 @@ export function DashboardShell({
   };
 
   return (
-    <div className="min-h-screen bg-canvas text-foreground flex antialiased">
+    <div className="bg-canvas text-foreground flex antialiased min-h-dvh">
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
       {/* Desktop Sidebar (248px) */}
-      <aside className="hidden lg:flex w-[248px] flex-col justify-between bg-sunken border-r border-border shrink-0 sticky top-0 h-screen overflow-y-auto">
+      <aside className="hidden lg:flex w-[248px] flex-col justify-between bg-sunken border-r border-border shrink-0 sticky top-0 h-dvh overflow-y-auto">
         <div className="p-5">
           {/* Brand & Wordmark */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
@@ -186,7 +186,7 @@ export function DashboardShell({
             <button
               type="button"
               onClick={onSignOut}
-              className="w-10 h-10 rounded-[8px] border border-border flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-card transition-colors shrink-0"
+              className="border border-border flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-card transition-colors shrink-0 w-10 h-10 rounded-[8px] pointer-coarse:size-11"
               title="Sign out"
               aria-label="Sign out"
             >
@@ -199,37 +199,38 @@ export function DashboardShell({
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar (64-72px) */}
-        <header className="h-[68px] bg-sunken border-b border-border sticky top-0 z-40 px-6 sm:px-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="h-16 sm:h-[68px] bg-sunken border-b border-border sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Mobile Menu Toggle Button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors"
+              className="lg:hidden inline-flex items-center justify-center size-11 shrink-0 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               aria-label="Open navigation menu"
+              aria-expanded={mobileMenuOpen}
             >
               <Menu className="w-5 h-5" />
             </button>
 
             {/* Breadcrumb / Current View Title */}
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline text-[13px] text-foreground-secondary">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="hidden md:inline text-[13px] text-foreground-secondary">
                 Dashboard
               </span>
-              <span className="hidden sm:inline text-[13px] text-foreground-muted">/</span>
-              <span className="text-[15px] sm:text-[16px] font-semibold text-foreground">
+              <span className="hidden md:inline text-[13px] text-foreground-muted">/</span>
+              <span className="text-[15px] sm:text-[16px] font-semibold text-foreground truncate">
                 {viewTitles[currentView]}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3.5">
+          <div className="flex items-center gap-1 sm:gap-3.5 shrink-0">
             {/* Vault Session Status & Lock Button */}
             {isVaultUnlocked ? (
               <button
                 type="button"
                 onClick={onLockVault}
-                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[8px] bg-brand text-on-brand border border-brand/40 text-[13px] font-semibold hover:bg-brand-hover transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-[8px] bg-brand text-on-brand border border-brand/40 font-semibold hover:bg-brand-hover transition-colors h-10 px-3.5 text-[13px] h-11 sm:pointer-fine:h-9"
                 title="Your vault is unlocked on this device. Select to lock it."
               >
                 <Unlock className="w-4 h-4 stroke-[2]" aria-hidden="true" />
@@ -237,7 +238,7 @@ export function DashboardShell({
               </button>
             ) : (
               <div
-                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[8px] bg-elevated border border-border text-foreground-secondary text-[13px] font-medium"
+                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[8px] bg-elevated border border-border text-foreground-secondary text-[13px] font-medium h-11 sm:pointer-fine:h-9"
                 title="Your vault is locked. Enter your passphrase to open it."
               >
                 <Lock className="w-4 h-4 stroke-[1.75]" aria-hidden="true" />
@@ -253,7 +254,7 @@ export function DashboardShell({
               href="/security"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:inline-flex items-center gap-1 text-[14px] font-medium text-foreground-secondary hover:text-foreground transition-colors rounded-[6px]"
+              className="hidden items-center gap-1 text-[14px] font-medium text-foreground-secondary hover:text-foreground transition-colors rounded-[6px] lg:inline-flex min-h-11 lg:pointer-fine:min-h-0"
             >
               <span>How Dusk protects you</span>
               <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
@@ -263,7 +264,7 @@ export function DashboardShell({
             <button
               type="button"
               onClick={onSignOut}
-              className="hidden sm:inline-flex items-center justify-center h-10 px-3.5 rounded-[8px] border border-border text-[14px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors"
+              className="hidden sm:inline-flex items-center justify-center rounded-[8px] border border-border font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors h-10 px-3.5 text-[14px] h-11 lg:pointer-fine:h-9"
             >
               Sign out
             </button>
@@ -271,7 +272,7 @@ export function DashboardShell({
         </header>
 
         {/* Dynamic View Body (max-w-[1200px], padded) */}
-        <main id="main-content" tabIndex={-1} className="flex-1 p-6 sm:p-8 lg:p-10 max-w-[1200px] w-full mx-auto focus:outline-none">
+        <main id="main-content" tabIndex={-1} className="flex-1 sm:p-8 lg:p-10 max-w-[1200px] w-full mx-auto focus:outline-none min-w-0 px-4 py-6 2xl:max-w-[1360px]">
           {children}
         </main>
       </div>
@@ -290,8 +291,8 @@ export function DashboardShell({
             onClick={() => setMobileMenuOpen(false)}
           />
 
-          {/* Drawer Panel */}
-          <div className="relative w-[280px] max-w-[85vw] bg-sunken h-full flex flex-col justify-between p-5 border-r border-border shadow-xl z-10">
+          {/* Drawer Panel (scrolls on its own so short landscape screens can reach every link) */}
+          <div className="relative w-[280px] max-w-[85vw] bg-sunken h-full overflow-y-auto overscroll-contain flex flex-col justify-between gap-6 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] border-r border-border shadow-xl z-10">
             <div>
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
@@ -304,7 +305,7 @@ export function DashboardShell({
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-2 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors"
+                  className="border border-border text-foreground hover:bg-hover transition-colors p-2 rounded-[8px] inline-flex items-center justify-center size-11 -mr-1.5"
                   aria-label="Close menu"
                   autoFocus
                 >
@@ -317,7 +318,7 @@ export function DashboardShell({
                 <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
                   Dashboard
                 </span>
-                <nav className="space-y-1">
+                <nav className="space-y-1" aria-label="Workspace navigation">
                   {workspaceNav.map((item) => {
                     const Icon = item.icon;
                     const isActive = currentView === item.id;
@@ -342,7 +343,7 @@ export function DashboardShell({
                 <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
                   Security &amp; settings
                 </span>
-                <nav className="space-y-1">
+                <nav className="space-y-1" aria-label="Security navigation">
                   {securityNav.map((item) => {
                     const Icon = item.icon;
                     const isActive = currentView === item.id;
@@ -359,6 +360,13 @@ export function DashboardShell({
                       </button>
                     );
                   })}
+                  <Link
+                    href="/security"
+                    className="w-full flex items-center gap-3 px-3 min-h-11 rounded-[8px] text-[14px] font-medium text-foreground-secondary hover:bg-hover hover:text-foreground transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>Security architecture</span>
+                  </Link>
                 </nav>
               </div>
             </div>
@@ -389,6 +397,14 @@ export function DashboardShell({
                   <LogOut className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-[8px] border border-border text-[14px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign out</span>
+              </button>
             </div>
           </div>
         </div>

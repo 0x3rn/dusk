@@ -2,15 +2,17 @@ import React from "react";
 import Link from "next/link";
 import { DuskLogo } from "./dusk-logo";
 
-const linkClass = "hover:text-foreground transition-colors";
+// Links get a 44px-tall hit area on touch screens; mouse users keep the compact list.
+const linkClass =
+  "inline-flex min-h-11 items-center hover:text-foreground transition-colors md:pointer-fine:min-h-0";
 
 export function SiteFooter() {
   return (
-    <footer className="bg-sunken border-t border-border py-16 sm:py-20 text-left transition-colors">
+    <footer className="bg-sunken border-t border-border py-12 sm:py-20 text-left transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 lg:gap-16 mb-16">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10 md:gap-12 lg:gap-16 mb-12 sm:mb-16">
           {/* Column 1: Brand & Tagline */}
-          <div className="md:col-span-1">
+          <div className="col-span-2 md:col-span-1">
             <div className="mb-4">
               <DuskLogo showTagline={true} />
             </div>
@@ -24,7 +26,7 @@ export function SiteFooter() {
             <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground mb-4">
               Product
             </h4>
-            <ul className="space-y-3 text-[14px] text-foreground-secondary">
+            <ul className="space-y-0 md:pointer-fine:space-y-3 text-[14px] text-foreground-secondary">
               <li>
                 <Link href="/#how-it-works" className={linkClass}>
                   How it works
@@ -48,7 +50,7 @@ export function SiteFooter() {
             <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground mb-4">
               Resources
             </h4>
-            <ul className="space-y-3 text-[14px] text-foreground-secondary">
+            <ul className="space-y-0 md:pointer-fine:space-y-3 text-[14px] text-foreground-secondary">
               <li>
                 <Link href="/security" className={linkClass}>
                   Security architecture
@@ -72,7 +74,7 @@ export function SiteFooter() {
             <h4 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-foreground mb-4">
               Legal
             </h4>
-            <ul className="space-y-3 text-[14px] text-foreground-secondary">
+            <ul className="space-y-0 md:pointer-fine:space-y-3 text-[14px] text-foreground-secondary">
               <li>
                 <Link href="/privacy" className={linkClass}>
                   Privacy policy
