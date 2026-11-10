@@ -84,19 +84,18 @@ export function ReleaseSafetySection() {
               {/* Header */}
               <div className="flex items-center justify-between pb-5 border-b border-border mb-6">
                 <div>
-                  <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary">
-                    Release workflow
+                  <span className="text-xs font-semibold uppercase tracking-wider text-foreground-secondary">
+                    What happens next
                   </span>
                   <h3 className="text-[18px] sm:text-[19px] font-semibold text-foreground">
-                    Inactivity verification
+                    If you stop checking in
                   </h3>
                 </div>
                 <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[12px] font-mono font-medium text-foreground"
-                  title="If Dusk is unsure at any step, it releases nothing."
-                >
-                  Fail-closed
-                </span>
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[13px] font-medium text-foreground"
+                                  >
+                                    Nothing sent unless confirmed
+                                  </span>
               </div>
 
               {/* 4 Staged Steps */}
@@ -112,12 +111,12 @@ export function ReleaseSafetySection() {
                         Check-in missed
                       </h4>
                       <p className="text-[13px] text-foreground-secondary">
-                        The configured check-in deadline passes.
+                        Your check-in date passes without a check-in.
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[11px] font-medium text-foreground-secondary shrink-0">
-                    Initial event
+                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-xs font-medium text-foreground-secondary shrink-0">
+                    Starts here
                   </span>
                 </div>
 
@@ -136,8 +135,8 @@ export function ReleaseSafetySection() {
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[11px] font-medium text-foreground-secondary shrink-0">
-                    Waiting
+                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-xs font-medium text-foreground-secondary shrink-0">
+                    Reminders
                   </span>
                 </div>
 
@@ -156,8 +155,8 @@ export function ReleaseSafetySection() {
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[11px] font-medium text-foreground-secondary shrink-0">
-                    Pending checks
+                  <span className="px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-xs font-medium text-foreground-secondary shrink-0">
+                    Confirmation
                   </span>
                 </div>
 
@@ -172,12 +171,12 @@ export function ReleaseSafetySection() {
                         Release decision
                       </h4>
                       <p className="text-[13px] text-foreground-secondary">
-                        Proceed only if all required conditions pass.
+                        Items are sent only if every condition you set is met.
                       </p>
                     </div>
                   </div>
-                  <span className="px-2.5 py-1 rounded-[6px] bg-accent-surface border border-brand/25 text-[11px] font-semibold text-accent-text shrink-0">
-                    Gated
+                  <span className="px-2.5 py-1 rounded-[6px] bg-accent-surface border border-brand/25 text-xs font-semibold text-accent-text shrink-0">
+                    Last step
                   </span>
                 </div>
               </div>

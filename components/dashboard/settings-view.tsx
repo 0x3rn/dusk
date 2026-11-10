@@ -32,7 +32,7 @@ export function SettingsView({
           Settings
         </h1>
         <p className="text-[14px] sm:text-[15px] text-foreground-secondary mt-1">
-          Manage your personal account profile and vault security preferences.
+          Your account details, and how to lock your vault or sign out.
         </p>
       </div>
 
@@ -47,16 +47,16 @@ export function SettingsView({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-[14px] border-t border-border pt-5">
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Full name
             </span>
             <span className="font-semibold text-foreground">
-              {user.fullName || "Not configured"}
+              {user.fullName || "Not set"}
             </span>
           </div>
 
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Email address
             </span>
             <span className="font-semibold text-foreground">
@@ -65,17 +65,17 @@ export function SettingsView({
           </div>
 
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
-              Account status
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+              Status
             </span>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-accent-surface text-accent-text border border-brand/25 text-[12px] font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-accent-surface text-accent-text border border-brand/25 text-[13px] font-semibold">
               <span className="w-1.5 h-1.5 rounded-full bg-brand" />
-              Active · Verified
+              Active
             </span>
           </div>
 
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Plan
             </span>
             <span className="font-semibold text-foreground">
@@ -89,10 +89,10 @@ export function SettingsView({
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
         <h2 className="text-[18px] font-semibold text-foreground mb-1">
           Lock and sign out
-        </h2>
-        <p className="text-[13px] text-foreground-secondary mb-5">
-          Control what stays unlocked on this device.
-        </p>
+                  </h2>
+                  <p className="text-[13px] text-foreground-secondary mb-5">
+                    Locking closes your vault on this device. Signing out also ends your session.
+                  </p>
 
         <div className="space-y-4 border-t border-border pt-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-[10px] bg-elevated border border-border">
@@ -111,10 +111,10 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={onLockVault}
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-[8px] border border-border bg-background text-foreground text-[13px] font-medium hover:bg-hover transition-colors shrink-0"
-              >
-                <Lock className="w-4 h-4" />
-                <span>Lock vault now</span>
+                className="inline-flex items-center gap-2 h-11 px-4 rounded-[8px] border border-border bg-background text-foreground text-[14px] font-medium hover:bg-hover transition-colors shrink-0"
+                            >
+                              <Lock className="w-4 h-4" aria-hidden="true" />
+                              <span>Lock vault now</span>
               </button>
             ) : (
               <span className="text-[13px] text-foreground-secondary font-medium px-3 py-1 bg-background border border-border rounded-[6px]">
@@ -129,16 +129,16 @@ export function SettingsView({
                 Sign out of this device
               </span>
               <span className="text-[13px] text-foreground-secondary">
-                Ends your session here and clears saved sign-in data from this browser.
+                Ends your session in this browser. Your vault locks too.
               </span>
             </div>
 
             <button
               type="button"
               onClick={onSignOut}
-              className="inline-flex items-center gap-2 h-10 px-4 rounded-[8px] border border-border bg-background text-[var(--danger-fg)] text-[13px] font-medium hover:bg-[var(--danger-bg)] transition-colors shrink-0"
-            >
-              <LogOut className="w-4 h-4" />
+              className="inline-flex items-center gap-2 h-11 px-4 rounded-[8px] border border-border bg-background text-[var(--danger-fg)] text-[14px] font-medium hover:bg-[var(--danger-bg)] transition-colors shrink-0"
+                          >
+                            <LogOut className="w-4 h-4" aria-hidden="true" />
               <span>Sign out</span>
             </button>
           </div>
@@ -147,27 +147,30 @@ export function SettingsView({
 
       {/* 4. Technical Security & Legal Notice */}
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-accent-text" />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-accent-text" aria-hidden="true" />
             <h2 className="text-[18px] font-semibold text-foreground">
-              Security architecture
-            </h2>
+              How Dusk protects your vault
+                        </h2>
           </div>
           <Link
             href="/security"
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent-text hover:underline"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-[14px] font-medium text-accent-text hover:underline"
           >
-            <span>Read the security architecture</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Read the full explanation</span>
+            <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+            <span className="sr-only">(opens in a new tab)</span>
           </Link>
         </div>
 
         <p className="text-[13px] text-foreground-secondary leading-relaxed">
-          Your vault is encrypted on your device before upload. The full technical design (key hierarchy, per-beneficiary key wrapping, fail-closed state machines) is public.
+          Your vault is encrypted on your device before it is uploaded. The full technical design is published for anyone to read.
         </p>
 
-        <div className="p-4 rounded-[10px] bg-elevated border border-border text-[12px] text-foreground-secondary space-y-2">
+        <div className="p-4 rounded-[10px] bg-elevated border border-border text-[13px] text-foreground-secondary space-y-2">
           <div className="font-semibold text-foreground">
             {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.notALegalWillHeadline}
           </div>

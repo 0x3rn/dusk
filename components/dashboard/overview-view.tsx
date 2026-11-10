@@ -23,6 +23,9 @@ import {
   AssignmentData,
 } from "./types";
 import { getAuditEventDisplay } from "./audit-event-copy";
+import { categoryLabel } from "./item-categories";
+import { ConfirmAction } from "@/components/ui/confirm-action";
+import { fieldInputClass } from "@/components/ui/form-field";
 import { formatCount, formatDate, formatDateTime, formatRelativeTime, pluralize } from "@/lib/display-format";
 
 interface OverviewViewProps {
@@ -69,24 +72,25 @@ export function OverviewView({
 
   // Derive schedule status badge and copy
   const scheduleState = schedule?.state || "HEALTHY";
-  let statusCopy = "Your check-in plan is healthy";
-  let statusBadgeLabel = "Healthy";
+  const statusCopy = "Check-in plan";
+  let statusDetail = `Your next check-in is due in ${formatCount(daysRemaining, "day")}.`;
+  let statusBadgeLabel = "On track";
   let statusIndicatorColor = "bg-brand";
   let statusBadgeStyle = "bg-[var(--success-bg)] text-[var(--success-fg)] border-brand/25 font-semibold";
 
   if (scheduleState === "PAUSED") {
-    statusCopy = "Check-ins are paused";
+    statusDetail = "Check-ins are paused. Dusk won't send reminders until you check in or the pause ends.";
     statusBadgeLabel = "Paused";
     statusIndicatorColor = "bg-foreground-muted";
     statusBadgeStyle = "bg-elevated text-foreground-secondary border-border";
   } else if (scheduleState === "PENDING_ESCALATION" || scheduleState === "REMINDER_DUE") {
-    statusCopy = "Check-in needed";
-    statusBadgeLabel = "Pending check-in";
+    statusDetail = "You are due to check in. Check in now to stop reminders.";
+    statusBadgeLabel = "Check-in due";
     statusIndicatorColor = "bg-[var(--warning-fg)]";
     statusBadgeStyle = "bg-[var(--warning-bg)] text-[var(--warning-fg)] border-[var(--warning-fg)]";
   } else if (scheduleState === "VERIFICATION_REQUIRED") {
-    statusCopy = "Verification required";
-    statusBadgeLabel = "Verification required";
+    statusDetail = "You missed your check-ins and your trusted verifiers have been asked to confirm. Check in now to stop the process.";
+    statusBadgeLabel = "Verifiers contacted";
     statusIndicatorColor = "bg-[var(--danger-fg)]";
     statusBadgeStyle = "bg-[var(--danger-bg)] text-[var(--danger-fg)] border-[var(--danger-fg)]";
   }
@@ -132,7 +136,7 @@ export function OverviewView({
             Good to see you, {firstName}.
           </h1>
           <p className="text-[14px] sm:text-[15px] text-foreground-secondary mt-1">
-            Keep your information secure, your instructions organized, and your access plan up to date.
+            Check in, see who receives what, and keep your vault up to date.
           </p>
         </div>
         <div>
@@ -160,17 +164,13 @@ export function OverviewView({
                   {statusCopy}
                 </h2>
                 <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] border text-[11px] font-medium ${statusBadgeStyle}`}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] border text-xs font-medium ${statusBadgeStyle}`}
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${statusIndicatorColor}`} />
                   {statusBadgeLabel}
                 </span>
               </div>
-              <p className="text-[14px] text-foreground-secondary">
-                {scheduleState === "PAUSED"
-                  ? "Your check-in schedule is temporarily suspended."
-                  : `Your next check-in is due in ${daysRemaining} days.`}
-              </p>
+              <p className="text-[14px] text-foreground-secondary max-w-xl">{statusDetail}</p>
             </div>
           </div>
 
@@ -182,23 +182,36 @@ export function OverviewView({
               onClick={handleCheckInClick}
               className="inline-flex items-center justify-center h-10 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-50 transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              {isCheckingIn ? "Confirming..." : "I'm alive"}
+              {isCheckingIn ? "Checking in..." : "Check in now"}
             </button>
-            <button
-              type="button"
-              disabled={isPausing}
-              onClick={handlePauseClick}
-              className="inline-flex items-center justify-center h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover disabled:opacity-50 transition-colors"
-            >
-              {isPausing ? "Pausing..." : "Pause for 30 days"}
-            </button>
+            {scheduleState !== "PAUSED" && (
+              <ConfirmAction
+                tone="default"
+                title="Pause check-ins for 30 days?"
+                description="While paused, Dusk won't send reminders or start the release process. Checking in again resumes your plan."
+                confirmLabel="Pause for 30 days"
+                pendingLabel="Pausing..."
+                cancelLabel="Don't pause"
+                onConfirm={handlePauseClick}
+                trigger={(props) => (
+                  <button
+                    type="button"
+                    disabled={isPausing}
+                    {...props}
+                    className="inline-flex items-center justify-center h-10 px-4 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover disabled:opacity-50 transition-colors"
+                  >
+                    Pause for 30 days
+                  </button>
+                )}
+              />
+            )}
             <button
               type="button"
               onClick={() => onNavigate("schedule")}
-              className="inline-flex items-center justify-center h-10 px-3.5 rounded-[8px] border border-border bg-elevated text-foreground-secondary text-[14px] font-medium hover:text-foreground hover:bg-hover transition-colors"
-              title="Manage check-in schedule"
+              className="inline-flex items-center justify-center gap-2 h-10 px-3.5 rounded-[8px] border border-border bg-elevated text-foreground-secondary text-[14px] font-medium hover:text-foreground hover:bg-hover transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-4 h-4" aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">Change plan</span>
             </button>
           </div>
         </div>
@@ -206,15 +219,15 @@ export function OverviewView({
         {/* Schedule Metric Columns */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-5 text-left">
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
               Next check-in
             </span>
             <span className="text-[17px] font-semibold text-foreground tabular-nums">
-              {scheduleState === "PAUSED" ? "Paused" : `In ${daysRemaining} days`}
+              {scheduleState === "PAUSED" ? "Paused" : `In ${formatCount(daysRemaining, "day")}`}
             </span>
           </div>
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
               Grace period
             </span>
             <span className="text-[17px] font-semibold text-foreground tabular-nums">
@@ -222,23 +235,19 @@ export function OverviewView({
             </span>
           </div>
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
-              Check-in interval
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
+              Check in every
             </span>
             <span className="text-[17px] font-semibold text-foreground tabular-nums">
               {schedule?.intervalDays || 90} days
             </span>
           </div>
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
-              Safety mode
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-1">
+              If Dusk is unsure
             </span>
-            <span
-              className="text-[17px] font-semibold text-foreground flex items-center gap-1.5"
-              title="If Dusk is unsure at any step, it releases nothing."
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-brand shrink-0" aria-hidden="true" />
-              Fail-closed
+            <span className="text-[17px] font-semibold text-foreground">
+              Releases nothing
             </span>
           </div>
         </div>
@@ -247,12 +256,10 @@ export function OverviewView({
       {/* 3. Summary Cards (3-4 compact cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Encrypted Items */}
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => onNavigate("vault")}
-          onKeyDown={(e) => e.key === "Enter" && onNavigate("vault")}
-          className="p-5 rounded-[12px] bg-card border border-border hover:border-brand/40 cursor-pointer transition-colors"
+          className="block w-full text-left p-5 rounded-[12px] bg-card border border-border hover:border-brand/60 hover:bg-hover transition-colors"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[32px] font-semibold text-foreground leading-none tabular-nums">
@@ -260,21 +267,19 @@ export function OverviewView({
             </span>
             <KeyRound className="w-5 h-5 text-foreground-secondary stroke-[1.75]" />
           </div>
-          <h3 className="text-[15px] font-semibold text-foreground mb-0.5">
-            {pluralize(itemsCount, "Encrypted item", "Encrypted items")}
-          </h3>
-          <p className="text-[12px] text-foreground-secondary">
-            Stored in your digital vault
-          </p>
-        </div>
+          <span className="block text-[15px] font-semibold text-foreground mb-0.5">
+            {pluralize(itemsCount, "Item in your vault", "Items in your vault")}
+          </span>
+          <span className="block text-[13px] text-foreground-secondary">
+            {itemsCount === 0 ? "Add your first item" : "Passwords, documents and notes"}
+          </span>
+        </button>
 
         {/* Card 2: Beneficiaries */}
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => onNavigate("people")}
-          onKeyDown={(e) => e.key === "Enter" && onNavigate("people")}
-          className="p-5 rounded-[12px] bg-card border border-border hover:border-brand/40 cursor-pointer transition-colors"
+          className="block w-full text-left p-5 rounded-[12px] bg-card border border-border hover:border-brand/60 hover:bg-hover transition-colors"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[32px] font-semibold text-foreground leading-none tabular-nums">
@@ -282,21 +287,19 @@ export function OverviewView({
             </span>
             <Users className="w-5 h-5 text-foreground-secondary stroke-[1.75]" />
           </div>
-          <h3 className="text-[15px] font-semibold text-foreground mb-0.5">
+          <span className="block text-[15px] font-semibold text-foreground mb-0.5">
             {pluralize(beneficiariesCount, "Beneficiary", "Beneficiaries")}
-          </h3>
-          <p className="text-[12px] text-foreground-secondary">
-            People who will receive your items
-          </p>
-        </div>
+          </span>
+          <span className="block text-[13px] text-foreground-secondary">
+            {beneficiariesCount === 0 ? "Add someone to receive your items" : "People who receive your items"}
+          </span>
+        </button>
 
         {/* Card 3: Trusted Contacts */}
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => onNavigate("people")}
-          onKeyDown={(e) => e.key === "Enter" && onNavigate("people")}
-          className="p-5 rounded-[12px] bg-card border border-border hover:border-brand/40 cursor-pointer transition-colors"
+          className="block w-full text-left p-5 rounded-[12px] bg-card border border-border hover:border-brand/60 hover:bg-hover transition-colors"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[32px] font-semibold text-foreground leading-none tabular-nums">
@@ -304,21 +307,19 @@ export function OverviewView({
             </span>
             <UserCheck className="w-5 h-5 text-foreground-secondary stroke-[1.75]" />
           </div>
-          <h3 className="text-[15px] font-semibold text-foreground mb-0.5">
+          <span className="block text-[15px] font-semibold text-foreground mb-0.5">
             {pluralize(verifiersCount, "Trusted verifier", "Trusted verifiers")}
-          </h3>
-          <p className="text-[12px] text-foreground-secondary">
-            People who help confirm your plan
-          </p>
-        </div>
+          </span>
+          <span className="block text-[13px] text-foreground-secondary">
+            {verifiersCount === 0 ? "Add someone to confirm you're okay" : "People who confirm you're okay"}
+          </span>
+        </button>
 
         {/* Card 4: Security & Recovery */}
-        <div
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
           onClick={() => onNavigate("recovery")}
-          onKeyDown={(e) => e.key === "Enter" && onNavigate("recovery")}
-          className="p-5 rounded-[12px] bg-card border border-border hover:border-brand/40 cursor-pointer transition-colors"
+          className="block w-full text-left p-5 rounded-[12px] bg-card border border-border hover:border-brand/60 hover:bg-hover transition-colors"
         >
           <div className="flex items-center justify-between mb-3">
             <span className="text-[13px] font-medium text-accent-text inline-flex items-center gap-1">
@@ -327,41 +328,36 @@ export function OverviewView({
             </span>
             <FileKey className="w-5 h-5 text-accent-text stroke-[1.75]" />
           </div>
-          <h3 className="text-[15px] font-semibold text-foreground mb-0.5">
-            Security &amp; recovery
-          </h3>
-          <p className="text-[12px] text-foreground-secondary">
-            Review your vault protection setup
-          </p>
-        </div>
+          <span className="block text-[15px] font-semibold text-foreground mb-0.5">
+            Recovery kit
+          </span>
+          <span className="block text-[13px] text-foreground-secondary">
+            Make sure you can get back in
+          </span>
+        </button>
       </div>
 
       {/* 4. Vault Preview (Locked / Unlocked) */}
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
         <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
           <div>
-            <h3 className="text-[18px] font-semibold text-foreground">
-              Your encrypted vault
-            </h3>
+            <h2 className="text-[18px] font-semibold text-foreground">
+              Your vault
+            </h2>
             <p className="text-[13px] text-foreground-secondary">
-              Your sensitive information stays locked until you unlock it in your browser.
+              Your items stay locked until you enter your passphrase on this device.
             </p>
           </div>
           {isVaultUnlocked ? (
             <button
               type="button"
               onClick={onLockVault}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-border bg-elevated text-[12px] font-medium text-foreground hover:bg-hover transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[6px] border border-border bg-elevated text-[13px] font-medium text-foreground hover:bg-hover transition-colors"
             >
-              <Lock className="w-3.5 h-3.5" />
-              <span>Lock vault in memory</span>
+              <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Lock vault</span>
             </button>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-elevated border border-border text-[12px] font-medium text-foreground-secondary">
-              <Lock className="w-3 h-3" />
-              <span>Locked</span>
-            </span>
-          )}
+          ) : null}
         </div>
 
         {!isVaultUnlocked ? (
@@ -369,28 +365,33 @@ export function OverviewView({
             <div className="w-12 h-12 rounded-full bg-elevated border border-border flex items-center justify-center mx-auto mb-4 text-accent-text">
               <Lock className="w-5 h-5 stroke-[1.75]" />
             </div>
-            <h4 className="text-[17px] font-semibold text-foreground mb-1">
+            <h3 className="text-[17px] font-semibold text-foreground mb-1">
               Your vault is locked
-            </h4>
-            <p className="text-[13px] text-foreground-secondary mb-6">
-              Enter your master passphrase to unlock your vault. Everything is decrypted on this device only.
+            </h3>
+            <p className="text-[14px] text-foreground-secondary mb-6">
+              Enter your master passphrase to open it. Your items are only ever opened on this device.
             </p>
 
-            <form onSubmit={handleUnlockSubmit} className="flex gap-2.5 mb-3">
+            <form onSubmit={handleUnlockSubmit} className="flex flex-col sm:flex-row gap-2.5 mb-3 text-left">
+              <label htmlFor="overview-passphrase" className="sr-only">
+                Master passphrase
+              </label>
               <input
+                id="overview-passphrase"
                 type="password"
                 required
+                autoComplete="off"
                 value={passphraseInput}
                 onChange={(e) => setPassphraseInput(e.target.value)}
-                placeholder="Enter your master passphrase..."
-                className="flex-1 h-11 px-3.5 rounded-[8px] border border-border bg-background text-[14px] text-foreground placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                placeholder="Master passphrase"
+                className={`${fieldInputClass} flex-1`}
               />
               <button
                 type="submit"
                 disabled={isSubmittingPassphrase}
-                className="h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-60 transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                className="h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover disabled:opacity-60 transition-colors shrink-0"
               >
-                {isSubmittingPassphrase ? "Decrypting..." : "Unlock vault"}
+                {isSubmittingPassphrase ? "Unlocking..." : "Unlock vault"}
               </button>
             </form>
 
@@ -402,8 +403,8 @@ export function OverviewView({
               >
                 Lost your passphrase? Use your recovery kit
               </button>
-              <p className="text-[11px] text-foreground-secondary max-w-sm leading-relaxed">
-                Vault contents are encrypted before upload. Unlocking decrypts authorized content locally in your browser.
+              <p className="text-[13px] text-foreground-secondary max-w-sm leading-relaxed">
+                Dusk never sees your passphrase or what is in your vault.
               </p>
             </div>
           </div>
@@ -412,7 +413,7 @@ export function OverviewView({
             <div className="flex items-center justify-between pb-3">
               <span className="text-[13px] font-medium text-accent-text flex items-center gap-1.5 tabular-nums">
                 <CheckCircle2 className="w-4 h-4 text-accent-text" />
-                Decrypted in browser memory ({formatCount(itemsCount, "item")})
+                Unlocked on this device ({formatCount(itemsCount, "item")})
               </span>
               <button
                 type="button"
@@ -426,7 +427,7 @@ export function OverviewView({
 
             {itemsCount === 0 ? (
               <p className="text-[14px] text-foreground-secondary py-6 text-center">
-                Your vault is currently empty. Add your first secret instruction or document.
+                Nothing in your vault yet. Select Add to vault to save your first item.
               </p>
             ) : (
               <div className="divide-y divide-border border border-border rounded-[10px]">
@@ -439,21 +440,21 @@ export function OverviewView({
                         <KeyRound className="w-4 h-4 text-foreground-secondary shrink-0" />
                         <div className="overflow-hidden">
                           <span className="font-semibold text-[14px] text-foreground block truncate">
-                            {dec ? dec.title : `Encrypted item (${item.id.slice(0, 8)})`}
+                            {dec ? dec.title : "Locked item"}
                           </span>
-                          <span className="text-[11px] text-foreground-secondary tabular-nums">
-                            {item.category} · {formatDate(item.createdAt)}
+                          <span className="text-xs text-foreground-secondary tabular-nums">
+                            {categoryLabel(item.category)} · {formatDate(item.createdAt)}
                           </span>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         {itemAssignments.length > 0 && (
-                          <span className="text-[11px] px-2 py-0.5 rounded-[4px] bg-accent-surface text-accent-text border border-brand/25 font-medium tabular-nums">
+                          <span className="text-xs px-2 py-0.5 rounded-[4px] bg-accent-surface text-accent-text border border-brand/25 font-medium tabular-nums">
                             {formatCount(itemAssignments.length, "beneficiary", "beneficiaries")}
                           </span>
                         )}
-                        <span className={`text-[11px] px-2 py-0.5 rounded-[4px] font-medium border ${dec ? "bg-accent-surface text-accent-text border-brand/25" : "bg-elevated border-border text-foreground-secondary"}`}>
-                          {dec ? "Decrypted" : "Locked"}
+                        <span className={`text-xs px-2 py-0.5 rounded-[4px] font-medium border ${dec ? "bg-accent-surface text-accent-text border-brand/25" : "bg-elevated border-border text-foreground-secondary"}`}>
+                          {dec ? "Unlocked" : "Locked"}
                         </span>
                       </div>
                     </div>
@@ -469,11 +470,11 @@ export function OverviewView({
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4">
           <div>
-            <h3 className="text-[18px] font-semibold text-foreground">
+            <h2 className="text-[18px] font-semibold text-foreground">
               Recent activity
-            </h3>
+            </h2>
             <p className="text-[13px] text-foreground-secondary">
-              Latest security-sensitive actions and check-in events recorded for your account.
+              The latest check-ins and changes on your account.
             </p>
           </div>
           <button
@@ -481,14 +482,14 @@ export function OverviewView({
             onClick={() => onNavigate("audit")}
             className="text-[13px] font-medium text-foreground hover:text-accent-text flex items-center gap-1 transition-colors"
           >
-            <span>View full audit timeline</span>
+            <span>See all activity</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {auditEvents.length === 0 ? (
-          <p className="text-[14px] text-foreground-secondary py-8 text-center italic">
-            Your activity will appear here as you manage your vault and check-in plan.
+          <p className="text-[14px] text-foreground-secondary py-8 text-center">
+            Nothing yet. Check-ins and changes to your vault or people will be listed here.
           </p>
         ) : (
           <div className="divide-y divide-border">
@@ -505,7 +506,7 @@ export function OverviewView({
                     </p>
                   </div>
                   <span
-                    className="text-[12px] text-foreground-secondary shrink-0 tabular-nums"
+                    className="text-[13px] text-foreground-secondary shrink-0 tabular-nums"
                     title={formatDateTime(ev.createdAt)}
                   >
                     {formatRelativeTime(ev.createdAt)}

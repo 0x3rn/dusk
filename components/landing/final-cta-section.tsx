@@ -12,12 +12,12 @@ export function FinalCTASection({ isAuthenticated = false }: FinalCTASectionProp
         <div className="max-w-2xl mx-auto flex flex-col items-center">
           {/* Headline */}
           <h2 className="text-[32px] sm:text-[42px] lg:text-[48px] font-semibold text-[var(--cta-band-text)] leading-[1.12] tracking-[-0.02em] mb-4">
-            Your digital legacy deserves a plan.
+            Make a plan for your digital accounts.
           </h2>
 
           {/* Subtitle */}
           <p className="text-[17px] sm:text-[19px] text-[var(--cta-band-text-secondary)] leading-[1.6] mb-9">
-            Protect what matters today. Decide what happens tomorrow.
+            Choose who receives what, and what has to happen first.
           </p>
 
           {/* Single Green Action */}

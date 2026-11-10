@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { DuskSymbol } from "@/components/landing/dusk-logo";
 import {
@@ -52,6 +52,15 @@ export function DashboardShell({
         .toUpperCase()
     : user.email.slice(0, 2).toUpperCase();
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [mobileMenuOpen]);
+
   const handleNavClick = (view: DashboardView) => {
     onSelectView(view);
     setMobileMenuOpen(false);
@@ -82,6 +91,9 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-canvas text-foreground flex antialiased">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       {/* Desktop Sidebar (248px) */}
       <aside className="hidden lg:flex w-[248px] flex-col justify-between bg-sunken border-r border-border shrink-0 sticky top-0 h-screen overflow-y-auto">
         <div className="p-5">
@@ -89,15 +101,15 @@ export function DashboardShell({
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
             <Link
               href="/"
-              className="inline-flex items-center gap-2.5 group focus-visible:outline-none"
-              title="Return to Home"
+              className="inline-flex items-center gap-2.5 group rounded-[6px]"
+              aria-label="Dusk home page"
             >
               <DuskSymbol size={22} className="text-foreground" />
               <div className="flex flex-col">
                 <span className="font-semibold text-[17px] tracking-tight text-foreground leading-none">
                   Dusk
                 </span>
-                <span className="text-[11px] text-foreground-secondary font-medium mt-0.5">
+                <span className="text-xs text-foreground-secondary font-medium mt-0.5">
                   Your digital estate
                 </span>
               </div>
@@ -106,7 +118,7 @@ export function DashboardShell({
 
           {/* Group: WORKSPACE */}
           <div className="mb-6">
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
               Dashboard
             </span>
             <nav className="space-y-1" aria-label="Workspace navigation">
@@ -118,6 +130,7 @@ export function DashboardShell({
                     key={item.id}
                     type="button"
                     onClick={() => handleNavClick(item.id)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-[8px] text-[14px] font-medium transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand border ${ isActive ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:bg-hover hover:text-foreground" }`}
                   >
                     <Icon className="w-4 h-4 stroke-[1.75]" />
@@ -130,7 +143,7 @@ export function DashboardShell({
 
           {/* Group: SECURITY & SETTINGS */}
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
+            <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
               Security &amp; settings
             </span>
             <nav className="space-y-1" aria-label="Security navigation">
@@ -142,6 +155,7 @@ export function DashboardShell({
                     key={item.id}
                     type="button"
                     onClick={() => handleNavClick(item.id)}
+                    aria-current={isActive ? "page" : undefined}
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded-[8px] text-[14px] font-medium transition-colors text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand border ${ isActive ? "bg-accent-surface text-accent-text border-brand/25 font-semibold" : "border-transparent text-foreground-secondary hover:bg-hover hover:text-foreground" }`}
                   >
                     <Icon className="w-4 h-4 stroke-[1.75]" />
@@ -164,7 +178,7 @@ export function DashboardShell({
                 <span className="text-[13px] font-semibold text-foreground truncate leading-tight">
                   {user.fullName || "Personal Vault"}
                 </span>
-                <span className="text-[11px] text-foreground-secondary truncate">
+                <span className="text-xs text-foreground-secondary truncate">
                   Personal account
                 </span>
               </div>
@@ -172,11 +186,11 @@ export function DashboardShell({
             <button
               type="button"
               onClick={onSignOut}
-              className="w-8 h-8 rounded-[6px] border border-border flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-card transition-colors shrink-0"
+              className="w-10 h-10 rounded-[8px] border border-border flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-card transition-colors shrink-0"
               title="Sign out"
               aria-label="Sign out"
             >
-              <LogOut className="w-3.5 h-3.5 stroke-[1.75]" />
+              <LogOut className="w-4 h-4 stroke-[1.75]" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -215,17 +229,20 @@ export function DashboardShell({
               <button
                 type="button"
                 onClick={onLockVault}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-brand text-on-brand border border-brand/40 text-[12px] font-semibold hover:bg-brand-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-                title="Lock vault in memory"
+                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[8px] bg-brand text-on-brand border border-brand/40 text-[13px] font-semibold hover:bg-brand-hover transition-colors"
+                title="Your vault is unlocked on this device. Select to lock it."
               >
-                <Unlock className="w-3.5 h-3.5 stroke-[2]" />
-                <span className="hidden sm:inline">Vault unlocked</span>
-                <span className="text-[11px] underline ml-1">Lock</span>
+                <Unlock className="w-4 h-4 stroke-[2]" aria-hidden="true" />
+                <span>Lock vault</span>
               </button>
             ) : (
-              <div className="inline-flex items-center gap-1.5 h-9 px-3 rounded-[8px] bg-elevated border border-border text-foreground-secondary text-[12px] font-medium">
-                <Lock className="w-3.5 h-3.5 stroke-[1.75]" />
+              <div
+                className="inline-flex items-center gap-1.5 h-10 px-3.5 rounded-[8px] bg-elevated border border-border text-foreground-secondary text-[13px] font-medium"
+                title="Your vault is locked. Enter your passphrase to open it."
+              >
+                <Lock className="w-4 h-4 stroke-[1.75]" aria-hidden="true" />
                 <span className="hidden sm:inline">Vault locked</span>
+                <span className="sr-only sm:hidden">Vault locked</span>
               </div>
             )}
 
@@ -234,17 +251,19 @@ export function DashboardShell({
             {/* Link to Technical Security Whitepaper */}
             <Link
               href="/security"
-              className="hidden md:inline-flex items-center gap-1 text-[13px] font-medium text-foreground-secondary hover:text-foreground transition-colors"
-              title="Security architecture"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden md:inline-flex items-center gap-1 text-[14px] font-medium text-foreground-secondary hover:text-foreground transition-colors rounded-[6px]"
             >
-              <span>Security architecture</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <span>How Dusk protects you</span>
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              <span className="sr-only">(opens in a new tab)</span>
             </Link>
 
             <button
               type="button"
               onClick={onSignOut}
-              className="hidden sm:inline-flex items-center justify-center h-9 px-3 rounded-[8px] border border-border text-[13px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors"
+              className="hidden sm:inline-flex items-center justify-center h-10 px-3.5 rounded-[8px] border border-border text-[14px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors"
             >
               Sign out
             </button>
@@ -252,7 +271,7 @@ export function DashboardShell({
         </header>
 
         {/* Dynamic View Body (max-w-[1200px], padded) */}
-        <main className="flex-1 p-6 sm:p-8 lg:p-10 max-w-[1200px] w-full mx-auto">
+        <main id="main-content" tabIndex={-1} className="flex-1 p-6 sm:p-8 lg:p-10 max-w-[1200px] w-full mx-auto focus:outline-none">
           {children}
         </main>
       </div>
@@ -262,6 +281,7 @@ export function DashboardShell({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Navigation menu"
           className="lg:hidden fixed inset-0 z-50 flex"
         >
           {/* Backdrop */}
@@ -284,8 +304,9 @@ export function DashboardShell({
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="p-1 rounded-[6px] border border-border text-foreground hover:bg-hover transition-colors"
+                  className="p-2 rounded-[8px] border border-border text-foreground hover:bg-hover transition-colors"
                   aria-label="Close menu"
+                  autoFocus
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -293,8 +314,8 @@ export function DashboardShell({
 
               {/* Mobile Workspace Nav */}
               <div className="mb-6">
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-muted px-2 mb-2">
-                  Workspace
+                <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
+                  Dashboard
                 </span>
                 <nav className="space-y-1">
                   {workspaceNav.map((item) => {
@@ -305,6 +326,7 @@ export function DashboardShell({
                         key={item.id}
                         type="button"
                         onClick={() => handleNavClick(item.id)}
+                        aria-current={isActive ? "page" : undefined}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[14px] font-medium transition-colors text-left ${ isActive ? "bg-accent-surface text-accent-text border border-brand/25 font-semibold" : "text-foreground-secondary hover:bg-hover hover:text-foreground" }`}
                       >
                         <Icon className="w-4 h-4" />
@@ -317,7 +339,7 @@ export function DashboardShell({
 
               {/* Mobile Security Nav */}
               <div>
-                <span className="block text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-muted px-2 mb-2">
+                <span className="block text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary px-2 mb-2">
                   Security &amp; settings
                 </span>
                 <nav className="space-y-1">
@@ -329,6 +351,7 @@ export function DashboardShell({
                         key={item.id}
                         type="button"
                         onClick={() => handleNavClick(item.id)}
+                        aria-current={isActive ? "page" : undefined}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[8px] text-[14px] font-medium transition-colors text-left ${ isActive ? "bg-accent-surface text-accent-text border border-brand/25 font-semibold" : "text-foreground-secondary hover:bg-hover hover:text-foreground" }`}
                       >
                         <Icon className="w-4 h-4" />
@@ -351,7 +374,7 @@ export function DashboardShell({
                     <span className="block text-[13px] font-semibold text-foreground truncate max-w-[140px]">
                       {user.fullName || user.email}
                     </span>
-                    <span className="block text-[11px] text-foreground-muted">
+                    <span className="block text-xs text-foreground-secondary">
                       Personal account
                     </span>
                   </div>
@@ -359,10 +382,11 @@ export function DashboardShell({
                 <button
                   type="button"
                   onClick={onSignOut}
-                  className="p-2 text-foreground-secondary hover:text-[var(--danger-fg)] transition-colors"
+                  className="p-2.5 rounded-[8px] border border-border text-foreground-secondary hover:text-[var(--danger-fg)] transition-colors"
                   title="Sign out"
+                  aria-label="Sign out"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>

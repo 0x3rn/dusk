@@ -11,10 +11,7 @@ export function ProductPreview() {
           <div className="flex items-center gap-2.5">
             <span className="w-2.5 h-2.5 rounded-full bg-brand" aria-hidden="true" />
             <span className="text-[13px] font-medium text-foreground">
-              Vault Console
-            </span>
-            <span className="text-[12px] text-foreground-muted font-mono">
-              0x8F4C...79B2
+              Your vault
             </span>
           </div>
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-accent-surface text-accent-text border border-brand/25 text-[12px] font-semibold">
@@ -26,7 +23,7 @@ export function ProductPreview() {
         {/* Dashboard Status Strip */}
         <div className="grid grid-cols-3 divide-x divide-border border-b border-border bg-card">
           <div className="p-3.5 sm:p-4">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-medium uppercase tracking-wider text-foreground-secondary mb-1">
               Vault Status
             </span>
             <span className="text-[13px] sm:text-[14px] font-semibold text-foreground flex items-center gap-1.5">
@@ -34,7 +31,7 @@ export function ProductPreview() {
             </span>
           </div>
           <div className="p-3.5 sm:p-4">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-medium uppercase tracking-wider text-foreground-secondary mb-1">
               Next Check-In
             </span>
             <span className="text-[13px] sm:text-[14px] font-semibold text-foreground">
@@ -42,7 +39,7 @@ export function ProductPreview() {
             </span>
           </div>
           <div className="p-3.5 sm:p-4">
-            <span className="block text-[11px] font-medium uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-medium uppercase tracking-wider text-foreground-secondary mb-1">
               Release Plan
             </span>
             <span className="text-[13px] sm:text-[14px] font-semibold text-foreground flex items-center gap-1.5">
@@ -57,7 +54,7 @@ export function ProductPreview() {
         <div className="p-5 sm:p-6 bg-card">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary">
+              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-foreground-secondary">
                 YOUR DIGITAL ESTATE
               </span>
               <h3 className="text-[16px] sm:text-[17px] font-semibold text-foreground">
@@ -122,7 +119,7 @@ export function ProductPreview() {
 
           {/* Sample Assigned Packages Snippet */}
           <div className="border border-border rounded-[10px] overflow-hidden bg-card">
-            <div className="bg-elevated px-3.5 py-2 border-b border-border flex items-center justify-between text-[11px] font-medium text-foreground-secondary">
+            <div className="bg-elevated px-3.5 py-2 border-b border-border flex items-center justify-between text-xs font-medium text-foreground-secondary">
               <span>Assigned package</span>
               <span>Goes to, and when</span>
             </div>
@@ -154,7 +151,7 @@ export function ProductPreview() {
         </div>
 
         {/* Footer Caption */}
-        <div className="px-5 py-3 border-t border-border bg-elevated text-[11px] text-foreground-muted flex items-center justify-between">
+        <div className="px-5 py-3 border-t border-border bg-elevated text-xs text-foreground-muted flex items-center justify-between">
           <span>Illustrative product preview — not a live vault or a security certification.</span>
         </div>
       </div>

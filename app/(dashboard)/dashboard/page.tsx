@@ -35,16 +35,71 @@ import {
   generateBeneficiaryKeyPair,
   wrapItemKeyForBeneficiary,
 } from "@/lib/crypto/beneficiary-wrapping";
-import { AlertCircle, CheckCircle2, X } from "lucide-react";
+import { Notice } from "@/components/ui/notice";
+import { CryptoTamperOrAuthError } from "@/lib/crypto/vault-crypto";
+
+/** Crypto failures carry developer wording; show the plain fallback instead. */
+function messageFor(err: unknown, fallback: string): string {
+  if (err instanceof CryptoTamperOrAuthError) return fallback;
+  return err instanceof Error && err.message ? err.message : fallback;
+}
+
+/** Placeholder that matches the dashboard layout while the first load runs. */
+function DashboardSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="min-h-screen bg-canvas flex"
+    >
+      <span className="sr-only">Loading your dashboard</span>
+      <div className="hidden lg:block w-[248px] shrink-0 bg-sunken border-r border-border p-5 space-y-3" aria-hidden="true">
+        <div className="h-8 w-24 rounded-[8px] bg-border/70 animate-pulse" />
+        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-9 rounded-[8px] bg-border/70 animate-pulse" />
+        ))}
+      </div>
+      <div className="flex-1 min-w-0" aria-hidden="true">
+        <div className="h-[68px] bg-sunken border-b border-border" />
+        <div className="max-w-[1200px] mx-auto p-6 sm:p-8 lg:p-10 space-y-6">
+          <div className="h-9 w-64 rounded-[8px] bg-border/70 animate-pulse" />
+          <div className="h-44 rounded-[14px] bg-card border border-border animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-[12px] bg-card border border-border animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [currentView, setCurrentView] = useState<DashboardView>("overview");
 
   // Notifications
   const [errorBanner, setErrorBanner] = useState("");
   const [successBanner, setSuccessBanner] = useState("");
+  const bannerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Messages must be seen: bring a new one into view, and drop old ones when the page changes.
+  useEffect(() => {
+    if (errorBanner || successBanner) {
+      bannerRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [errorBanner, successBanner]);
+
+  const selectView = useCallback((view: DashboardView) => {
+    setErrorBanner("");
+    setSuccessBanner("");
+    setCurrentView(view);
+    window.scrollTo({ top: 0 });
+  }, []);
 
   // Persisted Account State
   const [user, setUser] = useState<UserAccount | null>(null);
@@ -109,8 +164,10 @@ export default function DashboardPage() {
           router.push("/login");
           return;
         }
+        if (!res.ok) throw new Error(`Dashboard request failed with status ${res.status}`);
         const data = await res.json();
         if (!active) return;
+        setLoadError(false);
         setUser(data.user);
         setVault(data.vault);
         setSchedule(data.schedule);
@@ -127,7 +184,10 @@ export default function DashboardPage() {
           setDaysRemaining(data.schedule.intervalDays);
         }
       } catch (err) {
-        if (active) console.error("Initial load error:", err);
+        if (active) {
+          console.error("Initial load error:", err);
+          setLoadError(true);
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -138,7 +198,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [router]);
+  }, [router, loadAttempt]);
 
   // Decrypt vault items in memory whenever VMK is unlocked
   useEffect(() => {
@@ -202,7 +262,7 @@ export default function DashboardPage() {
   const handleLockVault = useCallback(() => {
     setUnlockedVmkBase64(null);
     setDecryptedItems({});
-    setSuccessBanner("Vault locked in memory. Decrypted contents purged.");
+    setSuccessBanner("Vault locked. Nothing can be read until you enter your passphrase again.");
   }, []);
 
   const handleInitializeVault = async (passphrase: string) => {
@@ -241,11 +301,13 @@ export default function DashboardPage() {
 
       setUnlockedVmkBase64(masterKeyBase64);
       setNewlyCreatedRecoveryKit(clientKit);
-      setSuccessBanner("Encrypted vault initialized. Please save your recovery kit.");
+      // The recovery code is shown on the Recovery kit page, so take the owner straight there.
+      setCurrentView("recovery");
+      setSuccessBanner("Your vault is ready. Save your recovery kit now: it is the only way back in if you forget your passphrase.");
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to initialize vault."
+        messageFor(err, "We couldn't set up your vault. Check your connection and try again.")
       );
     }
   };
@@ -254,7 +316,7 @@ export default function DashboardPage() {
     setErrorBanner("");
     setSuccessBanner("");
     try {
-      if (!vault) throw new Error("Vault not found.");
+      if (!vault) throw new Error("We couldn't find your vault. Refresh the page and try again.");
       const iterations = Number(vault.kdfAlgorithm?.split("-")[2]) || 600_000;
       const vmk = await unwrapVaultMasterKeyWithPassphrase(
         {
@@ -270,10 +332,10 @@ export default function DashboardPage() {
         "vlt_primary"
       );
       setUnlockedVmkBase64(vmk);
-      setSuccessBanner("Vault unlocked successfully in browser memory.");
+      setSuccessBanner("Vault unlocked on this device.");
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Incorrect master passphrase."
+        messageFor(err, "That passphrase didn't open your vault. Check it and try again.")
       );
     }
   };
@@ -284,7 +346,7 @@ export default function DashboardPage() {
     try {
       const activeArt = recoveryArtifacts[0];
       if (!activeArt) {
-        throw new Error("No active recovery kit found for this account.");
+        throw new Error("This account has no recovery kit yet.");
       }
       const vmk = await recoverVaultMasterKeyFromKit({
         serverArtifact: {
@@ -300,10 +362,10 @@ export default function DashboardPage() {
         recoveryCode,
       });
       setUnlockedVmkBase64(vmk);
-      setSuccessBanner("Vault unlocked with your recovery kit.");
+      setSuccessBanner("Vault unlocked with your recovery code.");
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Invalid recovery kit code."
+        messageFor(err, "That recovery code didn't work. Check each group of characters and try again.")
       );
     }
   };
@@ -387,7 +449,7 @@ export default function DashboardPage() {
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to save vault item."
+        messageFor(err, "We couldn't save that item. Nothing was added. Try again.")
       );
     }
   };
@@ -397,7 +459,7 @@ export default function DashboardPage() {
     contact: ContactData
   ) => {
     if (!unlockedVmkBase64 || !vault) {
-      setErrorBanner("Unlock your vault first to modify beneficiary key grants.");
+      setErrorBanner("Unlock your vault first, then change who receives this item.");
       return;
     }
     setErrorBanner("");
@@ -418,13 +480,13 @@ export default function DashboardPage() {
             itemId: item.id,
           }),
         });
-        if (!res.ok) throw new Error("Failed to unassign beneficiary.");
-        setSuccessBanner(`Removed ${contact.fullName} from item access.`);
+        if (!res.ok) throw new Error("We couldn't remove that person from this item. Try again.");
+        setSuccessBanner(`${contact.fullName} will no longer receive that item.`);
       } else {
         const dec = decryptedItems[item.id];
-        if (!dec) throw new Error("Item key not available in memory.");
+        if (!dec) throw new Error("Unlock your vault first, then try again.");
         if (!contact.publicKeyBase64) {
-          throw new Error("Beneficiary public key not found.");
+          throw new Error("This person was added without an unlock key, so they can't receive items. Remove them and add them again as a beneficiary.");
         }
 
         const wrappedGrant = await wrapItemKeyForBeneficiary({
@@ -451,13 +513,13 @@ export default function DashboardPage() {
             },
           }),
         });
-        if (!res.ok) throw new Error("Failed to assign beneficiary.");
-        setSuccessBanner(`Granted ${contact.fullName} selective access to "${dec.title}".`);
+        if (!res.ok) throw new Error("We couldn't give that person access to this item. Try again.");
+        setSuccessBanner(`${contact.fullName} will receive "${dec.title}" after release.`);
       }
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to update assignment."
+        messageFor(err, "We couldn't update who receives this item. Try again.")
       );
     }
   };
@@ -470,12 +532,12 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "DELETE_ENCRYPTED_ITEM", itemId }),
       });
-      if (!res.ok) throw new Error("Failed to delete item.");
-      setSuccessBanner("Item deleted from vault.");
+      if (!res.ok) throw new Error("We couldn't delete that item. Try again.");
+      setSuccessBanner("Item deleted from your vault.");
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to delete item."
+        messageFor(err, "We couldn't delete that item. Try again.")
       );
     }
   };
@@ -526,11 +588,11 @@ export default function DashboardPage() {
         });
       }
 
-      setSuccessBanner(`${data.contact.fullName} added to your estate contacts.`);
+      setSuccessBanner(`${data.contact.fullName} was added.`);
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to add contact."
+        messageFor(err, "We couldn't add that person. Check the details and try again.")
       );
     }
   };
@@ -543,12 +605,12 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "REVOKE_CONTACT", contactId }),
       });
-      if (!res.ok) throw new Error("Failed to remove contact.");
-      setSuccessBanner("Contact removed from estate plan.");
+      if (!res.ok) throw new Error("We couldn't remove that person. Try again.");
+      setSuccessBanner("Person removed from your plan.");
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to remove contact."
+        messageFor(err, "We couldn't remove that person. Try again.")
       );
     }
   };
@@ -567,7 +629,7 @@ export default function DashboardPage() {
       setSuccessBanner("Check-in confirmed. Your schedule was reset.");
       await refreshData();
     } catch (err: unknown) {
-      setErrorBanner(err instanceof Error ? err.message : "Check-in failed.");
+      setErrorBanner(messageFor(err, "We couldn't record your check-in. Try again."));
     }
   };
 
@@ -589,11 +651,11 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSuccessBanner("Schedule parameters updated successfully.");
+      setSuccessBanner("Check-in plan saved.");
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        err instanceof Error ? err.message : "Failed to update schedule."
+        messageFor(err, "We couldn't save your check-in plan. Try again.")
       );
     }
   };
@@ -613,10 +675,10 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSuccessBanner("Check-in schedule paused for 30 days.");
+      setSuccessBanner("Check-ins are paused for 30 days.");
       await refreshData();
     } catch (err: unknown) {
-      setErrorBanner(err instanceof Error ? err.message : "Failed to pause.");
+      setErrorBanner(messageFor(err, "We couldn't pause check-ins. Try again."));
     }
   };
 
@@ -633,70 +695,70 @@ export default function DashboardPage() {
   };
 
   const handleSignOut = async () => {
-    await fetch("/api/dashboard", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "LOGOUT" }),
-    });
-    router.push("/login");
+    setErrorBanner("");
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "LOGOUT" }),
+      });
+      if (!res.ok) throw new Error("Sign out failed");
+      router.push("/login");
+    } catch {
+      setErrorBanner("We couldn't sign you out. Check your connection and try again.");
+    }
   };
 
-  if (loading) {
+  if (loading) return <DashboardSkeleton />;
+
+  if (loadError || !user) {
     return (
-      <div className="min-h-screen bg-elevated flex items-center justify-center">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-6 h-6 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
-          <span className="text-[13px] text-foreground-secondary font-medium">
-            Loading secure console...
-          </span>
+      <main className="min-h-screen bg-canvas flex items-center justify-center p-6">
+        <div className="w-full max-w-md border border-border bg-card rounded-2xl p-8 text-center">
+          <h1 className="text-xl font-semibold text-foreground mb-2">
+            We couldn&apos;t load your dashboard
+          </h1>
+          <p className="text-sm text-foreground-secondary mb-6">
+            This is usually a connection problem. Your vault and settings are safe. Try again in a moment.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setLoadError(false);
+              setLoading(true);
+              setLoadAttempt((n) => n + 1);
+            }}
+            className="inline-flex items-center justify-center h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[15px] font-semibold hover:bg-brand-hover transition-colors"
+          >
+            Try again
+          </button>
         </div>
-      </div>
+      </main>
     );
   }
-
-  if (!user) return null;
 
   return (
     <DashboardShell
       currentView={currentView}
-      onSelectView={setCurrentView}
+      onSelectView={selectView}
       user={user}
       isVaultUnlocked={!!unlockedVmkBase64}
       onLockVault={handleLockVault}
       onSignOut={handleSignOut}
     >
-      {/* Alert Banners */}
-      {errorBanner && (
-        <div className="mb-6 p-4 rounded-[10px] bg-[var(--danger-bg)] border border-[var(--danger-fg)] text-[var(--danger-fg)] text-[13px] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-[var(--danger-fg)]" />
-            <span>{errorBanner}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setErrorBanner("")}
-            className="text-[var(--danger-fg)] hover:opacity-80"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {successBanner && (
-        <div className="mb-6 p-4 rounded-[10px] bg-accent-surface border border-brand/25 text-accent-text text-[13px] font-medium flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-accent-text shrink-0" />
-            <span>{successBanner}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setSuccessBanner("")}
-            className="text-accent-text hover:text-accent-text"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+      {/* Messages: one box at a time, announced to screen readers, dismissible */}
+      <div ref={bannerRef} className="space-y-3 empty:hidden mb-6 scroll-mt-24">
+        {errorBanner && (
+          <Notice tone="error" onDismiss={() => setErrorBanner("")}>
+            {errorBanner}
+          </Notice>
+        )}
+        {successBanner && (
+          <Notice tone="success" onDismiss={() => setSuccessBanner("")}>
+            {successBanner}
+          </Notice>
+        )}
+      </div>
 
       {/* View Switcher */}
       {currentView === "overview" && (
@@ -710,7 +772,7 @@ export default function DashboardPage() {
           isVaultUnlocked={!!unlockedVmkBase64}
           decryptedItems={decryptedItems}
           daysRemaining={daysRemaining}
-          onNavigate={setCurrentView}
+          onNavigate={selectView}
           onCheckIn={handleCheckIn}
           onPauseSchedule={handlePauseSchedule}
           onUnlockPassphrase={handleUnlockWithPassphrase}
@@ -750,7 +812,7 @@ export default function DashboardPage() {
         <AuditTimelineView
           auditEvents={auditEvents}
           contacts={contacts}
-          onNavigate={setCurrentView}
+          onNavigate={selectView}
         />
       )}
 

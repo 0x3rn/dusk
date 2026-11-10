@@ -14,7 +14,6 @@ const features = [
   "Beneficiaries and trusted verifiers",
   "Choose what each beneficiary receives",
   "Recovery kit to get back in if you lose your passphrase",
-  "Access to the core features included in your purchase",
 ];
 
 export function PricingSection({ onCheckout, isLoading = false }: PricingSectionProps) {
@@ -43,11 +42,11 @@ export function PricingSection({ onCheckout, isLoading = false }: PricingSection
                 Dusk Lifetime
               </h3>
               <span className="px-2.5 py-1 rounded-[6px] bg-accent-surface text-accent-text border border-brand/25 text-[12px] font-semibold">
-                Lifetime access
+                One payment
               </span>
             </div>
             <p className="text-[14px] text-foreground-secondary mb-6">
-              For your digital estate
+              Everything below, with no subscription
             </p>
             <div className="flex items-baseline gap-2">
               <span className="text-[48px] sm:text-[52px] font-semibold text-foreground tracking-tight leading-none">

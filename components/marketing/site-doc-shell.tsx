@@ -7,6 +7,9 @@ import type { SiteDoc } from "@/lib/site-docs";
 export function SiteDocShell({ doc }: { doc: SiteDoc }) {
   return (
     <div className="min-h-screen bg-background text-foreground antialiased flex flex-col">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-50 h-[68px] bg-sunken border-b border-border px-6 sm:px-8 flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
           <DuskLogo size={22} />
@@ -18,7 +21,7 @@ export function SiteDocShell({ doc }: { doc: SiteDoc }) {
         <ThemeToggle />
       </header>
 
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <article className="max-w-3xl mx-auto px-6 sm:px-8 py-14 sm:py-20 text-left">
           <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-3 block">
             {doc.category}

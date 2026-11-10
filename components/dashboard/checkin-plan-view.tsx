@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import { ScheduleData } from "./types";
 import { formatCount, formatDate } from "@/lib/display-format";
+import { ConfirmAction } from "@/components/ui/confirm-action";
+import { fieldHintClass, fieldInputClass, fieldLabelClass, buttonPrimaryClass } from "@/components/ui/form-field";
 
 interface CheckinPlanViewProps {
   schedule: ScheduleData | null;
@@ -70,7 +72,7 @@ export function CheckinPlanView({
           Check-in plan
         </h1>
         <p className="text-[14px] sm:text-[15px] text-foreground-secondary mt-1">
-          Choose how often to confirm you&apos;re okay, and how long Dusk waits before it contacts your trusted verifiers.
+          Choose how often you check in, and how long Dusk waits after a missed check-in before it contacts your trusted verifiers.
         </p>
       </div>
 
@@ -79,62 +81,59 @@ export function CheckinPlanView({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text">
-              <Clock className="w-5 h-5 stroke-[1.75]" />
+              <Clock className="w-5 h-5 stroke-[1.75]" aria-hidden="true" />
             </div>
             <div>
-              <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary">
-                Schedule
-              </span>
               <h2 className="text-[18px] font-semibold text-foreground">
-                {isPaused ? "Your check-in schedule is paused" : "Your check-in schedule is on"}
+                {isPaused ? "Check-ins are paused" : "Check-ins are on"}
               </h2>
             </div>
           </div>
 
           <span
-            className={`px-3 py-1 rounded-[6px] text-[12px] font-semibold border ${ isPaused ? "bg-elevated border-border text-foreground-secondary" : "bg-accent-surface border-brand/25 text-accent-text" }`}
+            className={`px-3 py-1 rounded-[6px] text-[13px] font-semibold border ${ isPaused ? "bg-elevated border-border text-foreground-secondary" : "bg-accent-surface border-brand/25 text-accent-text" }`}
           >
             {isPaused
-              ? "Paused for 30 days"
+              ? "Paused"
               : `Next check-in in ${formatCount(daysRemaining, "day")}`}
           </span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-[14px]">
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               How often
             </span>
             <span className="font-semibold text-foreground tabular-nums">
               Every {schedule?.intervalDays || 90} days
             </span>
-            <p className="text-[12px] text-foreground-secondary mt-0.5">
-              How often you confirm that you are available.
+            <p className="text-[13px] text-foreground-secondary mt-0.5">
+              How often you confirm you&apos;re okay.
             </p>
           </div>
 
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Grace period
             </span>
             <span className="font-semibold text-foreground tabular-nums">
               {schedule?.gracePeriodDays || 14} days
             </span>
-            <p className="text-[12px] text-foreground-secondary mt-0.5">
-              Extra time after a missed check-in before Dusk contacts your trusted verifiers.
+            <p className="text-[13px] text-foreground-secondary mt-0.5">
+              Extra time after a missed check-in, before Dusk contacts your trusted verifiers.
             </p>
           </div>
 
           <div>
-            <span className="block text-[11px] font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
+            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
               Last check-in
             </span>
             <span className="font-semibold text-foreground tabular-nums">
               {schedule?.lastCheckInAt
                 ? formatDate(schedule.lastCheckInAt)
-                : "Initial enrollment"}
+                : "Not yet. Your first check-in is due on schedule."}
             </span>
-            <p className="text-[12px] text-foreground-secondary mt-0.5">
+            <p className="text-[13px] text-foreground-secondary mt-0.5">
               The last time you confirmed you&apos;re okay.
             </p>
           </div>
@@ -145,63 +144,69 @@ export function CheckinPlanView({
       <div className="border border-border bg-card rounded-[14px] p-6 sm:p-7">
         <div className="pb-4 border-b border-border mb-6">
           <h2 className="text-[18px] font-semibold text-foreground">
-            Change your schedule
+            Change your plan
           </h2>
           <p className="text-[13px] text-foreground-secondary mt-0.5">
-            Set how often you check in and how long the grace period lasts.
+            Changes apply from your next check-in.
           </p>
         </div>
 
         <form onSubmit={handleSave} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
-              <label className="block text-[13px] font-medium text-foreground mb-1.5">
-                How often (days)
+              <label htmlFor="plan-interval" className={fieldLabelClass}>
+                Check in every (days)
               </label>
               <input
+                id="plan-interval"
                 type="number"
+                inputMode="numeric"
                 min={7}
                 max={365}
                 required
                 value={intervalDays}
                 onChange={(e) => setIntervalDays(Number(e.target.value))}
-                className="w-full h-11 px-3.5 rounded-[8px] border border-border bg-background text-[14px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                aria-describedby="plan-interval-hint"
+                className={fieldInputClass}
               />
-              <span className="block text-[12px] text-foreground-secondary mt-1.5">
-                Recommended: 90 days (quarterly). Minimum 7 days, maximum 365 days.
+              <span id="plan-interval-hint" className={fieldHintClass}>
+                Between 7 and 365 days. Most people choose 90.
               </span>
             </div>
 
             <div>
-              <label className="block text-[13px] font-medium text-foreground mb-1.5">
+              <label htmlFor="plan-grace" className={fieldLabelClass}>
                 Grace period (days)
               </label>
               <input
+                id="plan-grace"
                 type="number"
+                inputMode="numeric"
                 min={3}
                 max={90}
                 required
                 value={gracePeriodDays}
                 onChange={(e) => setGracePeriodDays(Number(e.target.value))}
-                className="w-full h-11 px-3.5 rounded-[8px] border border-border bg-background text-[14px] text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                aria-describedby="plan-grace-hint"
+                className={fieldInputClass}
               />
-              <span className="block text-[12px] text-foreground-secondary mt-1.5">
-                Time after a missed check-in before Dusk contacts your trusted verifiers. Minimum 3 days.
+              <span id="plan-grace-hint" className={fieldHintClass}>
+                Between 3 and 90 days. This is how long you have to respond after missing a check-in.
               </span>
             </div>
           </div>
 
           <div className="space-y-3 pt-2 text-[13px] text-foreground-secondary border-t border-border">
             <div className="flex items-start gap-2.5">
-              <Calendar className="w-4 h-4 text-accent-text shrink-0 mt-0.5" />
+              <Calendar className="w-4 h-4 text-accent-text shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <strong className="text-foreground">Reminders:</strong> We&apos;ll remind you by email and SMS before each check-in is due.
+                <strong className="text-foreground">Reminders:</strong> Dusk reminds you before each check-in is due.
               </div>
             </div>
             <div className="flex items-start gap-2.5">
-              <Shield className="w-4 h-4 text-accent-text shrink-0 mt-0.5" />
+              <Shield className="w-4 h-4 text-accent-text shrink-0 mt-0.5" aria-hidden="true" />
               <div>
-                <strong className="text-foreground">Release:</strong> If you miss a check-in and the grace period ends, Dusk contacts your trusted verifiers. Nothing is released until verification is complete.
+                <strong className="text-foreground">If you miss one:</strong> when the grace period ends, Dusk contacts your trusted verifiers. Nothing is sent to anyone until they confirm.
               </div>
             </div>
           </div>
@@ -210,9 +215,9 @@ export function CheckinPlanView({
             <button
               type="submit"
               disabled={isSaving}
-              className="h-11 px-6 rounded-[8px] bg-brand text-on-brand hover:bg-brand-hover text-[14px] font-semibold disabled:opacity-60 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+              className={`${buttonPrimaryClass} px-6`}
             >
-              {isSaving ? "Saving changes..." : "Save schedule"}
+              {isSaving ? "Saving..." : "Save check-in plan"}
             </button>
           </div>
         </form>
@@ -223,39 +228,50 @@ export function CheckinPlanView({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-[10px] bg-elevated border border-border flex items-center justify-center text-accent-text shrink-0 mt-0.5">
-              <PauseCircle className="w-5 h-5 stroke-[1.75]" />
+              <PauseCircle className="w-5 h-5 stroke-[1.75]" aria-hidden="true" />
             </div>
             <div>
               <h3 className="text-[17px] font-semibold text-foreground mb-1">
                 Pause check-ins
               </h3>
               <p className="text-[13px] text-foreground-secondary leading-relaxed max-w-xl">
-                Temporarily suspend your schedule for 30 days during travel, remote expeditions, or hospital stays. Pausing check-ins does not change existing vault encryption or grant anyone access.
+                Stop reminders and the release process for 30 days, for example while you travel or are in hospital. Pausing doesn&apos;t give anyone access to your vault. Checking in resumes your plan.
               </p>
             </div>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 sm:max-w-sm w-full sm:w-auto">
             {isPaused ? (
               <button
                 type="button"
                 disabled={isCheckingIn}
                 onClick={handleResume}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-[8px] bg-brand text-on-brand text-[14px] font-semibold hover:bg-brand-hover transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                className={buttonPrimaryClass}
               >
-                <Play className="w-4 h-4 fill-current" />
-                <span>Resume check-ins</span>
+                <Play className="w-4 h-4 fill-current" aria-hidden="true" />
+                <span>{isCheckingIn ? "Resuming..." : "Resume check-ins"}</span>
               </button>
             ) : (
-              <button
-                type="button"
-                disabled={isPausing}
-                onClick={handlePause}
-                className="inline-flex items-center gap-2 h-11 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[14px] font-medium hover:bg-hover transition-colors"
-              >
-                <PauseCircle className="w-4 h-4" />
-                <span>Pause for 30 days</span>
-              </button>
+              <ConfirmAction
+                tone="default"
+                title="Pause check-ins for 30 days?"
+                description="While paused, Dusk won't send reminders or start the release process. Checking in again resumes your plan."
+                confirmLabel="Pause for 30 days"
+                pendingLabel="Pausing..."
+                cancelLabel="Don't pause"
+                onConfirm={handlePause}
+                trigger={(props) => (
+                  <button
+                    type="button"
+                    disabled={isPausing}
+                    {...props}
+                    className="inline-flex items-center gap-2 h-11 px-5 rounded-[8px] border border-border bg-elevated text-foreground text-[15px] font-medium hover:bg-hover transition-colors disabled:opacity-60"
+                  >
+                    <PauseCircle className="w-4 h-4" aria-hidden="true" />
+                    <span>Pause for 30 days</span>
+                  </button>
+                )}
+              />
             )}
           </div>
         </div>
