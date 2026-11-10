@@ -22,12 +22,12 @@ export interface SecurityHeaderEntry {
 export function getProductionSecurityHeaders(): SecurityHeaderEntry[] {
   const cspDirectives = [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://apis.google.com https://js.stripe.com",
+    "script-src 'self' 'unsafe-inline' https://js.stripe.com",
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://images.unsplash.com https://*.googleusercontent.com",
     "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://api.stripe.com",
-    "frame-src 'self' https://*.firebaseapp.com https://js.stripe.com",
+    "connect-src 'self' https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
+    "frame-src 'self' https://js.stripe.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -144,6 +144,26 @@ export const RATE_LIMIT_POLICIES = {
     bucketName: "beneficiary_access",
     maxAttempts: 5,
     windowMs: 30 * 60 * 1000, // 5 attempts per 30 minutes
+  },
+  CHECKIN_LINK: {
+    bucketName: "checkin_link",
+    maxAttempts: 10,
+    windowMs: 15 * 60 * 1000, // 10 attempts per 15 minutes per caller
+  },
+  VERIFIER_LINK: {
+    bucketName: "verifier_link",
+    maxAttempts: 10,
+    windowMs: 15 * 60 * 1000,
+  },
+  CHECKOUT_START: {
+    bucketName: "checkout_start",
+    maxAttempts: 10,
+    windowMs: 60 * 60 * 1000, // 10 checkout sessions per hour per user
+  },
+  SCHEDULER_TICK: {
+    bucketName: "scheduler_tick",
+    maxAttempts: 60,
+    windowMs: 60 * 60 * 1000, // generous: the real caller runs a few times an hour
   },
 } as const satisfies Record<string, RateLimitPolicy>;
 

@@ -1,74 +1,76 @@
-// lib/services/prisma-foundation-store.ts
-import type { PrismaClient } from "@prisma/client";
-import type {
-  AuditEventRecord,
-  CheckInScheduleRecord,
-  EncryptedItemRecord,
-  FoundationPersistencePort,
-  SessionRecord,
-  UserRecord,
-  VaultRecord,
+import { Prisma, type PrismaClient } from "@prisma/client";
+import {
+  UniqueConstraintError,
+  type AuditEventRecord,
+  type CheckInScheduleRecord,
+  type EncryptedItemRecord,
+  type FoundationPersistencePort,
+  type UserRecord,
+  type VaultRecord,
 } from "./foundation-service";
+
+/** Only the columns callers may see: never leak mfaSecretEncrypted, stripeCustomerId, etc. */
+const USER_SELECT = {
+  id: true,
+  authUserId: true,
+  email: true,
+  fullName: true,
+  hasLifetimeAccess: true,
+  createdAt: true,
+} as const;
 
 export class PrismaFoundationStore implements FoundationPersistencePort {
   constructor(private readonly db: PrismaClient) {}
 
   async findUserByEmail(email: string): Promise<UserRecord | null> {
-    return this.db.user.findUnique({ where: { email } });
+    return this.db.user.findUnique({ where: { email }, select: USER_SELECT });
   }
 
-  async findUserByFirebaseUid(firebaseUid: string): Promise<UserRecord | null> {
-    return this.db.user.findUnique({ where: { firebaseUid } });
+  async findUserByAuthUserId(authUserId: string): Promise<UserRecord | null> {
+    return this.db.user.findUnique({ where: { authUserId }, select: USER_SELECT });
   }
 
   async findUserById(id: string): Promise<UserRecord | null> {
-    return this.db.user.findUnique({ where: { id } });
+    return this.db.user.findUnique({ where: { id }, select: USER_SELECT });
   }
 
   async createUser(data: {
+    authUserId: string;
     email: string;
     fullName: string | null;
-    passwordHash: string | null;
-    firebaseUid: string | null;
-    authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
+    emailVerifiedAt: Date | null;
   }): Promise<UserRecord> {
-    return this.db.user.create({ data });
-  }
-
-  async updateUserAuthLink(
-    userId: string,
-    data: {
-      firebaseUid?: string;
-      passwordHash?: string;
-      authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
+    try {
+      return await this.db.user.create({ data, select: USER_SELECT });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new UniqueConstraintError();
+      }
+      throw err;
     }
+  }
+
+  async linkAuthIdentity(
+    userId: string,
+    authUserId: string,
+    emailVerifiedAt: Date
   ): Promise<UserRecord> {
-    return this.db.user.update({
-      where: { id: userId },
-      data,
-    });
-  }
-
-  async createSession(data: {
-    userId: string;
-    tokenHash: string;
-    deviceName: string | null;
-    userAgent: string | null;
-    ipAddressHash: string | null;
-    expiresAt: Date;
-  }): Promise<SessionRecord> {
-    return this.db.session.create({ data });
-  }
-
-  async findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null> {
-    return this.db.session.findUnique({ where: { tokenHash } });
-  }
-
-  async revokeSession(sessionId: string, revokedAt: Date): Promise<SessionRecord> {
-    return this.db.session.update({
-      where: { id: sessionId },
-      data: { revokedAt },
-    });
+    try {
+      // The authUserId IS NULL guard makes linking a one-way, race-safe operation.
+      const result = await this.db.user.updateMany({
+        where: { id: userId, authUserId: null },
+        data: { authUserId, emailVerifiedAt },
+      });
+      if (result.count !== 1) {
+        throw new UniqueConstraintError("User is already linked to a sign-in identity.");
+      }
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        throw new UniqueConstraintError();
+      }
+      throw err;
+    }
+    return this.db.user.findUniqueOrThrow({ where: { id: userId }, select: USER_SELECT });
   }
 
   async ensureDefaultSchedule(

@@ -1,24 +1,17 @@
 // app/api/dashboard/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import {
-  clearSessionCookie,
-  getFoundationService,
-  getSessionTokenFromRequest,
-} from "@/lib/auth/session-cookie";
-import {
-  AuthenticationError,
-  AuthorizationError,
-  TrustBoundaryViolationError,
-  ValidationError,
-} from "@/lib/services/foundation-service";
+import { auth } from "@/lib/auth/server";
+import { getFoundationService, requireUser } from "@/lib/auth/current-user";
+import { errorToResponse } from "@/lib/api/errors";
+import { assertSameOrigin } from "@/lib/api/csrf";
+import { createEngine } from "@/lib/engine/engine";
+import { AuthorizationError, ValidationError } from "@/lib/services/foundation-service";
 import { redactForAuditLog } from "@/lib/domain/trust-boundary";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
-    const token = await getSessionTokenFromRequest(req);
-    const service = getFoundationService();
-    const { user, session } = await service.authenticateSession(token);
+    const { user, authSession } = await requireUser();
 
     const [
       vault,
@@ -62,7 +55,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({
       user,
-      currentSessionId: session.id,
+      currentSessionId: authSession.id,
       vault,
       schedule,
       contacts,
@@ -71,28 +64,31 @@ export async function GET(req: Request) {
       auditEvents,
     });
   } catch (err: unknown) {
-    if (err instanceof AuthenticationError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    }
-    console.error("[GET /api/dashboard]", err);
-    return NextResponse.json(
-      { error: "Failed to load dashboard." },
-      { status: 500 }
-    );
+    return errorToResponse(err, "GET /api/dashboard");
   }
 }
 
 export async function POST(req: Request) {
   try {
-    const token = await getSessionTokenFromRequest(req);
+    assertSameOrigin(req);
+    const { user } = await requireUser();
     const service = getFoundationService();
-    const { user, session } = await service.authenticateSession(token);
+    const engine = createEngine();
     const body = await req.json();
 
     switch (body.action) {
       case "LOGOUT": {
-        await service.revokeUserSession(user.id, session);
-        await clearSessionCookie();
+        await auth.signOut();
+        await prisma.auditEvent.create({
+          data: {
+            userId: user.id,
+            eventType: "AUTH_SIGNED_OUT",
+            severity: "INFO",
+            actorType: "USER",
+            actorId: user.id,
+            redactedMeta: "{}",
+          },
+        });
         return NextResponse.json({ ok: true });
       }
 
@@ -340,160 +336,50 @@ export async function POST(req: Request) {
       }
 
       case "CHECK_IN_NOW": {
-        const current = await prisma.checkInSchedule.findUniqueOrThrow({
-          where: { userId: user.id },
-        });
-        const now = new Date();
-        const nextDueAt = new Date(
-          now.getTime() + current.intervalDays * 24 * 60 * 60 * 1000
-        );
-        const updated = await prisma.checkInSchedule.update({
-          where: { id: current.id },
-          data: {
-            state: "HEALTHY",
-            lastCheckInAt: now,
-            nextDueAt,
-            graceEndsAt: null,
-            pausedUntil: null,
-            remindersSentCount: 0,
-            version: { increment: 1 },
-          },
-        });
-        await prisma.workflowEvent.create({
-          data: {
-            scheduleId: current.id,
-            userId: user.id,
-            fromState: current.state,
-            toState: "HEALTHY",
-            reason: "USER_AUTHENTICATED_PROOF_OF_LIFE",
-            idempotencyKey: `checkin_${current.id}_v${current.version}_${now.getTime()}`,
-            actorType: "USER",
-            actorId: user.id,
-          },
-        });
-        await prisma.auditEvent.create({
-          data: {
-            userId: user.id,
-            eventType: "PROOF_OF_LIFE_CHECKIN_CONFIRMED",
-            severity: "INFO",
-            actorType: "USER",
-            actorId: user.id,
-            redactedMeta: JSON.stringify({
-              previousState: current.state,
-              nextDueAtIso: nextDueAt.toISOString(),
-            }),
-          },
-        });
-        return NextResponse.json({ schedule: updated });
+        // The browser sends a fresh key per click so a double-click is one check-in, not two.
+        const idempotencyKey =
+          typeof body.idempotencyKey === "string" && body.idempotencyKey.length >= 8
+            ? `checkin_ui_${user.id}_${body.idempotencyKey.slice(0, 64)}`
+            : undefined;
+        const { schedule } = await engine.checkIn.recordAuthenticatedCheckIn(user.id, idempotencyKey);
+        return NextResponse.json({ schedule });
       }
 
       case "UPDATE_SCHEDULE_CONFIG": {
-        const intervalDays = Math.min(
-          365,
-          Math.max(7, Number(body.intervalDays) || 90)
-        );
-        const gracePeriodDays = Math.min(
-          90,
-          Math.max(3, Number(body.gracePeriodDays) || 14)
-        );
         const current = await prisma.checkInSchedule.findUniqueOrThrow({
           where: { userId: user.id },
         });
-        const now = new Date();
-        const nextDueAt = new Date(
-          now.getTime() + intervalDays * 24 * 60 * 60 * 1000
-        );
-        const updated = await prisma.checkInSchedule.update({
-          where: { id: current.id },
-          data: {
-            intervalDays,
-            gracePeriodDays,
-            state: "HEALTHY",
-            lastCheckInAt: now,
-            nextDueAt,
-            pausedUntil: null,
-            version: { increment: 1 },
-          },
+        const intervalDays = Number(body.intervalDays) || current.intervalDays;
+        const schedule = await engine.checkIn.updateScheduleConfiguration(user.id, {
+          intervalDays,
+          gracePeriodDays: Number(body.gracePeriodDays) || current.gracePeriodDays,
+          // Keep the reminder window valid if the interval was shortened below it.
+          reminderDaysBeforeDue: Math.min(current.reminderDaysBeforeDue, Math.max(1, intervalDays - 1)),
+          minRequiredReminders: current.minRequiredReminders,
+          requiredVerifierApprovals: current.requiredVerifierApprovals,
         });
-        await prisma.auditEvent.create({
-          data: {
-            userId: user.id,
-            eventType: "CHECKIN_SCHEDULE_CONFIGURED",
-            severity: "INFO",
-            actorType: "USER",
-            actorId: user.id,
-            redactedMeta: JSON.stringify({ intervalDays, gracePeriodDays }),
-          },
-        });
-        return NextResponse.json({ schedule: updated });
+        return NextResponse.json({ schedule });
       }
 
       case "PAUSE_SCHEDULE": {
-        const pauseDays = Math.min(
-          180,
-          Math.max(1, Number(body.pauseDays) || 14)
-        );
-        const reason = (body.reason || "Paused by owner").slice(0, 200);
-        const current = await prisma.checkInSchedule.findUniqueOrThrow({
-          where: { userId: user.id },
+        const { schedule } = await engine.escalation().pauseSchedule(user.id, {
+          pauseDays: Number(body.pauseDays) || 14,
+          reason: typeof body.reason === "string" && body.reason.trim().length >= 3 ? body.reason : "Paused by owner",
         });
-        const now = new Date();
-        const pausedUntil = new Date(
-          now.getTime() + pauseDays * 24 * 60 * 60 * 1000
-        );
-        const updated = await prisma.checkInSchedule.update({
-          where: { id: current.id },
-          data: {
-            state: "PAUSED",
-            pausedUntil,
-            version: { increment: 1 },
-          },
+        return NextResponse.json({ schedule });
+      }
+
+      case "CANCEL_FALSE_TRIGGER": {
+        const { schedule } = await engine.escalation().cancelFalseTrigger(user.id, {
+          reason: typeof body.reason === "string" && body.reason.trim().length >= 3 ? body.reason : undefined,
         });
-        await prisma.workflowEvent.create({
-          data: {
-            scheduleId: current.id,
-            userId: user.id,
-            fromState: current.state,
-            toState: "PAUSED",
-            reason: `USER_PAUSED:${reason}`,
-            idempotencyKey: `pause_${current.id}_v${current.version}_${now.getTime()}`,
-            actorType: "USER",
-            actorId: user.id,
-          },
-        });
-        await prisma.auditEvent.create({
-          data: {
-            userId: user.id,
-            eventType: "CHECKIN_SCHEDULE_PAUSED",
-            severity: "INFO",
-            actorType: "USER",
-            actorId: user.id,
-            redactedMeta: JSON.stringify({ pauseDays, reason }),
-          },
-        });
-        return NextResponse.json({ schedule: updated });
+        return NextResponse.json({ schedule });
       }
 
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (err: unknown) {
-    if (err instanceof AuthenticationError) {
-      return NextResponse.json({ error: err.message }, { status: 401 });
-    }
-    if (err instanceof AuthorizationError) {
-      return NextResponse.json({ error: err.message }, { status: 403 });
-    }
-    if (
-      err instanceof ValidationError ||
-      err instanceof TrustBoundaryViolationError
-    ) {
-      return NextResponse.json({ error: err.message }, { status: 400 });
-    }
-    console.error("[POST /api/dashboard]", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Operation failed" },
-      { status: 500 }
-    );
+    return errorToResponse(err, "POST /api/dashboard");
   }
 }

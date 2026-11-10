@@ -6,23 +6,24 @@ import {
   AuthorizationError,
   FoundationService,
   TrustBoundaryViolationError,
-  ValidationError,
+  UniqueConstraintError,
   type AuditEventRecord,
   type CheckInScheduleRecord,
   type EncryptedItemRecord,
   type FoundationPersistencePort,
-  type SessionRecord,
   type UserRecord,
   type VaultRecord,
 } from "./foundation-service";
 
 class InMemoryFoundationStore implements FoundationPersistencePort {
   public users = new Map<string, UserRecord>();
-  public sessions = new Map<string, SessionRecord>();
   public schedules = new Map<string, CheckInScheduleRecord>();
   public vaults = new Map<string, VaultRecord>();
   public items = new Map<string, EncryptedItemRecord>();
   public audits: AuditEventRecord[] = [];
+
+  /** Set by a test to simulate another request winning the creation race. */
+  public beforeCreateUser: (() => void) | null = null;
 
   async findUserByEmail(email: string): Promise<UserRecord | null> {
     for (const u of this.users.values()) {
@@ -31,9 +32,9 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
     return null;
   }
 
-  async findUserByFirebaseUid(firebaseUid: string): Promise<UserRecord | null> {
+  async findUserByAuthUserId(authUserId: string): Promise<UserRecord | null> {
     for (const u of this.users.values()) {
-      if (u.firebaseUid === firebaseUid) return u;
+      if (u.authUserId === authUserId) return u;
     }
     return null;
   }
@@ -43,19 +44,22 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
   }
 
   async createUser(data: {
+    authUserId: string;
     email: string;
     fullName: string | null;
-    passwordHash: string | null;
-    firebaseUid: string | null;
-    authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
+    emailVerifiedAt: Date | null;
   }): Promise<UserRecord> {
+    this.beforeCreateUser?.();
+    for (const u of this.users.values()) {
+      if (u.email === data.email || u.authUserId === data.authUserId) {
+        throw new UniqueConstraintError();
+      }
+    }
     const record: UserRecord = {
       id: `usr_${crypto.randomUUID()}`,
+      authUserId: data.authUserId,
       email: data.email,
       fullName: data.fullName,
-      passwordHash: data.passwordHash,
-      firebaseUid: data.firebaseUid,
-      authProvider: data.authProvider,
       hasLifetimeAccess: false,
       createdAt: new Date(),
     };
@@ -63,61 +67,26 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
     return record;
   }
 
-  async updateUserAuthLink(
-    userId: string,
-    data: {
-      firebaseUid?: string;
-      passwordHash?: string;
-      authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
-    }
-  ): Promise<UserRecord> {
-    const existing = this.users.get(userId);
-    if (!existing) throw new Error("User not found");
-    const updated: UserRecord = {
-      ...existing,
-      firebaseUid: data.firebaseUid ?? existing.firebaseUid,
-      passwordHash: data.passwordHash ?? existing.passwordHash,
-      authProvider: data.authProvider,
+  /** Test helper: an account that existed before Neon Auth (no authUserId yet). */
+  seedLegacyUser(email: string): UserRecord {
+    const record: UserRecord = {
+      id: `usr_${crypto.randomUUID()}`,
+      authUserId: null,
+      email,
+      fullName: "Legacy Owner",
+      hasLifetimeAccess: false,
+      createdAt: new Date(),
     };
-    this.users.set(userId, updated);
-    return updated;
-  }
-
-  async createSession(data: {
-    userId: string;
-    tokenHash: string;
-    deviceName: string | null;
-    userAgent: string | null;
-    ipAddressHash: string | null;
-    expiresAt: Date;
-  }): Promise<SessionRecord> {
-    const record: SessionRecord = {
-      id: `ses_${crypto.randomUUID()}`,
-      userId: data.userId,
-      tokenHash: data.tokenHash,
-      deviceName: data.deviceName,
-      userAgent: data.userAgent,
-      ipAddressHash: data.ipAddressHash,
-      lastActiveAt: new Date(),
-      expiresAt: data.expiresAt,
-      revokedAt: null,
-    };
-    this.sessions.set(record.id, record);
+    this.users.set(record.id, record);
     return record;
   }
 
-  async findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null> {
-    for (const s of this.sessions.values()) {
-      if (s.tokenHash === tokenHash) return s;
-    }
-    return null;
-  }
-
-  async revokeSession(sessionId: string, revokedAt: Date): Promise<SessionRecord> {
-    const existing = this.sessions.get(sessionId);
-    if (!existing) throw new Error("Session not found");
-    const updated = { ...existing, revokedAt };
-    this.sessions.set(sessionId, updated);
+  async linkAuthIdentity(userId: string, authUserId: string): Promise<UserRecord> {
+    const existing = this.users.get(userId);
+    if (!existing) throw new Error("User not found");
+    if (existing.authUserId) throw new UniqueConstraintError("Already linked.");
+    const updated = { ...existing, authUserId };
+    this.users.set(userId, updated);
     return updated;
   }
 
@@ -231,7 +200,15 @@ class InMemoryFoundationStore implements FoundationPersistencePort {
   }
 }
 
-describe("THE-97: FoundationService End-to-End Flow & Authorization", () => {
+const identity = (over: Record<string, unknown> = {}) => ({
+  authUserId: "neon_user_1",
+  email: "Ada.Lovelace@Example.com",
+  emailVerified: true,
+  name: "Ada Lovelace",
+  ...over,
+});
+
+describe("FoundationService: Neon Auth identity -> Dusk user", () => {
   let store: InMemoryFoundationStore;
   let service: FoundationService;
 
@@ -240,89 +217,134 @@ describe("THE-97: FoundationService End-to-End Flow & Authorization", () => {
     service = new FoundationService(store);
   });
 
-  it("registers with email/password, signs in, validates session, and revokes session", async () => {
-    const reg = await service.registerWithPassword({
-      email: "Ada.Lovelace@Example.com",
-      password: "ultra-secure-passphrase-123!",
-      fullName: "Ada Lovelace",
-      ipAddress: "203.0.113.5",
-    });
+  it("creates a user with a default 90-day schedule on first sign-in and normalizes email", async () => {
+    const user = await service.resolveUserFromIdentity(identity());
 
-    expect(reg.user.email).toBe("ada.lovelace@example.com");
-    expect(reg.user.authProvider).toBe("PASSWORD");
-    expect(reg.schedule.state).toBe("HEALTHY");
-    expect(reg.schedule.intervalDays).toBe(90);
+    expect(user.email).toBe("ada.lovelace@example.com");
+    expect(user.authUserId).toBe("neon_user_1");
+    expect(user.fullName).toBe("Ada Lovelace");
+    const schedule = store.schedules.get(user.id);
+    expect(schedule?.state).toBe("HEALTHY");
+    expect(schedule?.intervalDays).toBe(90);
+    const events = (await store.listAuditEventsByUserId(user.id)).map((a) => a.eventType);
+    expect(events).toContain("ACCOUNT_CREATED");
+  });
 
-    // Authenticate using the issued session token
-    const sessionAuth = await service.authenticateSession(reg.sessionToken);
-    expect(sessionAuth.user.id).toBe(reg.user.id);
+  it("is idempotent: a second call returns the same user and creates nothing", async () => {
+    const first = await service.resolveUserFromIdentity(identity());
+    const second = await service.resolveUserFromIdentity(identity());
 
-    // Sign in again with email + password
-    const login = await service.loginWithPassword({
-      email: "ada.lovelace@example.com",
-      password: "ultra-secure-passphrase-123!",
-    });
-    expect(login.user.id).toBe(reg.user.id);
-    expect(login.sessionToken).not.toBe(reg.sessionToken);
+    expect(second.id).toBe(first.id);
+    expect(store.users.size).toBe(1);
+  });
 
-    // Revoke the first session and confirm it can no longer authenticate
-    await service.revokeUserSession(reg.user.id, sessionAuth.session);
-    await expect(service.authenticateSession(reg.sessionToken)).rejects.toThrowError(
+  it("links a pre-existing account by VERIFIED email and keeps its id", async () => {
+    const legacy = store.seedLegacyUser("ada.lovelace@example.com");
+
+    const user = await service.resolveUserFromIdentity(identity());
+
+    expect(user.id).toBe(legacy.id);
+    expect(user.authUserId).toBe("neon_user_1");
+    expect(store.users.size).toBe(1);
+    const events = (await store.listAuditEventsByUserId(legacy.id)).map((a) => a.eventType);
+    expect(events).toContain("AUTH_IDENTITY_LINKED");
+  });
+
+  it("refuses to link a pre-existing account when the email is NOT verified (takeover guard)", async () => {
+    const legacy = store.seedLegacyUser("ada.lovelace@example.com");
+
+    await expect(
+      service.resolveUserFromIdentity(identity({ emailVerified: false }))
+    ).rejects.toMatchObject({ name: "AuthenticationError", code: "EMAIL_NOT_VERIFIED" });
+
+    expect(store.users.get(legacy.id)?.authUserId).toBeNull();
+  });
+
+  it("refuses a second Neon identity claiming an email already linked to someone else", async () => {
+    await service.resolveUserFromIdentity(identity());
+
+    await expect(
+      service.resolveUserFromIdentity(identity({ authUserId: "neon_attacker" }))
+    ).rejects.toMatchObject({ name: "AuthenticationError", code: "IDENTITY_CONFLICT" });
+  });
+
+  it("recovers when a concurrent request wins the creation race", async () => {
+    store.beforeCreateUser = () => {
+      store.beforeCreateUser = null;
+      store.users.set("usr_winner", {
+        id: "usr_winner",
+        authUserId: "neon_user_1",
+        email: "ada.lovelace@example.com",
+        fullName: "Ada Lovelace",
+        hasLifetimeAccess: false,
+        createdAt: new Date(),
+      });
+    };
+
+    const user = await service.resolveUserFromIdentity(identity());
+
+    expect(user.id).toBe("usr_winner");
+    expect(store.users.size).toBe(1);
+  });
+
+  it.each([
+    ["empty id", { authUserId: "" }],
+    ["bad email", { email: "not-an-email" }],
+    ["non-boolean verified flag", { emailVerified: "yes" }],
+  ])("rejects a malformed identity: %s", async (_label, over) => {
+    await expect(service.resolveUserFromIdentity(identity(over))).rejects.toBeInstanceOf(
+      AuthenticationError
+    );
+    expect(store.users.size).toBe(0);
+  });
+
+  it("rejects non-object identities", async () => {
+    await expect(service.resolveUserFromIdentity(null)).rejects.toBeInstanceOf(
       AuthenticationError
     );
   });
+});
 
-  it("supports Firebase Google Sign-In and links to existing email accounts as HYBRID", async () => {
-    const reg = await service.registerWithPassword({
-      email: "satoshi@gmx.com",
-      password: "bitcoin-genesis-block-2009!",
-      fullName: "Satoshi Nakamoto",
-    });
+describe("FoundationService: vault creation and ownership", () => {
+  let store: InMemoryFoundationStore;
+  let service: FoundationService;
 
-    const googleSync = await service.authenticateWithGoogle({
-      email: "satoshi@gmx.com",
-      firebaseUid: "firebase_google_uid_999",
-      fullName: "Satoshi Nakamoto",
-    });
-
-    expect(googleSync.user.id).toBe(reg.user.id);
-    expect(googleSync.user.authProvider).toBe("HYBRID");
-    expect(googleSync.user.firebaseUid).toBe("firebase_google_uid_999");
+  beforeEach(() => {
+    store = new InMemoryFoundationStore();
+    service = new FoundationService(store);
   });
 
-  it("creates an empty vault, adds encrypted placeholder records without plaintext, and enforces ownership", async () => {
-    const alice = await service.registerWithPassword({
+  it("creates an empty vault, adds encrypted records without plaintext, and enforces ownership", async () => {
+    const alice = await service.resolveUserFromIdentity({
+      authUserId: "neon_alice",
       email: "alice@example.com",
-      password: "alice-strong-password-101!",
-      fullName: "Alice Owner",
+      emailVerified: true,
+      name: "Alice Owner",
     });
-
-    const mallory = await service.registerWithPassword({
+    const mallory = await service.resolveUserFromIdentity({
+      authUserId: "neon_mallory",
       email: "mallory@example.com",
-      password: "mallory-strong-password-202!",
-      fullName: "Mallory Attacker",
+      emailVerified: true,
+      name: "Mallory Attacker",
     });
 
-    // Alice creates an empty zero-knowledge vault
-    const vault = await service.createEmptyVault(alice.user.id, {
+    const vault = await service.createEmptyVault(alice.id, {
       wrappedMasterKeyCiphertext: Buffer.alloc(48, 7).toString("base64"),
       wrappedMasterKeyIv: Buffer.alloc(12, 8).toString("base64"),
       kdfSaltBase64: Buffer.alloc(16, 9).toString("base64"),
       kdfAlgorithm: "PBKDF2-SHA256-600000",
     });
+    expect(vault.userId).toBe(alice.id);
 
-    expect(vault.userId).toBe(alice.user.id);
-
-    // Rejects any attempt to send plaintext secrets when adding an item
+    // Plaintext secrets are rejected at the trust boundary.
     await expect(
-      service.addEncryptedItem(alice.user.id, {
+      service.addEncryptedItem(alice.id, {
         vaultId: vault.id,
         secretData: "my plaintext seed phrase",
       })
     ).rejects.toThrowError(TrustBoundaryViolationError);
 
-    // Alice adds a valid encrypted item envelope
-    const item = await service.addEncryptedItem(alice.user.id, {
+    const envelope = {
       vaultId: vault.id,
       category: "CRYPTO_RECOVERY",
       ciphertextBase64: Buffer.alloc(64, 1).toString("base64"),
@@ -330,41 +352,43 @@ describe("THE-97: FoundationService End-to-End Flow & Authorization", () => {
       wrappedItemKeyBase64: Buffer.alloc(48, 3).toString("base64"),
       wrappedItemKeyIvBase64: Buffer.alloc(12, 4).toString("base64"),
       aadResourceId: "res_123",
-    });
+    };
+    const item = await service.addEncryptedItem(alice.id, envelope);
 
-    // Alice can retrieve her item and list her vault items
-    const fetched = await service.getEncryptedItemForOwner(alice.user.id, item.id);
-    expect(fetched.id).toBe(item.id);
-    const items = await service.listVaultItemsForOwner(alice.user.id, vault.id);
-    expect(items).toHaveLength(1);
+    expect((await service.getEncryptedItemForOwner(alice.id, item.id)).id).toBe(item.id);
+    expect(await service.listVaultItemsForOwner(alice.id, vault.id)).toHaveLength(1);
 
-    // Mallory (another authenticated user) is blocked from reading or adding to Alice's vault
+    // Another authenticated user cannot read or write Alice's vault.
     await expect(
-      service.getEncryptedItemForOwner(mallory.user.id, item.id)
+      service.getEncryptedItemForOwner(mallory.id, item.id)
+    ).rejects.toThrowError(AuthorizationError);
+    await expect(
+      service.listVaultItemsForOwner(mallory.id, vault.id)
+    ).rejects.toThrowError(AuthorizationError);
+    await expect(
+      service.addEncryptedItem(mallory.id, { ...envelope, aadResourceId: "res_mallory" })
     ).rejects.toThrowError(AuthorizationError);
 
-    await expect(
-      service.listVaultItemsForOwner(mallory.user.id, vault.id)
-    ).rejects.toThrowError(AuthorizationError);
-
-    await expect(
-      service.addEncryptedItem(mallory.user.id, {
-        vaultId: vault.id,
-        category: "SECURE_NOTE",
-        ciphertextBase64: Buffer.alloc(64, 1).toString("base64"),
-        ivBase64: Buffer.alloc(12, 2).toString("base64"),
-        wrappedItemKeyBase64: Buffer.alloc(48, 3).toString("base64"),
-        wrappedItemKeyIvBase64: Buffer.alloc(12, 4).toString("base64"),
-        aadResourceId: "res_mallory",
-      })
-    ).rejects.toThrowError(AuthorizationError);
-
-    // Verify audit events never contain plaintext passwords or raw ciphertext
-    const audits = await store.listAuditEventsByUserId(alice.user.id);
+    // Audit events never contain raw ciphertext.
+    const audits = await store.listAuditEventsByUserId(alice.id);
     expect(audits.length).toBeGreaterThanOrEqual(3);
     for (const audit of audits) {
-      expect(audit.redactedMeta).not.toContain("alice-strong-password-101!");
       expect(audit.redactedMeta).not.toContain(item.ciphertextBase64);
     }
+  });
+
+  it("rejects vault creation for an unauthenticated caller and a duplicate vault", async () => {
+    await expect(service.createEmptyVault(null, {})).rejects.toBeInstanceOf(AuthenticationError);
+
+    const user = await service.resolveUserFromIdentity(identity());
+    const bundle = {
+      wrappedMasterKeyCiphertext: Buffer.alloc(48, 7).toString("base64"),
+      wrappedMasterKeyIv: Buffer.alloc(12, 8).toString("base64"),
+      kdfSaltBase64: Buffer.alloc(16, 9).toString("base64"),
+    };
+    await service.createEmptyVault(user.id, bundle);
+    await expect(service.createEmptyVault(user.id, bundle)).rejects.toThrowError(
+      /already has an initialized vault/
+    );
   });
 });

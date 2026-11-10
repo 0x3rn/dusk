@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
-import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { authClient } from "@/lib/auth/client";
+import { authErrorMessage } from "@/lib/auth/client-errors";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,59 +17,34 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Sign in failed.");
-      }
+      const result = await authClient.signIn.email({ email, password });
+      if (result.error) throw result.error;
       router.push("/dashboard");
+      router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Sign in failed.");
+      setError(authErrorMessage(err, "Sign in failed."));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    if (!auth) {
-      setError("Google sign-in is not configured in this environment.");
-      return;
-    }
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const credential = await signInWithPopup(auth, provider);
-      const fbUser = credential.user;
-
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: fbUser.email,
-          firebaseUid: fbUser.uid,
-          fullName: fbUser.displayName ?? undefined,
-        }),
+      // Redirects to Google and back; the page unloads, so loading stays true on success.
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to sync Google account.");
-      }
-      router.push("/dashboard");
+      if (result?.error) throw result.error;
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message.replace("Firebase: ", "")
-          : "Google sign-in failed."
-      );
-    } finally {
+      setError(authErrorMessage(err, "Google sign-in failed."));
       setLoading(false);
     }
   };

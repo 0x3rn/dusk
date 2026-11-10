@@ -13,10 +13,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Badge } from "@/components/ui/badge";
-import {
-  getFoundationService,
-  getSessionTokenFromRequest,
-} from "@/lib/auth/session-cookie";
+import { isSignedIn } from "@/lib/auth/current-user";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "@/lib/security/http-hardening";
 
 export const metadata = {
@@ -25,19 +22,11 @@ export const metadata = {
     "How Dusk protects your vault using client-side AES-256-GCM encryption, HKDF key hierarchies, ECDH P-256 selective beneficiary wrapping, and a fail-closed release state machine.",
 };
 
-export default async function SecurityArchitecturePage() {
-  const token = await getSessionTokenFromRequest();
-  let isAuthenticated = false;
+// Reads the signed-in session, so it must render per request, never at build time.
+export const dynamic = "force-dynamic";
 
-  if (token) {
-    try {
-      const service = getFoundationService();
-      await service.authenticateSession(token);
-      isAuthenticated = true;
-    } catch {
-      isAuthenticated = false;
-    }
-  }
+export default async function SecurityArchitecturePage() {
+  const isAuthenticated = await isSignedIn();
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20">

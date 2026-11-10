@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Shield } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
-import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { authClient } from "@/lib/auth/client";
+import { authErrorMessage } from "@/lib/auth/client-errors";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -14,67 +14,84 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"details" | "verify">("details");
+  const [otp, setOtp] = useState("");
+  const [notice, setNotice] = useState("");
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fullName: name,
-          email,
-          password,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Registration failed.");
+      const result = await authClient.signUp.email({ email, password, name });
+      if (result.error) throw result.error;
+
+      // When the project requires email verification there is no session yet.
+      const session = await authClient.getSession();
+      if (session.data) {
+        router.push("/dashboard");
+        router.refresh();
+      } else {
+        setStep("verify");
       }
-      router.push("/dashboard");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed.");
+      setError(authErrorMessage(err, "Registration failed."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (loading) return;
+    setError("");
+    setNotice("");
+    setLoading(true);
+    try {
+      const result = await authClient.emailOtp.verifyEmail({ email, otp: otp.trim() });
+      if (result.error) throw result.error;
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err: unknown) {
+      setError(authErrorMessage(err, "Verification failed."));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (loading) return;
+    setError("");
+    setNotice("");
+    setLoading(true);
+    try {
+      const result = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "email-verification",
+      });
+      if (result.error) throw result.error;
+      setNotice("We sent you a new code.");
+    } catch (err: unknown) {
+      setError(authErrorMessage(err, "Could not send a new code."));
     } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
-    if (!auth) {
-      setError("Google sign-up is not configured in this environment.");
-      return;
-    }
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const credential = await signInWithPopup(auth, provider);
-      const fbUser = credential.user;
-
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: fbUser.email,
-          firebaseUid: fbUser.uid,
-          fullName: fbUser.displayName || name || undefined,
-        }),
+      const result = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to register with Google.");
-      }
-      router.push("/dashboard");
+      if (result?.error) throw result.error;
     } catch (err: unknown) {
-      setError(
-        err instanceof Error
-          ? err.message.replace("Firebase: ", "")
-          : "Google sign-up failed."
-      );
-    } finally {
+      setError(authErrorMessage(err, "Google sign-up failed."));
       setLoading(false);
     }
   };
@@ -101,6 +118,54 @@ export default function RegisterPage() {
           </div>
         )}
 
+        {step === "verify" ? (
+          <form onSubmit={handleVerify} className="space-y-4">
+            <p className="text-sm text-foreground-secondary text-center">
+              We emailed a code to <span className="font-medium text-foreground">{email}</span>.
+              Enter it below to finish creating your account.
+            </p>
+            {notice && (
+              <p role="status" className="text-sm text-center text-foreground-secondary">
+                {notice}
+              </p>
+            )}
+            <div>
+              <label
+                htmlFor="register-otp"
+                className="block text-xs font-medium text-foreground-secondary mb-2 ml-1"
+              >
+                Verification code
+              </label>
+              <input
+                id="register-otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                required
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full bg-background border border-border focus:border-brand focus:ring-1 focus:ring-brand rounded-lg p-3 text-foreground outline-none transition-all placeholder:text-foreground-muted tracking-widest"
+                placeholder="123456"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors p-3 rounded-lg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              {loading ? "Checking..." : "Verify email"}
+            </button>
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={loading}
+              className="w-full text-sm text-accent-text hover:underline disabled:opacity-50"
+            >
+              Send a new code
+            </button>
+          </form>
+        ) : (
+          <>
         <button
           type="button"
           onClick={handleGoogleSignUp}
@@ -199,6 +264,8 @@ export default function RegisterPage() {
             {loading ? "Creating account..." : "Create account"}
           </button>
         </form>
+          </>
+        )}
 
         <div className="mt-8 text-center text-sm text-foreground-secondary">
           Already have an account?{" "}

@@ -1,46 +1,49 @@
+// app/api/checkout/route.ts
 import { NextResponse } from "next/server";
-import { getStripe } from "@/lib/stripe";
+import { requireUser } from "@/lib/auth/current-user";
+import { assertSameOrigin } from "@/lib/api/csrf";
+import { errorToResponse } from "@/lib/api/errors";
+import { prisma } from "@/lib/db";
+import { getServerEnv } from "@/lib/env";
+import { getStripe, StripeNotConfiguredError } from "@/lib/stripe";
+import { ValidationError } from "@/lib/auth/security";
+import { buildLifetimeCheckoutParams } from "@/lib/billing/lifetime-access";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    // In a real app, you would extract the user ID from the request or session
-    // const body = await req.json();
-    // const userId = body.userId;
-    
-    // For now we mock the userId as we wait for Firebase Auth
-    const userId = "mock-user-123";
-    
-    // In production, you would fetch this URL dynamically based on the request origin
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    assertSameOrigin(req);
+    const { user } = await requireUser();
 
-    const session = await getStripe().checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: {
-              name: "Dusk Lifetime Access",
-              description: "Encrypted digital vault with a staged release process.",
-              images: ["https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop"],
-            },
-            unit_amount: 5000, // $50.00 in cents
-          },
-          quantity: 1,
-        },
-      ],
-      mode: "payment", // one-time payment
-      success_url: `${baseUrl}/dashboard?success=true`,
-      cancel_url: `${baseUrl}/?canceled=true`,
-      metadata: {
-        userId: userId, // Pass the user ID so the webhook knows who paid
-      },
+    if (user.hasLifetimeAccess) {
+      throw new ValidationError("This account already has lifetime access.");
+    }
+
+    const record = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      select: { stripeCustomerId: true },
     });
 
+    const session = await getStripe().checkout.sessions.create(
+      buildLifetimeCheckoutParams({
+        userId: user.id,
+        email: user.email,
+        stripeCustomerId: record.stripeCustomerId,
+        appUrl: getServerEnv().NEXT_PUBLIC_APP_URL,
+      })
+    );
+
+    if (!session.url) {
+      throw new Error("Stripe did not return a checkout URL.");
+    }
     return NextResponse.json({ url: session.url });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Stripe Checkout Error:", err);
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (err: unknown) {
+    if (err instanceof StripeNotConfiguredError) {
+      console.error("[POST /api/checkout]", err.message);
+      return NextResponse.json(
+        { error: "Payments are not available right now.", code: "PAYMENTS_UNAVAILABLE" },
+        { status: 503 }
+      );
+    }
+    return errorToResponse(err, "POST /api/checkout");
   }
 }

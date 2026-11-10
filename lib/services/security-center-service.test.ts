@@ -119,9 +119,7 @@ describe("THE-109: Security Center, Device Management & Suspicious-Access Protec
       id: userId,
       email: "owner@dusk.app",
       fullName: "Security Owner",
-      passwordHash: "hash",
-      firebaseUid: null,
-      authProvider: "PASSWORD",
+      authUserId: "neon_owner",
       hasLifetimeAccess: true,
       mfaEnabled: false,
       createdAt: now,
@@ -130,7 +128,6 @@ describe("THE-109: Security Center, Device Management & Suspicious-Access Protec
     store.sessions.set("ses_current", {
       id: "ses_current",
       userId,
-      tokenHash: "tok_1",
       deviceName: "MacBook Pro (Chrome)",
       userAgent: "Mozilla/5.0 Macintosh",
       ipAddressHash: hashIpAddress("198.51.100.10"),
@@ -142,7 +139,6 @@ describe("THE-109: Security Center, Device Management & Suspicious-Access Protec
     store.sessions.set("ses_tablet", {
       id: "ses_tablet",
       userId,
-      tokenHash: "tok_2",
       deviceName: "iPad Pro (Safari)",
       userAgent: "Mozilla/5.0 iPad",
       ipAddressHash: hashIpAddress("198.51.100.10"),
@@ -154,7 +150,6 @@ describe("THE-109: Security Center, Device Management & Suspicious-Access Protec
     store.sessions.set("ses_phone", {
       id: "ses_phone",
       userId,
-      tokenHash: "tok_3",
       deviceName: "iPhone 16 (Safari)",
       userAgent: "Mozilla/5.0 iPhone",
       ipAddressHash: hashIpAddress("198.51.100.10"),

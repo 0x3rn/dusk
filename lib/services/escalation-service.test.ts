@@ -73,6 +73,16 @@ class InMemoryEscalationStore implements EscalationPersistencePort {
     return this.contacts.get(contactId) ?? null;
   }
 
+  async findNotificationAttemptByKey(
+    idempotencyKey: string
+  ): Promise<EscalationNotificationAttempt | null> {
+    return this.notifications.find((n) => n.idempotencyKey === idempotencyKey) ?? null;
+  }
+
+  async findWorkflowEventByIdempotencyKey(key: string): Promise<WorkflowEventRecord | null> {
+    return this.workflowEvents.find((e) => e.idempotencyKey === key) ?? null;
+  }
+
   async updateScheduleState(params: {
     scheduleId: string;
     expectedVersion: number;
@@ -160,6 +170,74 @@ describe("THE-103: Reminder Escalation, Grace Periods & False-Trigger Cancellati
 
   beforeEach(() => {
     store = new InMemoryEscalationStore();
+  });
+
+  it("0. a duplicate or retried job never sends a second reminder and never double-counts", async () => {
+    const schedule = store.seedSchedule(userId, "GRACE_PERIOD", now);
+    let emailsSent = 0;
+    let smsSent = 0;
+    const sender = {
+      sendEmail: async () => {
+        emailsSent += 1;
+        return { delivered: true };
+      },
+      sendSms: async () => {
+        smsSent += 1;
+        return { delivered: true };
+      },
+    };
+    const service = new EscalationService(store, sender);
+    const job = {
+      userId,
+      userEmail: "owner@dusk.app",
+      userPhone: "+15550199",
+      idempotencyBaseKey: "rem_dup_1",
+      now,
+    };
+
+    const first = await service.dispatchStageReminderWithFallback(job);
+    const second = await service.dispatchStageReminderWithFallback(job);
+
+    expect(first.anyDelivered).toBe(true);
+    expect(second.anyDelivered).toBe(true);
+    expect(emailsSent).toBe(1);
+    expect(smsSent).toBe(0);
+    expect(store.schedules.get(schedule.id)?.remindersSentCount).toBe(schedule.remindersSentCount + 1);
+    expect(store.notifications).toHaveLength(1);
+  });
+
+  it("0b. a retry after a crash between sending and recording still sends only once", async () => {
+    store.seedSchedule(userId, "GRACE_PERIOD", now);
+    let emailsSent = 0;
+    const sender = {
+      sendEmail: async () => {
+        emailsSent += 1;
+        return { delivered: true };
+      },
+      sendSms: async () => ({ delivered: true }),
+    };
+    // Simulate: the email went out and was recorded, but the process died before the schedule
+    // update, so the "delivery recorded" workflow event does not exist yet.
+    await store.recordNotificationAttempt({
+      userId,
+      channel: "EMAIL",
+      templateKey: "CHECKIN_GRACE_PERIOD_REMINDER",
+      recipientAddress: "owner@dusk.app",
+      status: "DELIVERED",
+      idempotencyKey: "rem_crash_1:EMAIL",
+      lastError: null,
+    });
+
+    const res = await new EscalationService(store, sender).dispatchStageReminderWithFallback({
+      userId,
+      userEmail: "owner@dusk.app",
+      idempotencyBaseKey: "rem_crash_1",
+      now,
+    });
+
+    expect(emailsSent).toBe(0);
+    expect(res.anyDelivered).toBe(true);
+    expect(res.updatedSchedule.remindersSentCount).toBe(2);
   });
 
   it("1. falls back to SMS when Email fails, and does NOT increment remindersSentCount during a total provider outage", async () => {

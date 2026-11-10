@@ -1,23 +1,10 @@
 // app/(marketing)/page.tsx
-import {
-  getFoundationService,
-  getSessionTokenFromRequest,
-} from "@/lib/auth/session-cookie";
+import { isSignedIn } from "@/lib/auth/current-user";
 import { MarketingLanding } from "./marketing-landing";
 
+// Reads the signed-in session, so it must render per request, never at build time.
+export const dynamic = "force-dynamic";
+
 export default async function MarketingPage() {
-  const token = await getSessionTokenFromRequest();
-  let isAuthenticated = false;
-
-  if (token) {
-    try {
-      const service = getFoundationService();
-      await service.authenticateSession(token);
-      isAuthenticated = true;
-    } catch {
-      isAuthenticated = false;
-    }
-  }
-
-  return <MarketingLanding initialIsAuthenticated={isAuthenticated} />;
+  return <MarketingLanding initialIsAuthenticated={await isSignedIn()} />;
 }

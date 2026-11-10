@@ -1,9 +1,14 @@
 // app/api/unlock/[contactId]/route.ts
+// Beneficiary package retrieval and receipt acknowledgement. All rules (estate must be RELEASED,
+// contact eligible, email matches, token valid / unused / unexpired / unrevoked, single-use
+// consumed atomically, only assigned items returned) live in ReleaseDeliveryService.
 import { NextResponse } from "next/server";
-import crypto from "node:crypto";
+import { errorToResponse } from "@/lib/api/errors";
 import { prisma } from "@/lib/db";
-import { hashOpaqueToken } from "@/lib/auth/security";
-import { redactForAuditLog } from "@/lib/domain/trust-boundary";
+import { createEngine } from "@/lib/engine/engine";
+import { ValidationError } from "@/lib/auth/security";
+import { RATE_LIMIT_POLICIES } from "@/lib/security/http-hardening";
+import { clientKeyFromRequest, consumeRateLimit } from "@/lib/security/db-rate-limiter";
 
 export async function POST(
   req: Request,
@@ -11,229 +16,81 @@ export async function POST(
 ) {
   try {
     const { contactId } = await context.params;
-    const body = await req.json();
+    // Per caller AND per beneficiary, so guessing tokens for one contact is slow from anywhere.
+    await consumeRateLimit(
+      prisma,
+      RATE_LIMIT_POLICIES.BENEFICIARY_PACKAGE_ACCESS,
+      `${clientKeyFromRequest(req)}:${contactId}`
+    );
+
+    const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!body || typeof body !== "object") {
+      throw new ValidationError("Invalid request.");
+    }
+    const engine = createEngine();
 
     if (body.action === "ACKNOWLEDGE_RECEIPT") {
-      const { grantEventId, beneficiaryEmail, decryptedCount } = body;
-      const contact = await prisma.contact.findUnique({ where: { id: contactId } });
-      if (
-        !contact ||
-        contact.email.toLowerCase() !== (beneficiaryEmail || "").trim().toLowerCase()
-      ) {
-        return NextResponse.json({ error: "Unauthorized beneficiary." }, { status: 403 });
-      }
-      const schedule = await prisma.checkInSchedule.findUniqueOrThrow({
-        where: { userId: contact.userId },
+      const ack = await engine.delivery.acknowledgePackageReceipt({
+        contactId,
+        grantEventId: body.grantEventId,
+        authenticatedBeneficiaryEmail: body.beneficiaryEmail,
+        decryptedItemCountConfirmed: body.decryptedCount,
       });
-
-      const ack = await prisma.releaseEvent.create({
-        data: {
-          scheduleId: schedule.id,
-          userId: contact.userId,
-          contactId: contact.id,
-          eventType: "PACKAGE_RECEIPT_ACKNOWLEDGED",
-          metadataJson: JSON.stringify({
-            grantEventId,
-            decryptedItemCountConfirmed: decryptedCount,
-            acknowledgedAtIso: new Date().toISOString(),
-          }),
-        },
-      });
-
-      await prisma.auditEvent.create({
-        data: {
-          userId: contact.userId,
-          eventType: "BENEFICIARY_PACKAGE_ACKNOWLEDGED",
-          severity: "INFO",
-          actorType: "BENEFICIARY",
-          actorId: contact.id,
-          redactedMeta: JSON.stringify({
-            contactId: contact.id,
-            grantEventId,
-            decryptedItemCountConfirmed: decryptedCount,
-          }),
-        },
-      });
-
       return NextResponse.json({ ok: true, ackId: ack.id });
     }
 
-    // Default action: RETRIEVE_PACKAGE
-    const { rawAccessToken, beneficiaryEmail } = body;
-    const contact = await prisma.contact.findUnique({
-      where: { id: contactId },
-    });
-
-    if (!contact) {
-      return NextResponse.json(
-        { error: "Beneficiary contact not found." },
-        { status: 404 }
-      );
-    }
-
-    const schedule = await prisma.checkInSchedule.findUnique({
-      where: { userId: contact.userId },
-    });
-
-    if (!schedule || schedule.state !== "RELEASED") {
-      if (schedule) {
-        await prisma.releaseEvent.create({
-          data: {
-            scheduleId: schedule.id,
-            userId: contact.userId,
-            contactId: contact.id,
-            eventType: "PACKAGE_ACCESS_DENIED",
-            metadataJson: JSON.stringify({ reason: "ESTATE_NOT_RELEASED" }),
-          },
-        });
-      }
-      return NextResponse.json(
-        {
-          error: `This vault is currently locked (State: ${
-            schedule?.state || "HEALTHY"
-          }). Estate release has not been authorized.`,
-        },
-        { status: 403 }
-      );
-    }
-
-    if (
-      contact.email.toLowerCase() !==
-      (beneficiaryEmail || "").trim().toLowerCase()
-    ) {
-      await prisma.releaseEvent.create({
-        data: {
-          scheduleId: schedule.id,
-          userId: contact.userId,
-          contactId: contact.id,
-          eventType: "PACKAGE_ACCESS_DENIED",
-          metadataJson: JSON.stringify({ reason: "EMAIL_MISMATCH" }),
-        },
+    const { grantEventId, scopedPackage, downloadableBundle } =
+      await engine.delivery.retrieveScopedPackageForBeneficiary({
+        contactId,
+        rawAccessToken: body.rawAccessToken,
+        authenticatedBeneficiaryEmail: body.beneficiaryEmail,
       });
-      return NextResponse.json(
-        { error: "Authenticated email does not match the designated beneficiary." },
-        { status: 403 }
-      );
-    }
 
-    const tokenHash = hashOpaqueToken(rawAccessToken || "");
-    const grant = await prisma.releaseEvent.findUnique({
-      where: { actionTokenHash: tokenHash },
+    // The browser needs each item's vault id to rebuild the encryption context it was wrapped under.
+    const vaultIds = await prisma.encryptedItem.findMany({
+      where: { id: { in: scopedPackage.items.map((i) => i.itemId) } },
+      select: { id: true, vaultId: true },
+    });
+    const vaultIdByItem = new Map(vaultIds.map((v) => [v.id, v.vaultId]));
+
+    const contact = await prisma.contact.findUniqueOrThrow({
+      where: { id: contactId },
+      select: { fullName: true, email: true },
     });
 
-    if (
-      !grant ||
-      grant.eventType !== "BENEFICIARY_ACCESS_GRANT_ISSUED" ||
-      grant.contactId !== contact.id
-    ) {
-      return NextResponse.json(
-        { error: "Invalid or unauthorized release access grant token." },
-        { status: 403 }
-      );
-    }
-
-    if (grant.tokenUsedAt !== null) {
-      return NextResponse.json(
-        {
-          error:
-            "Replay blocked: This single-use release access token has already been used.",
-        },
-        { status: 403 }
-      );
-    }
-
-    if (!grant.tokenExpiresAt || grant.tokenExpiresAt.getTime() <= Date.now()) {
-      return NextResponse.json(
-        { error: "This release access grant token has expired." },
-        { status: 403 }
-      );
-    }
-
-    // Consume the single-use grant token
-    await prisma.releaseEvent.update({
-      where: { id: grant.id },
-      data: { tokenUsedAt: new Date() },
-    });
-
-    // Fetch ONLY the items assigned to this beneficiary
-    const assignments = await prisma.releaseAssignment.findMany({
-      where: { contactId: contact.id },
-      include: { item: true },
-    });
-
-    const scopedItems = assignments
-      .filter((a) => a.item && a.item.keyVersion === a.keyVersion)
-      .map((a) => ({
-        itemId: a.item!.id,
-        vaultId: a.item!.vaultId,
-        category: a.item!.category,
-        schemaVersion: a.item!.schemaVersion,
-        keyVersion: a.item!.keyVersion,
-        ciphertextBase64: a.item!.ciphertextBase64,
-        ivBase64: a.item!.ivBase64,
-        aadResourceId: a.item!.aadResourceId,
+    const items = scopedPackage.items.map((item) => {
+      const vaultId = vaultIdByItem.get(item.itemId) ?? "";
+      return {
+        itemId: item.itemId,
+        vaultId,
+        category: item.category,
+        schemaVersion: item.schemaVersion,
+        keyVersion: item.keyVersion,
+        ciphertextBase64: item.ciphertextBase64,
+        ivBase64: item.ivBase64,
+        aadResourceId: item.aadResourceId,
         wrappedGrant: {
           schemaVersion: 1,
-          keyVersion: a.keyVersion,
-          vaultId: a.item!.vaultId,
-          contactId: contact.id,
-          itemId: a.item!.aadResourceId,
-          beneficiaryWrappedKeyBase64: a.beneficiaryWrappedKeyBase64,
-          beneficiaryWrappedKeyIv: a.beneficiaryWrappedKeyIv,
-          ephemeralPublicKeyBase64: a.ephemeralPublicKeyBase64,
+          keyVersion: item.wrappedGrant.keyVersion,
+          vaultId,
+          contactId,
+          itemId: item.aadResourceId,
+          beneficiaryWrappedKeyBase64: item.wrappedGrant.beneficiaryWrappedKeyBase64,
+          beneficiaryWrappedKeyIv: item.wrappedGrant.beneficiaryWrappedKeyIv,
+          ephemeralPublicKeyBase64: item.wrappedGrant.ephemeralPublicKeyBase64,
           algorithm: "ECDH-P256-HKDF-AES256GCM",
         },
-      }));
-
-    const manifestSha256Hex = crypto
-      .createHash("sha256")
-      .update(JSON.stringify(scopedItems), "utf8")
-      .digest("hex");
-
-    await prisma.releaseEvent.create({
-      data: {
-        scheduleId: schedule.id,
-        userId: contact.userId,
-        contactId: contact.id,
-        eventType: "PACKAGE_ACCESS_SUCCEEDED",
-        metadataJson: JSON.stringify({
-          grantEventId: grant.id,
-          itemCount: scopedItems.length,
-          manifestSha256Hex,
-        }),
-      },
-    });
-
-    await prisma.auditEvent.create({
-      data: {
-        userId: contact.userId,
-        eventType: "BENEFICIARY_PACKAGE_DELIVERED",
-        severity: "CRITICAL",
-        actorType: "BENEFICIARY",
-        actorId: contact.id,
-        redactedMeta: JSON.stringify(
-          redactForAuditLog({
-            contactId: contact.id,
-            grantEventId: grant.id,
-            itemCount: scopedItems.length,
-            manifestSha256Hex,
-          })
-        ),
-      },
+      };
     });
 
     return NextResponse.json({
-      grantEventId: grant.id,
+      grantEventId,
       beneficiaryName: contact.fullName,
       beneficiaryEmail: contact.email,
-      manifestSha256Hex,
-      items: scopedItems,
+      manifestSha256Hex: downloadableBundle.manifestSha256Hex,
+      items,
     });
   } catch (err: unknown) {
-    console.error("[POST /api/unlock/[contactId]]", err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Failed to retrieve package." },
-      { status: 500 }
-    );
+    return errorToResponse(err, "POST /api/unlock/[contactId]");
   }
 }

@@ -87,7 +87,7 @@ Dusk is a zero-knowledge digital estate vault and staged dead-man's switch. Its 
 5. Generation of beneficiary keypairs and public-key wrapping (`X25519` / `ECDH P-256` + `HKDF-SHA256` + `AES-256-GCM` key wrapping) of assigned `IEKs` into beneficiary-specific release envelopes.
 
 ### Server-Side Only (Next.js API + Neon PostgreSQL)
-1. User authentication (Neon Postgres email/password via Argon2id/scrypt + Firebase Google ID token verification) and server-side session lifecycle management.
+1. User authentication and session lifecycle, owned by **Neon Auth (Managed Better Auth)**: email and password plus Google sign-in. Dusk maps each Neon Auth identity to a Dusk user and links existing accounts only by a *verified* email, so an attacker who signs up with someone else's address cannot take over their account.
 2. Storage of **opaque encrypted envelopes** (`ciphertext`, `iv`, `authTag`, `aadVersion`, `keyVersion`, `wrappedKey`).
 3. Enforcement of resource ownership (`userId` on every vault, item, contact, schedule, and event).
 4. Execution of the **Check-In & Release Verification State Machine**, timers, grace periods, trusted-contact alive attestations, and release holds.

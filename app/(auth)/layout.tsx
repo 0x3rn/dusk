@@ -1,29 +1,16 @@
 // app/(auth)/layout.tsx
 import { redirect } from "next/navigation";
-import {
-  getFoundationService,
-  getSessionTokenFromRequest,
-} from "@/lib/auth/session-cookie";
+import { isSignedIn } from "@/lib/auth/current-user";
+
+// Reads the signed-in session, so it must render per request, never at build time.
+export const dynamic = "force-dynamic";
 
 export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const token = await getSessionTokenFromRequest();
-  let isAuthenticated = false;
-
-  if (token) {
-    try {
-      const service = getFoundationService();
-      await service.authenticateSession(token);
-      isAuthenticated = true;
-    } catch {
-      isAuthenticated = false;
-    }
-  }
-
-  if (isAuthenticated) {
+  if (await isSignedIn()) {
     redirect("/dashboard");
   }
 

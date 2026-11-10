@@ -62,7 +62,7 @@ export interface SecurityChecklistPillar {
 export interface SecurityCenterOverview {
   securityScorePercent: number;
   mfaEnabled: boolean;
-  authProvider: UserRecord["authProvider"];
+  authProvider: "NEON_AUTH";
   recoveryState: {
     hasActiveRecoveryKit: boolean;
     activeFingerprintHex: string | null;
@@ -317,8 +317,8 @@ export class SecurityCenterService {
         title: "Authentication & Multi-Factor Protection",
         status: user.mfaEnabled ? "SECURE" : "ATTENTION",
         detail: user.mfaEnabled
-          ? `MFA/Passkey protection enabled (${user.authProvider} auth).`
-          : `Primary ${user.authProvider} authentication active. Enable MFA/Passkey for stronger session protection.`,
+          ? "Multi-factor protection is enabled on this account."
+          : "Signed in with email and password through Neon Auth. Neon Auth does not offer multi-factor sign-in yet, so use a long, unique password.",
       },
       {
         pillarId: "RECOVERY_KIT_POSTURE",
@@ -368,7 +368,7 @@ export class SecurityCenterService {
     return {
       securityScorePercent,
       mfaEnabled: user.mfaEnabled,
-      authProvider: user.authProvider,
+      authProvider: "NEON_AUTH",
       recoveryState: {
         hasActiveRecoveryKit: Boolean(activeKit),
         activeFingerprintHex: activeKit?.fingerprintHex ?? null,

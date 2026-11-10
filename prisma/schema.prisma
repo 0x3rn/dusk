@@ -9,12 +9,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum AuthProvider {
-  PASSWORD
-  GOOGLE
-  HYBRID
-}
-
 enum ScheduleState {
   HEALTHY
   REMINDER_DUE
@@ -60,22 +54,22 @@ enum NotificationStatus {
 
 model User {
   id                  String       @id @default(cuid())
+  // Identity is owned by Neon Auth (Managed Better Auth). authUserId is neon_auth."user".id.
+  // It is nullable only so pre-existing accounts can be linked on their first verified sign-in.
+  authUserId          String?      @unique
   email               String       @unique
   fullName            String?
-  passwordHash        String?      // Present for Neon Postgres password auth; null for Google-only until set
-  firebaseUid         String?      @unique // Present when linked with Firebase Google Sign-In
-  authProvider        AuthProvider @default(PASSWORD)
   phone               String?
   phoneVerifiedAt     DateTime?
   emailVerifiedAt     DateTime?
   mfaEnabled          Boolean      @default(false)
   mfaSecretEncrypted  String?
   hasLifetimeAccess   Boolean      @default(false)
+  lifetimePurchasedAt DateTime?
   stripeCustomerId    String?      @unique
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
-  sessions            Session[]
   vault               Vault?
   contacts            Contact[]
   checkInSchedule     CheckInSchedule?
@@ -84,22 +78,12 @@ model User {
   auditEvents         AuditEvent[]
 }
 
-model Session {
-  id             String    @id @default(cuid())
-  userId         String
-  tokenHash      String    @unique // SHA-256 of the opaque session token
-  deviceName     String?
-  userAgent      String?
-  ipAddressHash  String?
-  lastActiveAt   DateTime  @default(now())
-  expiresAt      DateTime
-  revokedAt      DateTime?
-  createdAt      DateTime  @default(now())
-
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([expiresAt])
+// One row per Stripe webhook event we have handled. The primary key makes handling idempotent.
+model StripeEvent {
+  id          String   @id // Stripe event id (evt_...)
+  type        String
+  userId      String?
+  processedAt DateTime @default(now())
 }
 
 model Vault {
@@ -365,4 +349,14 @@ model AuditEvent {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// Fixed-window rate limit counters. Old windows are deleted opportunistically.
+model RateLimitBucket {
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
 }

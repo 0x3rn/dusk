@@ -18,10 +18,10 @@
 1. **`Referrer-Policy: no-referrer`**: Ensures that when a beneficiary opens `/unlock/[contactId]#privateKey`, the browser never leaks the URL or `#hash` to any external link or analytics header.
 2. **Clickjacking & XSS Defense (`Content-Security-Policy` + `X-Frame-Options: DENY`)**: Blocks any third-party site from embedding Dusk in an `<iframe>` to trick a user into unlocking their vault or approving a release.
 3. **CSRF Origin Check (`assertCsrfSafeMutationRequest`)**: Blocks malicious websites from submitting `POST`/`DELETE` requests on behalf of a logged-in Dusk user.
-4. **Brute-Force Rate Limiting (`SlidingWindowRateLimiter`)**:
-   * Login attempts: Max **5 attempts per 15 minutes**
-   * Recovery Kit attempts: Max **3 attempts per hour**
-   * Beneficiary package unlock attempts: Max **5 attempts per 30 minutes**
+4. **Brute-Force Rate Limiting (`lib/security/db-rate-limiter.ts`)**: counters live in PostgreSQL (`RateLimitBucket`) so the limit holds across every serverless instance.
+   * Beneficiary package unlock attempts: Max **5 attempts per 30 minutes** per caller and beneficiary
+   * Check-in and verifier links: Max **10 attempts per 15 minutes** per caller
+   * Sign-in rate limiting and password checks are handled by **Neon Auth** (Managed Better Auth).
 
 ---
 
@@ -30,14 +30,30 @@
 When deploying Dusk to a brand-new production environment (e.g., Vercel + Neon PostgreSQL):
 
 ### Step 1: Set Required Environment Variables
- Configure these in your hosting dashboard (validated automatically on startup by `lib/env.ts`):
+ Configure these in your hosting dashboard (validated by `lib/env.ts`):
 * `DATABASE_URL`: Your Neon PostgreSQL pooled connection string (must include `?sslmode=require`).
-* `SESSION_SECRET`: Generate a 48-byte random secret in your terminal using `openssl rand -base64 48`.
+* `NEON_AUTH_BASE_URL`: The Auth URL from Neon Console, Project, Branch, **Auth**, Configuration.
+* `NEON_AUTH_COOKIE_SECRET`: At least 32 characters. Generate with `openssl rand -base64 32`.
 * `NEXT_PUBLIC_APP_URL`: Your production domain (e.g., `https://dusk.app`).
-* `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: For Google Sign-In.
-* `RESEND_API_KEY`: Your Resend API key (ensure SPF, DKIM, and DMARC records are verified on your domain so check-in emails never land in spam).
+* `CRON_SECRET`: At least 32 characters. The shared secret the scheduler sends to `/api/internal/scheduler/tick`. Generate with `openssl rand -hex 32`.
+* `RESEND_API_KEY`, `RESEND_FROM_EMAIL`: Your Resend key and verified sender (ensure SPF, DKIM, and DMARC are verified so check-in emails never land in spam).
 * `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: For SMS fallback warnings.
-* `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: For $50 lifetime access checkout.
+* `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: For $50 lifetime access checkout. The webhook endpoint is `/api/webhook/stripe` (events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`).
+* `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` (optional): Error reporting. Reports are scrubbed of request bodies, cookies, emails and token links (`lib/observability/sentry-scrub.ts`).
+
+Neon Auth settings to confirm on the **production** branch: email and password enabled, **Require email verification** turned on (existing accounts are linked to their Dusk data by *verified* email only), and your production domain added as a trusted domain.
+
+### Step 1b: Database changes (run once, in order)
+The SQL files in `prisma/sql/` are applied by hand in the Neon SQL Editor (this project does not use `prisma db push`, which would drop data):
+1. `001_neon_auth_identity.sql` and `003_rate_limit.sql`: additive and safe to run any time.
+2. `002_drop_legacy_auth.sql`: **destructive.** Run it only after every real user has signed in once through Neon Auth (`SELECT count(*) FROM "User" WHERE "authUserId" IS NULL;` must show no real accounts). It deletes the old password hashes.
+
+### Step 1c: Start the scheduler
+The dead-man's switch only runs when something calls the tick endpoint. The project ships a Trigger.dev schedule (`trigger/dead-mans-switch.ts`, every 15 minutes):
+1. Create a project at trigger.dev and copy its `proj_...` id into `TRIGGER_PROJECT_REF`.
+2. In the Trigger.dev project's environment variables set `APP_URL` (your production URL) and `CRON_SECRET` (same value as above).
+3. Deploy it: `npx trigger.dev@latest deploy`.
+Each run is safe to repeat: state changes are keyed in the database, reminders are one per day, and overlapping runs are skipped by a database lock.
 
 ### Step 2: Run Pre-Launch Verification Commands
 ```bash
@@ -117,14 +133,13 @@ Here is exactly what to do in the three most critical real-world emergencies:
 
 ### Scenario C: Rotating Compromised Secrets or Sessions
 **Situation 1 — A user suspects their laptop or phone was stolen:**
-* **Action:** The user opens the **Security Center** (`THE-109`) and clicks **"Revoke All Other Sessions"**, or uses their **Offline Recovery Kit** (`THE-99`) to re-enroll.
-* **What happens:** Every session row in Neon PostgreSQL gets `revokedAt = NOW()`, kicking the stolen laptop out on its very next request.
+* **Action:** The user opens the **Security Center** (`GET/POST /api/security`) and revokes other sessions, or uses their **Offline Recovery Kit** (`THE-99`) to re-enroll.
+* **What happens:** The sessions are revoked in Neon Auth. The stolen laptop loses access within about a second (the session cache is 1 second, set in `lib/auth/server.ts`).
 
-**Situation 2 — You need to rotate server environment secrets (`RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `SESSION_SECRET`) or revoke all active sessions platform-wide:**
-1. Update the secret in your Vercel/hosting environment variables and redeploy.
-2. If you ever suspect a platform-wide session cookie issue and want to force every user to log in fresh, run this in Neon SQL Editor:
+**Situation 2 — You need to rotate server environment secrets (`RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `NEON_AUTH_COOKIE_SECRET`, `CRON_SECRET`) or revoke all active sessions platform-wide:**
+1. Update the secret in your Vercel/hosting environment variables and redeploy. (Changing `CRON_SECRET` also means updating it in Trigger.dev.)
+2. Changing `NEON_AUTH_COOKIE_SECRET` makes every browser cookie invalid, so everyone signs in again.
+3. To end every Neon Auth session directly, run this in the Neon SQL Editor:
    ```sql
-   UPDATE "Session"
-   SET "revokedAt" = NOW()
-   WHERE "revokedAt" IS NULL;
+   DELETE FROM neon_auth.session;
    ```

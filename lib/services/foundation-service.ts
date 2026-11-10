@@ -5,11 +5,6 @@ import {
   AuthorizationError,
   ValidationError,
   assertResourceOwnership,
-  generateOpaqueToken,
-  hashIpAddress,
-  hashOpaqueToken,
-  hashPassword,
-  verifyPassword,
 } from "../auth/security";
 import {
   assertZeroKnowledgePayload,
@@ -18,31 +13,23 @@ import {
 } from "../domain/trust-boundary";
 import type { ItemCategory, ScheduleState } from "@prisma/client";
 
-export const RegisterWithPasswordInputSchema = z.object({
+/**
+ * The identity Neon Auth vouches for. It is validated here because it crosses a trust boundary
+ * (the SDK result is parsed from an HTTP response), even though TypeScript types exist.
+ */
+export const AuthIdentitySchema = z.object({
+  authUserId: z.string().min(1).max(200),
   email: z.string().email().transform((e) => e.trim().toLowerCase()),
-  password: z.string().min(10, "Password must be at least 10 characters"),
-  fullName: z.string().trim().min(1, "Full name is required").max(120),
-  deviceName: z.string().max(120).optional(),
-  userAgent: z.string().max(500).optional(),
-  ipAddress: z.string().max(100).optional(),
+  emailVerified: z.boolean(),
+  name: z
+    .string()
+    .trim()
+    .max(120)
+    .nullish()
+    .transform((n) => (n ? n : null)),
 });
 
-export const LoginWithPasswordInputSchema = z.object({
-  email: z.string().email().transform((e) => e.trim().toLowerCase()),
-  password: z.string().min(1),
-  deviceName: z.string().max(120).optional(),
-  userAgent: z.string().max(500).optional(),
-  ipAddress: z.string().max(100).optional(),
-});
-
-export const GoogleAuthSyncInputSchema = z.object({
-  email: z.string().email().transform((e) => e.trim().toLowerCase()),
-  firebaseUid: z.string().min(4),
-  fullName: z.string().trim().min(1).max(120).optional(),
-  deviceName: z.string().max(120).optional(),
-  userAgent: z.string().max(500).optional(),
-  ipAddress: z.string().max(100).optional(),
-});
+export type AuthIdentity = z.input<typeof AuthIdentitySchema>;
 
 export const InitializeVaultInputSchema = z.object({
   wrappedMasterKeyCiphertext: z.string().min(16),
@@ -76,19 +63,20 @@ export const CreateEncryptedItemInputSchema = z.object({
 
 export interface UserRecord {
   id: string;
+  authUserId: string | null;
   email: string;
   fullName: string | null;
-  passwordHash: string | null;
-  firebaseUid: string | null;
-  authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
   hasLifetimeAccess: boolean;
   createdAt: Date;
 }
 
+/**
+ * A sign-in session as shown in the Security Center. Sessions are owned by Neon Auth;
+ * this is a read-only view of them, never a credential.
+ */
 export interface SessionRecord {
   id: string;
   userId: string;
-  tokenHash: string;
   deviceName: string | null;
   userAgent: string | null;
   ipAddressHash: string | null;
@@ -145,35 +133,30 @@ export interface AuditEventRecord {
   createdAt: Date;
 }
 
+/** Thrown by the port when a unique constraint (email or authUserId) is violated. */
+export class UniqueConstraintError extends Error {
+  constructor(message = "Unique constraint violated.") {
+    super(message);
+    this.name = "UniqueConstraintError";
+  }
+}
+
 export interface FoundationPersistencePort {
   findUserByEmail(email: string): Promise<UserRecord | null>;
-  findUserByFirebaseUid(firebaseUid: string): Promise<UserRecord | null>;
+  findUserByAuthUserId(authUserId: string): Promise<UserRecord | null>;
   findUserById(id: string): Promise<UserRecord | null>;
   createUser(data: {
+    authUserId: string;
     email: string;
     fullName: string | null;
-    passwordHash: string | null;
-    firebaseUid: string | null;
-    authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
+    emailVerifiedAt: Date | null;
   }): Promise<UserRecord>;
-  updateUserAuthLink(
+  /** Links an existing unlinked user to a Neon Auth identity. Must not overwrite an existing link. */
+  linkAuthIdentity(
     userId: string,
-    data: {
-      firebaseUid?: string;
-      passwordHash?: string;
-      authProvider: "PASSWORD" | "GOOGLE" | "HYBRID";
-    }
+    authUserId: string,
+    emailVerifiedAt: Date
   ): Promise<UserRecord>;
-  createSession(data: {
-    userId: string;
-    tokenHash: string;
-    deviceName: string | null;
-    userAgent: string | null;
-    ipAddressHash: string | null;
-    expiresAt: Date;
-  }): Promise<SessionRecord>;
-  findSessionByTokenHash(tokenHash: string): Promise<SessionRecord | null>;
-  revokeSession(sessionId: string, revokedAt: Date): Promise<SessionRecord>;
   ensureDefaultSchedule(userId: string, now: Date): Promise<CheckInScheduleRecord>;
   findVaultByUserId(userId: string): Promise<VaultRecord | null>;
   findVaultById(vaultId: string): Promise<VaultRecord | null>;
@@ -212,227 +195,80 @@ export interface FoundationPersistencePort {
   listAuditEventsByUserId(userId: string): Promise<AuditEventRecord[]>;
 }
 
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-
 export class FoundationService {
   constructor(private readonly store: FoundationPersistencePort) {}
 
   /**
-   * Registers a new user with Email + Password in Neon PostgreSQL,
-   * initializes their default 90-day check-in schedule, and creates a session.
+   * Maps an identity vouched for by Neon Auth to the Dusk user that owns the product data.
+   *
+   * 1. Known authUserId -> that user.
+   * 2. Unknown authUserId but an existing Dusk user with the same email -> link them, but ONLY
+   *    when Neon Auth reports the email as verified. Linking on an unverified email would let
+   *    anyone who signs up with a victim's address take over the victim's vault record.
+   * 3. Otherwise create a new user with the default check-in schedule.
+   *
+   * Safe to call concurrently: a lost creation race is detected through the unique constraint
+   * and resolved by re-reading.
    */
-  async registerWithPassword(rawInput: unknown): Promise<{
-    user: Omit<UserRecord, "passwordHash">;
-    sessionToken: string;
-    schedule: CheckInScheduleRecord;
-  }> {
-    const parsed = RegisterWithPasswordInputSchema.safeParse(rawInput);
+  async resolveUserFromIdentity(rawIdentity: unknown): Promise<UserRecord> {
+    const parsed = AuthIdentitySchema.safeParse(rawIdentity);
     if (!parsed.success) {
-      throw new ValidationError(parsed.error.issues[0]?.message ?? "Invalid registration input");
+      throw new AuthenticationError("Invalid identity from the authentication provider.");
     }
-    const input = parsed.data;
-
-    const existing = await this.store.findUserByEmail(input.email);
-    if (existing && existing.passwordHash) {
-      throw new ValidationError("An account with this email already exists.");
-    }
-
-    const passwordHash = await hashPassword(input.password);
+    const identity = parsed.data;
     const now = new Date();
 
-    let user: UserRecord;
-    if (existing && existing.firebaseUid && !existing.passwordHash) {
-      // Upgrade existing Google-only account to HYBRID
-      user = await this.store.updateUserAuthLink(existing.id, {
-        passwordHash,
-        authProvider: "HYBRID",
-      });
-    } else {
-      user = await this.store.createUser({
-        email: input.email,
-        fullName: input.fullName,
-        passwordHash,
-        firebaseUid: null,
-        authProvider: "PASSWORD",
-      });
+    const existingByAuthId = await this.store.findUserByAuthUserId(identity.authUserId);
+    if (existingByAuthId) {
+      return existingByAuthId;
     }
 
-    const schedule = await this.store.ensureDefaultSchedule(user.id, now);
-    const { rawToken, tokenHash } = generateOpaqueToken();
-    const ipHash = input.ipAddress ? hashIpAddress(input.ipAddress) : null;
-
-    await this.store.createSession({
-      userId: user.id,
-      tokenHash,
-      deviceName: input.deviceName ?? "Web Browser",
-      userAgent: input.userAgent ?? null,
-      ipAddressHash: ipHash,
-      expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
-    });
-
-    await this.recordAudit(user.id, "ACCOUNT_REGISTERED_PASSWORD", "INFO", {
-      email: user.email,
-      authProvider: user.authProvider,
-      password: input.password, // Explicitly tested to ensure redactForAuditLog strips it
-    });
-
-    const { passwordHash: _omitted, ...safeUser } = user;
-    return { user: safeUser, sessionToken: rawToken, schedule };
-  }
-
-  /**
-   * Authenticates an existing user via Neon PostgreSQL Email + Password.
-   */
-  async loginWithPassword(rawInput: unknown): Promise<{
-    user: Omit<UserRecord, "passwordHash">;
-    sessionToken: string;
-  }> {
-    const parsed = LoginWithPasswordInputSchema.safeParse(rawInput);
-    if (!parsed.success) {
-      throw new ValidationError("Invalid email or password format.");
-    }
-    const input = parsed.data;
-
-    const user = await this.store.findUserByEmail(input.email);
-    if (!user || !user.passwordHash) {
-      throw new AuthenticationError("Invalid email or password.");
-    }
-
-    const valid = await verifyPassword(input.password, user.passwordHash);
-    if (!valid) {
-      await this.recordAudit(user.id, "AUTH_LOGIN_FAILED", "WARN", {
-        reason: "INVALID_PASSWORD",
-      });
-      throw new AuthenticationError("Invalid email or password.");
-    }
-
-    const now = new Date();
-    const { rawToken, tokenHash } = generateOpaqueToken();
-    const ipHash = input.ipAddress ? hashIpAddress(input.ipAddress) : null;
-
-    await this.store.createSession({
-      userId: user.id,
-      tokenHash,
-      deviceName: input.deviceName ?? "Web Browser",
-      userAgent: input.userAgent ?? null,
-      ipAddressHash: ipHash,
-      expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
-    });
-
-    await this.recordAudit(user.id, "AUTH_LOGIN_SUCCESS", "INFO", {
-      method: "PASSWORD",
-    });
-
-    const { passwordHash: _omitted, ...safeUser } = user;
-    return { user: safeUser, sessionToken: rawToken };
-  }
-
-  /**
-   * Synchronizes a Firebase Google Sign-In / Sign-Up into Neon PostgreSQL
-   * and issues a server-tracked Dusk session token.
-   */
-  async authenticateWithGoogle(rawInput: unknown): Promise<{
-    user: Omit<UserRecord, "passwordHash">;
-    sessionToken: string;
-    schedule: CheckInScheduleRecord;
-  }> {
-    const parsed = GoogleAuthSyncInputSchema.safeParse(rawInput);
-    if (!parsed.success) {
-      throw new ValidationError("Invalid Google authentication payload.");
-    }
-    const input = parsed.data;
-
-    let user = await this.store.findUserByFirebaseUid(input.firebaseUid);
-    if (!user) {
-      const byEmail = await this.store.findUserByEmail(input.email);
-      if (byEmail) {
-        user = await this.store.updateUserAuthLink(byEmail.id, {
-          firebaseUid: input.firebaseUid,
-          authProvider: byEmail.passwordHash ? "HYBRID" : "GOOGLE",
-        });
-      } else {
-        user = await this.store.createUser({
-          email: input.email,
-          fullName: input.fullName ?? null,
-          passwordHash: null,
-          firebaseUid: input.firebaseUid,
-          authProvider: "GOOGLE",
-        });
+    const existingByEmail = await this.store.findUserByEmail(identity.email);
+    if (existingByEmail) {
+      if (existingByEmail.authUserId && existingByEmail.authUserId !== identity.authUserId) {
+        throw new AuthenticationError(
+          "This email is already linked to a different sign-in identity.",
+          "IDENTITY_CONFLICT"
+        );
       }
+      if (!identity.emailVerified) {
+        throw new AuthenticationError(
+          "Verify your email address to access your existing Dusk account.",
+          "EMAIL_NOT_VERIFIED"
+        );
+      }
+      const linked = await this.store.linkAuthIdentity(
+        existingByEmail.id,
+        identity.authUserId,
+        now
+      );
+      await this.store.ensureDefaultSchedule(linked.id, now);
+      await this.recordAudit(linked.id, "AUTH_IDENTITY_LINKED", "INFO", {
+        authUserId: identity.authUserId,
+      });
+      return linked;
     }
 
-    const now = new Date();
-    const schedule = await this.store.ensureDefaultSchedule(user.id, now);
-    const { rawToken, tokenHash } = generateOpaqueToken();
-    const ipHash = input.ipAddress ? hashIpAddress(input.ipAddress) : null;
-
-    await this.store.createSession({
-      userId: user.id,
-      tokenHash,
-      deviceName: input.deviceName ?? "Google Web Session",
-      userAgent: input.userAgent ?? null,
-      ipAddressHash: ipHash,
-      expiresAt: new Date(now.getTime() + SESSION_TTL_MS),
-    });
-
-    await this.recordAudit(user.id, "AUTH_GOOGLE_SYNC", "INFO", {
-      firebaseUid: input.firebaseUid,
-      authProvider: user.authProvider,
-    });
-
-    const { passwordHash: _omitted, ...safeUser } = user;
-    return { user: safeUser, sessionToken: rawToken, schedule };
-  }
-
-  /**
-   * Validates an opaque session token against Neon PostgreSQL.
-   * Rejects expired, unknown, or revoked sessions.
-   */
-  async authenticateSession(
-    rawToken: string | null | undefined,
-    now = new Date()
-  ): Promise<{ user: Omit<UserRecord, "passwordHash">; session: SessionRecord }> {
-    if (!rawToken || rawToken.trim().length === 0) {
-      throw new AuthenticationError("Missing session token.");
+    try {
+      const created = await this.store.createUser({
+        authUserId: identity.authUserId,
+        email: identity.email,
+        fullName: identity.name,
+        emailVerifiedAt: identity.emailVerified ? now : null,
+      });
+      await this.store.ensureDefaultSchedule(created.id, now);
+      await this.recordAudit(created.id, "ACCOUNT_CREATED", "INFO", {
+        authUserId: identity.authUserId,
+      });
+      return created;
+    } catch (err) {
+      if (!(err instanceof UniqueConstraintError)) throw err;
+      const winner =
+        (await this.store.findUserByAuthUserId(identity.authUserId)) ??
+        (await this.store.findUserByEmail(identity.email));
+      if (!winner) throw err;
+      return winner;
     }
-
-    const tokenHash = hashOpaqueToken(rawToken);
-    const session = await this.store.findSessionByTokenHash(tokenHash);
-
-    if (!session) {
-      throw new AuthenticationError("Invalid session token.");
-    }
-
-    if (session.revokedAt !== null) {
-      throw new AuthenticationError("Session has been revoked.");
-    }
-
-    if (session.expiresAt.getTime() <= now.getTime()) {
-      throw new AuthenticationError("Session has expired.");
-    }
-
-    const user = await this.store.findUserById(session.userId);
-    if (!user) {
-      throw new AuthenticationError("User for session no longer exists.");
-    }
-
-    const { passwordHash: _omitted, ...safeUser } = user;
-    return { user: safeUser, session };
-  }
-
-  /**
-   * Revokes a session after verifying the authenticated user owns that session.
-   */
-  async revokeUserSession(
-    authenticatedUserId: string,
-    sessionToRevoke: SessionRecord
-  ): Promise<SessionRecord> {
-    assertResourceOwnership(sessionToRevoke, authenticatedUserId, "Session");
-    const revoked = await this.store.revokeSession(sessionToRevoke.id, new Date());
-    await this.recordAudit(authenticatedUserId, "SESSION_REVOKED", "INFO", {
-      revokedSessionId: sessionToRevoke.id,
-    });
-    return revoked;
   }
 
   /**

@@ -59,8 +59,13 @@ export interface EscalationNotificationAttempt {
 }
 
 export interface EscalationPersistencePort {
+  /** Lets a retried job see that a channel was already delivered, so it never sends twice. */
+  findNotificationAttemptByKey(
+    idempotencyKey: string
+  ): Promise<EscalationNotificationAttempt | null>;
   findScheduleByUserId(userId: string): Promise<DetailedScheduleRecord | null>;
   findScheduleById(scheduleId: string): Promise<DetailedScheduleRecord | null>;
+  findWorkflowEventByIdempotencyKey(key: string): Promise<WorkflowEventRecord | null>;
   findContactById(contactId: string): Promise<ContactRecord | null>;
   updateScheduleState(params: {
     scheduleId: string;
@@ -156,15 +161,30 @@ export class EscalationService {
       };
     }
 
+    // The whole job already finished on an earlier run: a duplicate run is a no-op.
+    const alreadyRecorded = await this.store.findWorkflowEventByIdempotencyKey(
+      `${params.idempotencyBaseKey}:DELIVERY_RECORDED`
+    );
+    if (alreadyRecorded) {
+      return { anyDelivered: true, attempts: [], updatedSchedule: schedule };
+    }
+
     const templateKey = `CHECKIN_${schedule.state}_REMINDER`;
     const attempts: EscalationNotificationAttempt[] = [];
     let emailDelivered = false;
     let smsDelivered = false;
 
-    // 1. Primary Channel: Email
-    const emailResult = this.sender
-      ? await this.sender.sendEmail({ to: params.userEmail, templateKey })
-      : { delivered: true };
+    // 1. Primary Channel: Email. A retried job must never send a second copy: if this exact
+    // attempt was already delivered, reuse that result instead of calling the provider again.
+    const previousEmail = await this.store.findNotificationAttemptByKey(
+      `${params.idempotencyBaseKey}:EMAIL`
+    );
+    const emailResult =
+      previousEmail?.status === "DELIVERED"
+        ? { delivered: true as const }
+        : this.sender
+          ? await this.sender.sendEmail({ to: params.userEmail, templateKey })
+          : { delivered: true };
 
     emailDelivered = emailResult.delivered;
     attempts.push(
@@ -185,9 +205,15 @@ export class EscalationService {
       (!emailDelivered || schedule.state === "ESCALATION_PENDING");
 
     if (shouldSendSms && params.userPhone) {
-      const smsResult = this.sender
-        ? await this.sender.sendSms({ to: params.userPhone, templateKey })
-        : { delivered: true };
+      const previousSms = await this.store.findNotificationAttemptByKey(
+        `${params.idempotencyBaseKey}:SMS`
+      );
+      const smsResult =
+        previousSms?.status === "DELIVERED"
+          ? { delivered: true as const }
+          : this.sender
+            ? await this.sender.sendSms({ to: params.userPhone, templateKey })
+            : { delivered: true };
 
       smsDelivered = smsResult.delivered;
       attempts.push(
