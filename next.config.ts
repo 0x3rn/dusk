@@ -1,6 +1,7 @@
 // next.config.ts
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
+import { WORKER_SCRIPT_CSP } from "./lib/security/csp";
 import { getProductionSecurityHeaders } from "./lib/security/http-hardening";
 
 const nextConfig: NextConfig = {
@@ -12,6 +13,16 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: getProductionSecurityHeaders(),
       },
+      ...(process.env.NODE_ENV === "production"
+        ? [
+            {
+              // The key-derivation Web Worker is a static script (the proxy does not cover it):
+              // its own policy keeps it off the network. See WORKER_SCRIPT_CSP.
+              source: "/_next/static/:path*",
+              headers: [{ key: "Content-Security-Policy", value: WORKER_SCRIPT_CSP }],
+            },
+          ]
+        : []),
       {
         // The invitation page names the person who invited you and its link is a credential.
         source: "/invite/:path*",

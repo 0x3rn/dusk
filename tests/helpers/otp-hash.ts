@@ -7,6 +7,11 @@ export function resetOtpIdentifier(email: string): string {
   return `forget-password-otp-${email.trim().toLowerCase()}`;
 }
 
+/** The stored identifier of any kind of emailed code ("forget-password", "email-verification", "sign-in"). */
+export function otpIdentifier(type: "forget-password" | "email-verification" | "sign-in", email: string): string {
+  return `${type}-otp-${email.trim().toLowerCase()}`;
+}
+
 /**
  * Neon Auth stores the code hashed: `base64url(sha256(code)):<wrong attempts>`. A 6-digit code only has
  * a million possibilities, so this finds the one that matches (about a second). Plain 6-digit values are

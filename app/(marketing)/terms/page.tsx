@@ -5,7 +5,7 @@ import { SITE_DOCS } from "@/lib/site-docs";
 export const metadata: Metadata = {
   title: "Terms of service | Dusk",
   description:
-    "The terms that govern your use of Dusk from Dusk Technologies.",
+    "The terms that govern your use of Dusk.",
 };
 
 export default function TermsOfServicePage() {

@@ -3,11 +3,19 @@
 // reset without opening a mailbox. Importing the integration helpers first means this file refuses
 // to run when DATABASE_URL points at the production branch, exactly like the integration tests.
 import { db } from "../../integration/helpers";
-import { parseStoredOtp, resetOtpIdentifier } from "../../helpers/otp-hash";
+import { otpIdentifier, parseStoredOtp, resetOtpIdentifier } from "../../helpers/otp-hash";
 
 /** Polls briefly, because the code is written a moment after the page says it was sent. */
 export async function readResetOtp(email: string, timeoutMs = 15_000): Promise<string> {
-  const identifier = resetOtpIdentifier(email);
+  return readOtpByIdentifier(resetOtpIdentifier(email), timeoutMs);
+}
+
+/** The code emailed for "Delete account" (an "email-verification" code). */
+export async function readDeletionOtp(email: string, timeoutMs = 15_000): Promise<string> {
+  return readOtpByIdentifier(otpIdentifier("email-verification", email), timeoutMs);
+}
+
+async function readOtpByIdentifier(identifier: string, timeoutMs: number): Promise<string> {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     const rows = await db.$queryRaw<{ value: string }[]>`

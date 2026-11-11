@@ -18,6 +18,19 @@ describe("getAuditEventDisplay", () => {
     expect(getAuditEventDisplay("LIFETIME_ACCESS_PARTIAL_REFUND", "{}").title).toBe("Partial refund");
   });
 
+  it("explains the automatic vault upgrade in plain words, without jargon or key material", () => {
+    const display = getAuditEventDisplay(
+      "VAULT_KDF_UPGRADED",
+      JSON.stringify({ vaultId: "v1", fromKdfAlgorithm: "PBKDF2-SHA256-600000", toKdfAlgorithm: "ARGON2ID-19456-2-1" })
+    );
+    expect(display.title).toBe("Vault protection strengthened");
+    expect(display.description).toBe(
+      "Your vault now uses stronger protection for your passphrase. Your items and recovery kit were not changed."
+    );
+    expect(`${display.title} ${display.description}`).not.toMatch(/pbkdf2|argon|kdf|sha/i);
+    expect(getAuditEventDisplay("VAULT_KDF_UPGRADED", "not json").title).toBe("Vault protection strengthened");
+  });
+
   it("names the person involved when the contact is known", () => {
     const contacts = [{ id: "c1", fullName: "Elena Ruiz" }];
     const verifier = getAuditEventDisplay(

@@ -217,6 +217,13 @@ export function getAuditEventDisplay(
         description: "A recovery kit was generated for this vault.",
       };
 
+    case "VAULT_KDF_UPGRADED":
+      return {
+        title: "Vault protection strengthened",
+        description:
+          "Your vault now uses stronger protection for your passphrase. Your items and recovery kit were not changed.",
+      };
+
     case "VAULT_ITEM_DELETED":
       return {
         title: "Vault item deleted",

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getServerEnv } from "@/lib/env";
 import { createEngine } from "@/lib/engine/engine";
 import { runSchedulerSweepExclusive } from "@/lib/engine/sweep";
+import { runRetentionPurge } from "@/lib/engine/retention";
 import { RATE_LIMIT_POLICIES } from "@/lib/security/http-hardening";
 import { consumeRateLimit } from "@/lib/security/db-rate-limiter";
 
@@ -19,6 +20,22 @@ function secretMatches(provided: string, expected: string): boolean {
   const a = createHash("sha256").update(provided).digest();
   const b = createHash("sha256").update(expected).digest();
   return timingSafeEqual(a, b);
+}
+
+/**
+ * Deletes data past its promised retention. A purge problem must never stop reminders or releases,
+ * so any error is logged (class name only, no row data) and reported as `failed`. Counts only.
+ */
+async function runRetentionIsolated() {
+  try {
+    const result = await runRetentionPurge(prisma);
+    if (result.skipped) return { skipped: true as const };
+    console.info("[retention] purge finished", { ...result.counts, capped: result.capped });
+    return { skipped: false as const, failed: false as const, counts: result.counts, capped: result.capped };
+  } catch (err) {
+    console.error("[retention] purge failed", { error: err instanceof Error ? err.name : "UnknownError" });
+    return { skipped: false as const, failed: true as const };
+  }
 }
 
 export async function POST(req: Request) {
@@ -38,7 +55,8 @@ export async function POST(req: Request) {
     await consumeRateLimit(prisma, RATE_LIMIT_POLICIES.SCHEDULER_TICK, "global");
     const result = await runSchedulerSweepExclusive(createEngine());
     if (result.skipped) {
-      return NextResponse.json({ ok: true, skipped: true });
+      // Another sweep is running. The purge has its own lock, so it can still go ahead.
+      return NextResponse.json({ ok: true, skipped: true, retention: await runRetentionIsolated() });
     }
     const { report } = result;
     if (report.errors.length > 0) {
@@ -48,9 +66,11 @@ export async function POST(req: Request) {
         scheduleIds: report.errors.map((e) => e.scheduleId),
       });
     }
+    const retention = await runRetentionIsolated();
     return NextResponse.json({
       ok: true,
       skipped: false,
+      retention,
       examined: report.examined,
       transitions: report.transitions.length,
       remindersSent: report.remindersSent,

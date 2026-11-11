@@ -10,6 +10,7 @@ import { canParticipateInReleaseVerification, canReceiveReleasePackage } from ".
 import { ReleasePolicyNotSatisfiedError } from "../services/release-verification-service";
 import type { Engine } from "./engine";
 import { reminderSender } from "./engine";
+import { RETENTION_MONTHS, subtractMonthsUtc } from "./retention";
 
 const DAY_MS = 86_400_000;
 const REMINDER_STATES = new Set<DetailedScheduleRecord["state"]>([
@@ -52,13 +53,28 @@ export async function runSchedulerSweep(
 
   // Anything not settled-and-far-from-due. HEALTHY estates more than 31 days from their due date
   // need no attention yet.
+  // Estates released more than the retention window ago are finished: the retention purge deletes
+  // their release records, and without those records this sweep would think no beneficiary was
+  // ever notified and send everyone a new link. So they are left alone here.
+  const releaseWindowStart = subtractMonthsUtc(now, RETENTION_MONTHS);
   const candidates = await engine.db.checkInSchedule.findMany({
     where: {
       ...(options.onlyScheduleIds ? { id: { in: options.onlyScheduleIds } } : {}),
       state: { not: "CANCELED" },
-      OR: [
-        { state: { not: "HEALTHY" } },
-        { nextDueAt: { lte: new Date(now.getTime() + 31 * DAY_MS) } },
+      AND: [
+        {
+          OR: [
+            { state: { not: "HEALTHY" } },
+            { nextDueAt: { lte: new Date(now.getTime() + 31 * DAY_MS) } },
+          ],
+        },
+        {
+          OR: [
+            { state: { not: "RELEASED" } },
+            { releasedAt: null },
+            { releasedAt: { gte: releaseWindowStart } },
+          ],
+        },
       ],
     },
     orderBy: { updatedAt: "asc" },

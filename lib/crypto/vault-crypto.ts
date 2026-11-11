@@ -3,12 +3,12 @@ import {
   DEFAULT_ARGON2ID_PARAMS,
   KdfParameterError,
   assertKdfParamsAcceptable,
-  deriveKeyBytes,
   formatKdfAlgorithm,
   parseKdfAlgorithm,
   type KdfParams,
   type KdfPolicy,
 } from "./kdf";
+import { KdfDerivationError, deriveKeyBytes } from "./kdf-client";
 import { assertAcceptableNewPassphrase } from "./passphrase-policy";
 
 /**
@@ -309,9 +309,45 @@ export async function wrapVaultMasterKeyWithPassphrase(
   kdfSaltBase64: string,
   options: CreateVaultOptions = {}
 ): Promise<WrappedMasterKeyBundle> {
+  assertAcceptableNewPassphrase(passphrase);
+  return wrapMasterKeyUnderPassphrase(masterKeyBase64, passphrase, vaultId, keyVersion, kdfSaltBase64, options);
+}
+
+/**
+ * Wraps the Vault Master Key under the SAME passphrase the owner just unlocked with, using a new
+ * KDF and a fresh salt (the automatic upgrade from PBKDF2 to Argon2id, see ./kdf-upgrade.ts).
+ * Unlike wrapVaultMasterKeyWithPassphrase it does not apply the new-passphrase length rule: the
+ * passphrase is not new, it is the one that already opens this vault (it may be the old 8-character
+ * minimum), and refusing to upgrade it would leave exactly the weakest vaults on the weakest KDF.
+ */
+export async function rewrapVaultMasterKeyForKdfUpgrade(
+  masterKeyBase64: string,
+  existingPassphrase: string,
+  vaultId: string,
+  keyVersion: number,
+  kdfSaltBase64: string,
+  options: CreateVaultOptions = {}
+): Promise<WrappedMasterKeyBundle> {
+  return wrapMasterKeyUnderPassphrase(
+    masterKeyBase64,
+    existingPassphrase,
+    vaultId,
+    keyVersion,
+    kdfSaltBase64,
+    options
+  );
+}
+
+async function wrapMasterKeyUnderPassphrase(
+  masterKeyBase64: string,
+  passphrase: string,
+  vaultId: string,
+  keyVersion: number,
+  kdfSaltBase64: string,
+  options: CreateVaultOptions
+): Promise<WrappedMasterKeyBundle> {
   const webCrypto = getWebCrypto();
   const kdf = options.kdf ?? DEFAULT_ARGON2ID_PARAMS;
-  assertAcceptableNewPassphrase(passphrase);
   assertKdfParamsAcceptable(kdf, "vault-passphrase", options.policy);
   const kdfAlgorithm = formatKdfAlgorithm(kdf);
 
@@ -319,37 +355,41 @@ export async function wrapVaultMasterKeyWithPassphrase(
     policy: options.policy,
   });
   const rawVmk = base64ToBytes(masterKeyBase64);
-  if (rawVmk.byteLength !== 32) {
-    throw new Error("Vault Master Key must be 32 bytes.");
+  try {
+    if (rawVmk.byteLength !== 32) {
+      throw new Error("Vault Master Key must be 32 bytes.");
+    }
+
+    const iv = generateIvBytes();
+    const aad = encodeAadContext({
+      vaultId,
+      resourceId: "vmk",
+      resourceType: "VAULT_ITEM",
+      keyVersion,
+    });
+
+    const encrypted = await webCrypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv: toArrayBuffer(iv),
+        additionalData: toArrayBuffer(aad),
+        tagLength: AES_GCM_TAG_BITS,
+      },
+      kek,
+      toArrayBuffer(rawVmk)
+    );
+
+    return {
+      schemaVersion: CRYPTO_SCHEMA_VERSION,
+      keyVersion,
+      kdfAlgorithm,
+      kdfSaltBase64,
+      wrappedMasterKeyCiphertext: bytesToBase64(new Uint8Array(encrypted)),
+      wrappedMasterKeyIv: bytesToBase64(iv),
+    };
+  } finally {
+    rawVmk.fill(0);
   }
-
-  const iv = generateIvBytes();
-  const aad = encodeAadContext({
-    vaultId,
-    resourceId: "vmk",
-    resourceType: "VAULT_ITEM",
-    keyVersion,
-  });
-
-  const encrypted = await webCrypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: toArrayBuffer(iv),
-      additionalData: toArrayBuffer(aad),
-      tagLength: AES_GCM_TAG_BITS,
-    },
-    kek,
-    toArrayBuffer(rawVmk)
-  );
-
-  return {
-    schemaVersion: CRYPTO_SCHEMA_VERSION,
-    keyVersion,
-    kdfAlgorithm,
-    kdfSaltBase64,
-    wrappedMasterKeyCiphertext: bytesToBase64(new Uint8Array(encrypted)),
-    wrappedMasterKeyIv: bytesToBase64(iv),
-  };
 }
 
 /**
@@ -398,7 +438,13 @@ export async function unwrapVaultMasterKeyWithPassphrase(
 
     return bytesToBase64(new Uint8Array(decrypted));
   } catch (err) {
-    if (err instanceof CryptoTamperOrAuthError || err instanceof KdfParameterError) throw err;
+    if (
+      err instanceof CryptoTamperOrAuthError ||
+      err instanceof KdfParameterError ||
+      err instanceof KdfDerivationError
+    ) {
+      throw err;
+    }
     throw new CryptoTamperOrAuthError("Failed to unlock Vault Master Key: wrong passphrase or tampered bundle.");
   }
 }

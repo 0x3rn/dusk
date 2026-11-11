@@ -11,7 +11,7 @@ import {
   LEGACY_VAULT_PBKDF2_ALGORITHM_ID,
   argon2idDerive,
   assertKdfParamsAcceptable,
-  deriveKeyBytes,
+  deriveKeyBytesOnThisThread as deriveKeyBytes,
   formatKdfAlgorithm,
   parseKdfAlgorithm,
 } from "./kdf";

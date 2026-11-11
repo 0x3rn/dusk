@@ -1,31 +1,85 @@
 // app/(marketing)/security/page.tsx
+// The public security page. It is written for a worried family member first: what is protected,
+// what happens if you stop checking in, and who can ever see what. The exact methods and settings
+// follow in "Technical details" (technical-details.tsx). Check every claim against lib/crypto and
+// lib/engine before changing it.
 import Link from "next/link";
-import {
-  Shield,
-  Lock,
-  Key,
-  ServerOff,
-  GitBranch,
-  UserCheck,
-  AlertTriangle,
-  ArrowLeft,
-  ArrowRight,
-} from "lucide-react";
+import { AlertTriangle, ArrowLeft, ArrowRight } from "lucide-react";
 import { SiteFooter } from "@/components/landing/site-footer";
-import { Badge } from "@/components/ui/badge";
 import { isSignedIn } from "@/lib/auth/current-user";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "@/lib/security/http-hardening";
+import { TechnicalDetails } from "./technical-details";
 
 export const metadata = {
-  title: "Security Architecture & Zero-Knowledge Whitepaper | Dusk",
+  title: "How Dusk keeps your vault private | Dusk",
   description:
-    "How Dusk protects your vault using client-side AES-256-GCM encryption, HKDF key hierarchies, ECDH P-256 selective beneficiary wrapping, and a fail-closed release state machine.",
+    "In plain words: what Dusk protects, what happens if you stop checking in, and who can see what. Exact technical details are at the end of the page.",
 };
 
 // Reads the signed-in session, so it must render per request, never at build time.
 export const dynamic = "force-dynamic";
 
-export default async function SecurityArchitecturePage() {
+const SECTION_LINKS = [
+  { href: "#what-is-protected", label: "What is protected" },
+  { href: "#who-sees-what", label: "Who can see what" },
+  { href: "#if-you-stop-checking-in", label: "If you stop checking in" },
+  { href: "#limits", label: "What Dusk can't do" },
+  { href: "#technical-details", label: "Technical details" },
+];
+
+const WHO_SEES_WHAT: ReadonlyArray<{ who: string; sees: string }> = [
+  {
+    who: "You",
+    sees: "Everything in your vault, once you unlock it on your own device with your master passphrase.",
+  },
+  {
+    who: "Dusk and the companies that help us run it",
+    sees: "Scrambled data they cannot open, plus the facts listed above. Never your titles, notes, passwords, folder names or master passphrase.",
+  },
+  {
+    who: "Your trusted verifiers",
+    sees: "A request to confirm that you are okay, or that a release is real. They never receive anything from your vault.",
+  },
+  {
+    who: "Your beneficiaries",
+    sees: "Only the items you set aside for them, and only after a release is confirmed. They open those on their own device with the private link you gave them. Items you did not set aside for them stay locked, even to them.",
+  },
+];
+
+const STEPS: ReadonlyArray<{ title: string; text: string }> = [
+  {
+    title: "Reminders",
+    text: "Before your check-in is due, Dusk emails you a reminder with a link. Opening the link is your check-in, and your timer starts again.",
+  },
+  {
+    title: "A grace period",
+    text: "If the date passes, you get extra time and more reminders. You choose how long; the default is 14 days. Nobody else is contacted yet.",
+  },
+  {
+    title: "Final warnings",
+    text: "After the grace period, Dusk sends stronger warnings for 7 more days. It will not go on until several reminders have been sent and at least one was delivered, so an email problem on our side can never start a release.",
+  },
+  {
+    title: "Your trusted verifiers are asked",
+    text: "Only now does Dusk contact the verifiers you chose. Each gets a private link to say either that you are okay, or that a release is real. If any verifier says you are okay, the process stops. You decide how many must agree; the default is one.",
+  },
+  {
+    title: "Release, only if every rule is met",
+    text: "Each beneficiary is then emailed an access link that works once and expires after 48 hours. They also need the private link you gave them, and they can open only the items you set aside for them.",
+  },
+];
+
+function SectionHeading({ id, children }: { id: string; children: React.ReactNode }) {
+  return (
+    <h2 id={id} className="scroll-mt-24 text-3xl font-semibold tracking-tight text-foreground">
+      {children}
+    </h2>
+  );
+}
+
+const body = "text-[16px] leading-relaxed text-foreground-secondary";
+
+export default async function SecurityPage() {
   const isAuthenticated = await isSignedIn();
 
   return (
@@ -50,7 +104,7 @@ export default async function SecurityArchitecturePage() {
                 href="/dashboard"
                 className="bg-brand text-on-brand hover:bg-brand-hover font-semibold transition-colors px-4 sm:px-5 min-h-11 whitespace-nowrap rounded-md text-sm flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
               >
-                Dashboard <ArrowRight strokeWidth={1.5} className="w-4 h-4" />
+                Dashboard <ArrowRight strokeWidth={1.5} className="w-4 h-4" aria-hidden="true" />
               </Link>
             ) : (
               <>
@@ -72,301 +126,149 @@ export default async function SecurityArchitecturePage() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-4xl space-y-14 sm:space-y-20">
+      <main className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 max-w-3xl space-y-14 sm:space-y-20">
         {/* Header */}
-        <header className="space-y-6 border-b border-border pb-12">
-          <Badge
-            variant="outline"
-            className="border-brand/25 text-accent-text bg-accent-surface px-3 py-1"
-          >
-            Technical Security Whitepaper • v1.0
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter leading-tight">
-            Dusk Zero-Knowledge Security Architecture
+        <header className="space-y-6 border-b border-border pb-10">
+          <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-tight">
+            How Dusk keeps your vault private
           </h1>
-          <p className="text-lg md:text-xl text-foreground leading-relaxed max-w-prose">
-            In plain words: your vault is locked on your own device before it is sent to Dusk, so Dusk can&apos;t read
-            it. The rest of this page is the technical detail, for people who want to check our work.
+          <p className="text-lg text-foreground-secondary leading-relaxed max-w-prose">
+            Dusk keeps the things your family would need if something happened to you: logins, instructions and notes. This
+            page explains in plain words what is protected, what happens if you stop checking in, and who can see what. The
+            exact methods are at the end, under Technical details.
           </p>
-          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
-            Dusk is engineered under a single foundational assumption:{" "}
-            <strong className="text-foreground">
-              our servers, databases, and operators must never have the ability
-              to decrypt your vault.
-            </strong>{" "}
-            This document details the cryptographic primitives, key hierarchy,
-            trust boundaries, and fail-closed state machines that enforce this
-            guarantee.
-          </p>
+          <nav aria-label="On this page">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-[15px]">
+              {SECTION_LINKS.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="inline-flex min-h-11 items-center text-accent-text underline underline-offset-2 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-sm"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </header>
 
-        {/* Section 1: Trust Boundary */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-surface border border-brand/25 flex items-center justify-center">
-              <ServerOff strokeWidth={1.5} className="w-5 h-5 text-accent-text" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              1. Client / Server Trust Boundary
-            </h2>
-          </div>
-          <p className="text-muted-foreground leading-relaxed">
-            All key generation, key derivation, payload encryption, and file
-            encryption occur exclusively inside your browser using the native{" "}
-            <code className="text-foreground font-mono text-sm">
-              W3C Web Crypto API (window.crypto.subtle)
-            </code>
-            . Plaintext data never leaves your device.
+        {/* 1. What is protected */}
+        <section aria-labelledby="what-is-protected" className="space-y-5">
+          <SectionHeading id="what-is-protected">What is protected</SectionHeading>
+          <p className={body}>
+            Everything you put in your vault is locked on your own device before it is sent to us. The key that locks it is
+            made from your master passphrase, and your passphrase never leaves your device. What we store is scrambled text
+            that only your passphrase can turn back into words.
           </p>
-
-          <div className="grid md:grid-cols-2 gap-6 pt-2">
-            <div className="border border-brand/25 bg-accent-surface/40 rounded-2xl p-6 space-y-3">
-              <h3 className="font-bold text-foreground flex items-center gap-2">
-                <Lock strokeWidth={1.5} className="w-4 h-4 text-accent-text" />
-                Client-Side Only (Never Sent to Server)
-              </h3>
-              <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                <li>Your Master Encryption Passphrase</li>
-                <li>Unwrapped 256-bit Vault Master Key (VMK)</li>
-                <li>Unwrapped Per-Item (IEK) and Per-File (FEK) Keys</li>
-                <li>Plaintext titles, credentials, seed phrases, and notes</li>
-                <li>Plaintext folder names and search queries</li>
-                <li>Your Offline Recovery Code (DUSK-XXXX-...)</li>
-                <li>Beneficiary ECDH P-256 Private Keys (#hash fragment)</li>
-              </ul>
-            </div>
-
-            <div className="border border-border bg-card rounded-2xl p-6 space-y-3">
-              <h3 className="font-bold text-foreground flex items-center gap-2">
-                <Shield strokeWidth={1.5} className="w-4 h-4 text-muted-foreground" />
-                Server-Side Coordination (PostgreSQL)
-              </h3>
-              <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                <li>Opaque AES-256-GCM ciphertexts &amp; 96-bit IVs</li>
-                <li>PBKDF2/HKDF wrapped key envelopes &amp; salts</li>
-                <li>Beneficiary SPKI Public Keys &amp; ECDH wrapped grants</li>
-                <li>Check-in timers and release state machine</li>
-                <li>SHA-256 digests of single-use session &amp; action tokens</li>
-                <li>Append-only, secret-redacted security audit logs</li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 2: Key Hierarchy */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-surface border border-brand/25 flex items-center justify-center">
-              <Key strokeWidth={1.5} className="w-5 h-5 text-accent-text" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              2. Multi-Tier Cryptographic Key Hierarchy
-            </h2>
-          </div>
-          <p className="text-muted-foreground leading-relaxed">
-            Dusk never encrypts vault items directly with a password. Instead,
-            we use a multi-tier key hierarchy that enables instant passphrase
-            rotation, recovery kit restoration, and granular per-item
-            beneficiary sharing without re-encrypting your entire vault.
-          </p>
-
-          <div className="border border-border bg-card rounded-2xl p-4 sm:p-6 font-mono text-xs md:text-sm space-y-3 overflow-x-auto">
-            <div className="text-accent-text font-semibold">
-              [User Master Passphrase] + [16-Byte CSPRNG Salt]
-            </div>
-            <div className="pl-2 sm:pl-4 text-muted-foreground">
-              └── PBKDF2-HMAC-SHA256 (600,000 Iterations) ──►{" "}
-              <span className="text-foreground">
-                256-bit Passphrase Key Encryption Key (KEK)
-              </span>
-            </div>
-            <div className="pl-4 sm:pl-10 text-muted-foreground">
-              └── AES-256-GCM Wraps ──►{" "}
-              <span className="text-accent-text font-semibold">
-                256-bit Vault Master Key (VMK)
-              </span>
-            </div>
-            <div className="pl-6 sm:pl-16 text-muted-foreground">
-              ├── HKDF-SHA256 (&quot;dusk-v1-item-kek&quot;) ──► Wraps unique
-              256-bit <span className="text-foreground">Item Keys (IEK)</span>
-            </div>
-            <div className="pl-6 sm:pl-16 text-muted-foreground">
-              ├── HKDF-SHA256 (&quot;dusk-v1-file-kek&quot;) ──► Wraps unique
-              256-bit <span className="text-foreground">File Keys (FEK)</span>
-            </div>
-            <div className="pl-6 sm:pl-16 text-muted-foreground">
-              └── HKDF-SHA256 (&quot;dusk-v1-folder-key&quot;) ──► Encrypts{" "}
-              <span className="text-foreground">Vault Folder Names</span>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4 text-sm">
-            <div className="border border-border rounded-xl p-5 bg-card">
-              <h4 className="font-bold mb-1">
-                Contextual AAD Integrity Binding
-              </h4>
-              <p className="text-muted-foreground">
-                Every AES-256-GCM encryption binds canonical Additional
-                Authenticated Data (
-                <code className="text-xs">
-                  dusk-aad-v1|vaultId|resourceType|resourceId|kv:N
-                </code>
-                ) into the 128-bit GCM authentication tag, preventing cross-item
-                or cross-vault ciphertext substitution attacks.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-5 bg-card">
-              <h4 className="font-bold mb-1">
-                Recovery kit (Crockford Base32)
-              </h4>
-              <p className="text-muted-foreground">
-                Your 256-bit VMK is independently wrapped under your recovery
-                code (<code className="text-xs">DUSK-XXXX-...</code>)
-                that only you hold offline. If you lose your master passphrase,
-                your recovery kit restores your VMK locally and revokes all
-                prior device sessions.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Section 3: Selective Beneficiary Wrapping */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-surface border border-brand/25 flex items-center justify-center">
-              <GitBranch strokeWidth={1.5} className="w-5 h-5 text-accent-text" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              3. Selective Beneficiary Key Wrapping (ECDH P-256)
-            </h2>
-          </div>
-          <p className="text-muted-foreground leading-relaxed">
-            Different beneficiaries often require access to different parts of a
-            digital estate. Sharing a single vault key would expose every secret
-            to every contact. Dusk enforces{" "}
-            <strong className="text-foreground">
-              mathematical cross-beneficiary isolation
-            </strong>
-            :
-          </p>
-          <ul className="space-y-3 text-sm text-muted-foreground list-disc list-inside">
+          <ul className="list-disc pl-5 space-y-3 text-[16px] leading-relaxed text-foreground-secondary marker:text-foreground-muted">
             <li>
-              Each Beneficiary has a dedicated{" "}
-              <strong className="text-foreground">ECDH P-256</strong> asymmetric
-              keypair. Only the public key (SPKI) is stored on Dusk servers.
+              <strong className="text-foreground">We can&apos;t read it.</strong> Not our staff, not the companies that help
+              us run Dusk, not our systems. If someone stole our database, or asked us to hand your vault over, all we or
+              they would have is scrambled text.
             </li>
             <li>
-              When you assign Item A to Beneficiary 1, your browser generates a{" "}
-              <strong className="text-foreground">
-                fresh one-time ephemeral ECDH keypair
-              </strong>
-              , performs elliptic-curve Diffie-Hellman key agreement with
-              Beneficiary 1&apos;s public key, derives a scoped wrapping key via{" "}
-              <code className="text-foreground">HKDF-SHA256</code>, and wraps{" "}
-              <em>only</em> Item A&apos;s 256-bit Item Encryption Key.
+              <strong className="text-foreground">We can&apos;t reset your passphrase.</strong> If you lose both your
+              passphrase and your recovery code, nobody can open your vault. Set up your recovery kit and keep it somewhere
+              safe.
             </li>
             <li>
-              Beneficiary 1 cannot decrypt Item B (assigned to Beneficiary 2) or
-              any unassigned items in your vault, and never receives your Vault
-              Master Key.
+              <strong className="text-foreground">What we can see.</strong> That an item exists, what type it is (for
+              example a login or a note), when you added or changed it, and which person you set it aside for. We also have
+              your email address, the names and emails of the people you add, and your check-in schedule.
             </li>
           </ul>
         </section>
 
-        {/* Section 4: Staged release state machine */}
-        <section className="space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-accent-surface border border-brand/25 flex items-center justify-center">
-              <UserCheck strokeWidth={1.5} className="w-5 h-5 text-accent-text" />
-            </div>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-              4. Fail-Closed Check-In and Release State Machine
-            </h2>
-          </div>
-          <p className="text-muted-foreground leading-relaxed">
-            <strong className="text-foreground">
-              A missed email is not proof of death.
-            </strong>{" "}
-            Dusk never releases a vault from an inactivity timer alone. Every
-            schedule progresses through a strictly audited, idempotent state
-            machine with multiple off-ramps:
-          </p>
+        {/* 2. Who can see what */}
+        <section aria-labelledby="who-sees-what" className="space-y-5">
+          <SectionHeading id="who-sees-what">Who can see what</SectionHeading>
+          <dl className="divide-y divide-border border-y border-border">
+            {WHO_SEES_WHAT.map((row) => (
+              <div key={row.who} className="py-4 sm:grid sm:grid-cols-[12rem_1fr] sm:gap-6">
+                <dt className="font-semibold text-foreground">{row.who}</dt>
+                <dd className={`mt-1 sm:mt-0 ${body}`}>{row.sees}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
-          <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 1</div>
-              <div className="font-bold mb-1">HEALTHY &amp; REMINDER_DUE</div>
-              <p className="text-sm text-muted-foreground">
-                Normal check-in countdown (e.g., 90 days) with pre-due email
-                reminders. Any check-in immediately resets the timer.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 2</div>
-              <div className="font-bold mb-1">GRACE_PERIOD</div>
-              <p className="text-sm text-muted-foreground">
-                Configurable buffer window after a missed due date before
-                escalation begins.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 3</div>
-              <div className="font-bold mb-1">ESCALATION_PENDING</div>
-              <p className="text-sm text-muted-foreground">
-                Reminders by email, with a text-message back-up only where a
-                phone number is on file. If providers have an outage, the
-                timer fails closed and refuses to advance.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 4</div>
-              <div className="font-bold mb-1">VERIFICATION_REQUIRED</div>
-              <p className="text-sm text-muted-foreground">
-                Trusted Verifiers (who do not receive vault secrets) can attest
-                that you are alive to stop a false alarm, or approve release.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 5</div>
-              <div className="font-bold mb-1">RELEASE_HOLD</div>
-              <p className="text-sm text-muted-foreground">
-                Immediate freeze state if you or a Trusted Verifier flags a
-                medical recovery, travel delay, or contested trigger.
-              </p>
-            </div>
-            <div className="border border-border rounded-xl p-4 bg-card">
-              <div className="text-xs font-mono text-accent-text mb-1">STAGE 6</div>
-              <div className="font-bold mb-1">SCOPED RELEASE</div>
-              <p className="text-sm text-muted-foreground">
-                Only after all grace windows, confirmed deliveries, and verifier
-                quorum rules pass are time-bounded, single-use beneficiary
-                grants issued.
-              </p>
-            </div>
+        {/* 3. If you stop checking in */}
+        <section aria-labelledby="if-you-stop-checking-in" className="space-y-5">
+          <SectionHeading id="if-you-stop-checking-in">What happens if you stop checking in</SectionHeading>
+          <p className={body}>
+            <strong className="text-foreground">A missed email is not proof that something has happened to you.</strong>{" "}
+            Dusk never releases anything just because a timer ran out. These steps come in order, and you can stop the whole
+            process at any point before release by checking in.
+          </p>
+          <ol className="space-y-4">
+            {STEPS.map((step, index) => (
+              <li key={step.title} className="flex gap-4">
+                <span
+                  aria-hidden="true"
+                  className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-card text-[13px] font-semibold text-foreground"
+                >
+                  {index + 1}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="text-[17px] font-semibold text-foreground">
+                    <span className="sr-only">Step {index + 1}: </span>
+                    {step.title}
+                  </h3>
+                  <p className={`mt-1 ${body}`}>{step.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className="rounded-xl border border-border bg-card p-5 space-y-2">
+            <h3 className="text-[17px] font-semibold text-foreground">If anything is unclear, nothing is released</h3>
+            <p className={body}>
+              Every one of these stops a release: you check in, a verifier says you are okay, you or a verifier puts it on
+              hold, you pause your plan, or too few verifiers agree. If an email service has a problem, the process waits
+              instead of moving forward.
+            </p>
           </div>
         </section>
 
-        {/* Section 5: Legal Scope Disclaimer */}
-        <section className="border border-border bg-card rounded-2xl p-5 sm:p-8 space-y-4">
-          <div className="flex items-center gap-3">
-            <AlertTriangle
-              strokeWidth={1.5}
-              className="w-5 h-5 text-accent-text shrink-0"
-            />
-            <h3 className="text-lg font-bold">
-              Legal Scope &amp; Zero-Knowledge Custody Notice
-            </h3>
+        {/* 4. What Dusk can't do */}
+        <section aria-labelledby="limits" className="space-y-5">
+          <SectionHeading id="limits">What Dusk can&apos;t do</SectionHeading>
+          <ul className="list-disc pl-5 space-y-3 text-[16px] leading-relaxed text-foreground-secondary marker:text-foreground-muted">
+            <li>
+              Dusk can&apos;t tell whether you are alive. It only follows your plan and the answers of the people you chose.
+            </li>
+            <li>
+              Dusk can&apos;t promise that an email arrives. Messages can be delayed or filtered as spam, so tell the people
+              you chose to expect mail from Dusk.
+            </li>
+            <li>Dusk can&apos;t restore a vault after you lose your passphrase and your recovery code.</li>
+          </ul>
+          <div className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-3">
+            <div className="flex items-center gap-3">
+              <AlertTriangle strokeWidth={1.5} className="w-5 h-5 text-accent-text shrink-0" aria-hidden="true" />
+              <h3 className="text-[17px] font-semibold text-foreground">Dusk is not a will</h3>
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.notALegalWillHeadline}
+            </p>
+            <p className="text-sm text-foreground-secondary leading-relaxed">
+              {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.zeroKnowledgeCustodyNotice}
+            </p>
+            <p className="text-sm text-foreground-secondary leading-relaxed">
+              {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.estatePlanningGuidance}
+            </p>
           </div>
-          <p className="text-sm font-semibold text-foreground">
-            {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.notALegalWillHeadline}
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.zeroKnowledgeCustodyNotice}
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.estatePlanningGuidance}
+          <p className={body}>
+            You can delete your account yourself in Settings at any time, and your vault and plan are deleted straight away.
+            The{" "}
+            <Link href="/privacy#how-long-we-keep-it" className="text-accent-text underline underline-offset-2 hover:text-foreground">
+              privacy policy
+            </Link>{" "}
+            lists what we keep and for how long.
           </p>
         </section>
+
+        <TechnicalDetails />
       </main>
 
       <SiteFooter />

@@ -14,6 +14,8 @@ export function getFoundationService(): FoundationService {
 export interface CurrentUser {
   user: UserRecord;
   authSession: ParsedNeonSession["authSession"];
+  /** The verified sign-in identity of this session (Neon Auth user id and email). */
+  identity: ParsedNeonSession["identity"];
 }
 
 /** The signed-in Dusk user, or null when signed out. Throws only for broken/suspended sessions. */
@@ -26,7 +28,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   if (!parsed) return null;
 
   const user = await getFoundationService().resolveUserFromIdentity(parsed.identity);
-  return { user, authSession: parsed.authSession };
+  return { user, authSession: parsed.authSession, identity: parsed.identity };
 }
 
 /** Like getCurrentUser, but throws AuthenticationError when nobody is signed in. */

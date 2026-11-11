@@ -164,6 +164,11 @@ export const RATE_LIMIT_POLICIES = {
     maxAttempts: 20,
     windowMs: 60 * 60 * 1000, // invitation emails an owner can send or resend per hour
   },
+  ACCOUNT_DELETE: {
+    bucketName: "account_delete",
+    maxAttempts: 10,
+    windowMs: 60 * 60 * 1000, // 10 delete-account attempts per hour per user (wrong code, wrong email)
+  },
   SCHEDULER_TICK: {
     bucketName: "scheduler_tick",
     maxAttempts: 60,
@@ -219,7 +224,7 @@ export const LEGAL_SCOPE_AND_ESTATE_DISCLAIMER = {
   notALegalWillHeadline:
     "Dusk is an encrypted vault and delivery system, NOT a legal will, trust, or substitute for statutory estate planning.",
   zeroKnowledgeCustodyNotice:
-    "Your vault is encrypted on your device. Dusk Technologies operates a zero-knowledge architecture: we never possess your master passphrase, vault keys, or recovery kit, and cannot decrypt your vault under any circumstances—including lost credentials or legal compulsion.",
+    "Your vault is encrypted on your device. Dusk is built as a zero-knowledge service: we never possess your master passphrase, vault keys, or recovery kit, and cannot decrypt your vault under any circumstances—including lost credentials or legal compulsion.",
   estatePlanningGuidance:
     "Transferring technical access to accounts, cryptographic keys, or instructions does not automatically transfer legal title or ownership under applicable probate or inheritance laws. Consult a qualified estate-planning attorney in your jurisdiction to execute a valid Last Will and Testament or Living Trust.",
 } as const;

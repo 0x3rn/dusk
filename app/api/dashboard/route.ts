@@ -20,6 +20,7 @@ import {
   sendContactInvitationEmail,
   toDashboardContact,
 } from "@/lib/services/contact-invitation-delivery";
+import { upgradeVaultKdf } from "@/lib/services/vault-kdf-upgrade";
 import { INVITE_TTL_DAYS } from "@/lib/domain/invitation-status";
 
 export async function GET() {
@@ -164,6 +165,13 @@ export async function POST(req: Request) {
           });
         }
         return NextResponse.json({ vault, recoveryArtifact }, { status: 201 });
+      }
+
+      case "UPGRADE_VAULT_KDF": {
+        // Same-origin, signed in and rate limited above. Ownership comes from the session, never
+        // from the body; the swap only happens if the stored wrap is the one the browser saw.
+        const upgraded = await upgradeVaultKdf(prisma, user.id, body);
+        return NextResponse.json({ upgraded: true, kdfAlgorithm: upgraded.kdfAlgorithm });
       }
 
       case "ADD_ENCRYPTED_ITEM": {

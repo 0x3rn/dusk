@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { UserAccount } from "./types";
 import { ChangePasswordCard } from "./change-password-card";
+import { DeleteAccountCard } from "./delete-account-card";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "@/lib/security/http-hardening";
 import { PlanCard } from "./plan-card";
 
@@ -177,6 +178,8 @@ export function SettingsView({
           <p>{LEGAL_SCOPE_AND_ESTATE_DISCLAIMER.estatePlanningGuidance}</p>
         </div>
       </div>
+
+      <DeleteAccountCard email={user.email} />
     </div>
   );
 }

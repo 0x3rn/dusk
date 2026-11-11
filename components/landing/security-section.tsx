@@ -172,7 +172,7 @@ export function SecuritySection() {
             onClick={() => setModalOpen(true)}
             className="inline-flex min-h-11 items-center gap-2 text-[15px] font-semibold text-foreground hover:text-accent-text dark:hover:text-accent-text transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand rounded-md px-1 py-1"
           >
-            <span>Read the security architecture</span>
+            <span>How Dusk protects your vault</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -193,10 +193,10 @@ export function SecuritySection() {
             <div className="flex items-center justify-between gap-4 px-5 sm:px-8 pt-5 sm:pt-8 pb-4 border-b border-border shrink-0">
               <div className="min-w-0">
                 <span className="text-[11px] font-mono font-semibold uppercase tracking-wider text-foreground-secondary">
-                  Technical details
+                  In plain words
                 </span>
                 <h3 id="security-modal-title" className="text-[20px] font-semibold text-foreground">
-                  Dusk security architecture
+                  How Dusk protects your vault
                 </h3>
               </div>
               <button
@@ -211,44 +211,52 @@ export function SecuritySection() {
 
             <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-5 sm:px-8 py-6 space-y-6 text-[14px] text-foreground-secondary leading-relaxed">
               <p className="text-foreground">
-                In short: your vault is locked with keys only you hold. Dusk runs the timers and release steps, but can&apos;t open your vault on its own.
+                In short: your vault is locked with keys only you hold. Dusk runs the timers and the release steps, but can&apos;t open your vault on its own.
               </p>
 
               <div>
                 <h4 className="text-[15px] font-semibold text-foreground mb-1.5">
-                  1. Zero-knowledge key hierarchy
+                  Locked on your device
                 </h4>
                 <p>
-                  Vault data is encrypted client-side using authenticated AES-256-GCM. The Vault Master Key (VMK) is generated on the user&apos;s device and never transmitted in plaintext to Dusk servers. The passphrase key is derived with PBKDF2-HMAC-SHA256 (600,000 iterations) and a random salt; item and file subkeys are derived with HKDF-SHA256.
+                  Your items are locked in your browser before they are uploaded. The key comes from your master passphrase, which never leaves your device. Dusk stores only scrambled data.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-[15px] font-semibold text-foreground mb-1.5">
-                  2. Scoped beneficiary key wrapping
+                  Each person gets only their share
                 </h4>
                 <p>
-                  When a vault owner assigns items to a beneficiary, individual Item Encryption Keys (IEKs) are wrapped using ECDH P-256 with the beneficiary&apos;s public key or a designated release secret. Dusk stores only wrapped ciphertext envelopes. The Dusk infrastructure cannot decrypt or access the contents of individual packages.
+                  When you set an item aside for someone, your browser makes a key that works for that item and that person only. They never receive your vault key, and can&apos;t open anything you did not set aside for them.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-[15px] font-semibold text-foreground mb-1.5">
-                  3. Inactivity engine and fail-closed release
+                  Nothing is released unless every rule is met
                 </h4>
                 <p>
-                  Dusk coordinates check-in intervals, reminders, grace periods, and trusted-verifier verifications. If any verification state is ambiguous or unfulfilled, the engine fails closed. Access keys are only assembled and made available when all configured conditions are verified.
+                  Dusk sends reminders, waits through your grace period, then asks the trusted verifiers you chose. If you check in, a verifier says you are okay, or anything is unclear, nothing is released.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-[15px] font-semibold text-foreground mb-1.5">
-                  4. Independent recovery kits
+                  Recovery is yours to keep
                 </h4>
                 <p>
-                  Users generate a recovery kit during vault initialization. This kit contains cryptographic recovery parameters stored solely by the user. Dusk cannot bypass your encryption via customer support or password resets.
+                  Your recovery kit is stored only by you. Dusk can&apos;t reset your passphrase, so keep the kit somewhere safe.
                 </p>
               </div>
+
+              <p>
+                The exact methods and settings are published under{" "}
+                <a href="/security#technical-details" className="text-accent-text underline underline-offset-2">
+                  Technical details
+                </a>
+                .
+              </p>
             </div>
 
             <div className="px-5 sm:px-8 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:pb-5 border-t border-border flex items-center justify-between gap-3 shrink-0">
@@ -256,7 +264,7 @@ export function SecuritySection() {
                 href="/security"
                 className="min-h-11 text-[13px] font-medium text-accent-text hover:underline flex items-center gap-1"
               >
-                <span>Read the full whitepaper →</span>
+                <span>Read the full explanation →</span>
               </a>
               <button
                 type="button"

@@ -304,6 +304,7 @@ model ReleaseEvent {
 
   @@index([scheduleId])
   @@index([userId])
+  @@index([createdAt])
 }
 
 model RecoveryArtifact {
@@ -345,6 +346,7 @@ model NotificationDelivery {
   user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([createdAt])
 }
 
 model AuditEvent {
@@ -363,6 +365,7 @@ model AuditEvent {
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Fixed-window rate limit counters. Old windows are deleted opportunistically.

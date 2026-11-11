@@ -138,9 +138,20 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
         </p>
         <H3>How do I delete my account?</H3>
         <p>
-          There is no delete button in the app yet. Email us at {CONTACT_EMAIL} from your account email and we will
-          confirm within 7 days and finish within 30 days. Deleting your account also stops your plan, so nothing is
-          sent to the people you chose. <A href="/privacy#delete-your-data">Read how deletion works</A>.
+          Sign in, open Settings, and use the Delete account section at the bottom. Dusk emails a 6-digit code to your
+          account address, you enter the code, and you type your email to confirm. Your account, your encrypted vault,
+          the people you added and your check-in plan are then deleted straight away, and you are signed out on every
+          device. Dusk can&apos;t read your vault, so nobody can restore any of it afterwards. Deleting your account also
+          stops your plan, so nothing is sent to the people you chose.
+        </p>
+        <p>
+          If a release is under way or has already happened, Settings tells you what deleting would do and asks you to
+          confirm it. People who already received their items keep what they opened. People who have not opened theirs
+          yet lose access.
+        </p>
+        <p>
+          If you can&apos;t sign in, email us at {CONTACT_EMAIL} from your account email and we will confirm within 7
+          days and finish within 30 days. <A href="/privacy#delete-your-data">Read how deletion works</A>.
         </p>
 
         <H>People you choose</H>
@@ -234,7 +245,8 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
           </li>
           <li>
             <strong className="text-foreground">Payment status.</strong>{" "}Whether you have paid, when, and a reference
-            that links your account to your payment. We never see your card number.
+            that links your account to your payment. We never see your card number. If you delete your account, a
+            payment record stays (see below), but it no longer connects to any account.
           </li>
           <li>
             <strong className="text-foreground">Error reports.</strong>{" "}When something breaks, we receive a technical
@@ -307,47 +319,67 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
               text: "Kept while your account is active. This covers your account details, your encrypted vault, your people and your check-in plan.",
             },
             {
-              term: "After you ask us to delete",
-              text: "Your account, encrypted vault items and people are deleted within 30 days of your request.",
+              term: "When you delete your account",
+              text: "Deleted straight away from our live systems: your account and sign-in, your encrypted vault items and folders, your recovery data, your people, your check-in plan, and your activity and message records. Copies in our database backups are removed as the backups age out, within 30 days.",
             },
             {
-              term: "Security and activity records",
-              text: "Kept for up to 12 months, then deleted.",
+              term: "If you can't sign in",
+              text: "Ask us by email. We confirm your request within 7 days and finish within 30 days of your request.",
             },
             {
-              term: "Payment records",
-              text: "Kept by Lemon Squeezy for as long as tax law requires. We keep only your payment status and reference while your account exists.",
-            },
-            {
-              term: "Backups",
-              text: "Database backups age out within 30 days. Our database host keeps a short-lived recovery history, so deleted data can remain in backups until then.",
+              term: "Security, activity and message records",
+              text: "Kept for up to 12 months. We delete them automatically once they are 12 months old. The one exception is a plan that has been released: see Released plans.",
             },
             {
               term: "Released plans",
-              text: "If your plan has been released, we keep the delivery records (what was sent, to whom and when) for 12 months after the release, so we can show it was delivered.",
+              text: "If your plan has been released, we keep the records of the release and of what was sent, to whom and when, for 12 months after the release, so we can show it was delivered. Your activity and message records are kept for the same time. After that they are deleted automatically.",
+            },
+            {
+              term: "Payment records",
+              text: "Lemon Squeezy keeps your payment details for as long as tax law requires. We keep only your payment status and a reference while your account exists. After you delete your account, we keep one payment record (the order reference and its result, never your card) so that refunds and tax records stay correct. It no longer connects to any account, your name or your vault.",
+            },
+            {
+              term: "Short-lived counters",
+              text: "The counters that slow down repeated sign-in or code attempts are deleted after about a day.",
+            },
+            {
+              term: "Backups",
+              text: "Database backups age out within 30 days. Our database host keeps a short-lived recovery history, so deleted data can remain in backups until then. We don't restore a deleted account from a backup.",
             },
           ]}
         />
 
         <H id="delete-your-data">How to delete your data</H>
+        <H3>In the app</H3>
         <p>
-          There is no delete button in the app yet. To delete your data, email {CONTACT_EMAIL} from the email address on
-          your account and ask us to delete your account. We use that address to check the request is yours.
+          Sign in, open Settings, and choose Delete account at the bottom. Dusk emails a 6-digit code to the address on
+          your account. You enter the code and type your email to confirm. If a release is under way or has already
+          happened, you also confirm that you understand what deleting does to it.
+        </p>
+        <p>
+          The deletion happens straight away. Your account and sign-in, your encrypted vault items and folders, your
+          recovery data, your people, your check-in plan, and your activity and message records are deleted from our
+          live systems, and you are signed out on every device. Your vault is encrypted and we can&apos;t read it, so you
+          don&apos;t need to unlock it first. The encrypted data is destroyed, and neither you nor we can get it back
+          afterwards. Copies in our database backups age out within 30 days. You can use the same email address again
+          later, as a new account.
+        </p>
+        <p>
+          Deleting your account also ends your check-in plan. Nothing will be released or sent to the people you chose,
+          and any unlock link you gave them stops working. If your plan has already been released, people who opened
+          their items keep what they opened, and people who have not opened theirs yet lose access. If you want someone
+          to have something, give it to them another way first.
+        </p>
+        <H3>If you can&apos;t sign in</H3>
+        <p>
+          Email {CONTACT_EMAIL} from the email address on your account and ask us to delete your account. We use that
+          address to check the request is yours.
         </p>
         <UL>
           <li>We confirm your request within 7 days.</li>
           <li>We finish the deletion within 30 days of your request.</li>
         </UL>
-        <p>
-          Deleting your account removes your account, your encrypted vault items and folders, your recovery data, your
-          people and your check-in plan. Your vault is encrypted and we can&apos;t read it, so you don&apos;t need to
-          unlock it first. The encrypted data is destroyed, and neither you nor we can get it back afterwards. We only
-          keep what the schedule above says we keep.
-        </p>
-        <p>
-          Deleting your account also ends your check-in plan. Nothing will be released or sent to the people you chose.
-          If you want them to have something, give it to them another way first.
-        </p>
+        <p>We delete the same things as the in-app deletion. What we keep is listed in the schedule above.</p>
 
         <H>Your other choices</H>
         <p>
@@ -482,9 +514,11 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
 
         <H>Ending your account</H>
         <p>
-          You can ask us to delete your account at any time. See{" "}
-          <A href="/privacy#delete-your-data">how to delete your data</A>. Deleting your account ends your plan and
-          your Lifetime purchase, and we can&apos;t restore either.
+          You can delete your account yourself at any time: sign in, open Settings, and choose Delete account. If you
+          can&apos;t sign in, you can ask us by email. See{" "}
+          <A href="/privacy#delete-your-data">how to delete your data</A>. Deleting your account ends your plan and your
+          Lifetime purchase, and we can&apos;t restore either. If a release is under way or has already happened,
+          deleting your account stops it, and people who have not yet opened their items lose access to them.
         </p>
 
         <H>Changes to these terms</H>

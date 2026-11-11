@@ -63,6 +63,11 @@ export function buildContentSecurityPolicy({
     "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src 'self' ${SENTRY_INGEST_HOSTS.join(" ")}`,
     "frame-src 'self'",
+    // Key derivation runs in a same-origin Web Worker (lib/crypto/kdf.worker.ts). Without this
+    // directive worker-src falls back to script-src, where 'strict-dynamic' makes browsers ignore
+    // 'self' and block the worker. Only same-origin worker scripts are allowed: no blob:, data:
+    // or remote hosts.
+    "worker-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -72,3 +77,13 @@ export function buildContentSecurityPolicy({
 
   return directives.join("; ");
 }
+
+/**
+ * Policy sent with the build's static scripts (served from /_next/static, which the proxy does
+ * not cover). A browser applies the policy of a Web Worker's own script to that worker, so this
+ * confines the key-derivation worker, which handles passphrase bytes: it may load more of its own
+ * code and compile WebAssembly, and it may not make any network request or open anything else.
+ * On ordinary script files the header is ignored.
+ */
+export const WORKER_SCRIPT_CSP =
+  "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'none'; base-uri 'none'; form-action 'none'";

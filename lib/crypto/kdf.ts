@@ -189,6 +189,26 @@ export function isAcceptableKdfAlgorithm(identifier: string, purpose: KdfPurpose
   }
 }
 
+/** True for an accepted PBKDF2 vault identifier: the only kind an upgrade may start from. */
+export function isAcceptableLegacyVaultAlgorithm(identifier: string): boolean {
+  try {
+    return parseKdfAlgorithm(identifier, "vault-passphrase").params.algorithm === "PBKDF2-SHA256";
+  } catch (err) {
+    if (err instanceof KdfParameterError) return false;
+    throw err;
+  }
+}
+
+/** True for an accepted Argon2id vault identifier (parameters inside the documented envelope). */
+export function isAcceptableArgon2idVaultAlgorithm(identifier: string): boolean {
+  try {
+    return parseKdfAlgorithm(identifier, "vault-passphrase").params.algorithm === "ARGON2ID";
+  } catch (err) {
+    if (err instanceof KdfParameterError) return false;
+    throw err;
+  }
+}
+
 /** The identifier to store for the given parameters. Always matches what deriveKeyBytes() runs. */
 export function formatKdfAlgorithm(params: KdfParams, options: { kitPassphrase?: boolean } = {}): string {
   const core =
@@ -239,9 +259,16 @@ export async function argon2idDerive(input: {
 
 /**
  * Derives 32 bytes of key material from secret bytes and a salt with the given (already
- * validated) parameters. Callers should zero the returned bytes once they are imported as a key.
+ * validated) parameters, ON THE CALLING THREAD. This is the derivation core: the worker entry
+ * (./kdf.worker.ts) and the main-thread fallback both run exactly this function. Application code
+ * should call deriveKeyBytes() from ./kdf-client.ts instead, which runs it in a Web Worker so the
+ * page does not freeze. Callers should zero the returned bytes once they are imported as a key.
+ *
+ * Only the ceilings are enforced here (so a message can never ask a worker for an absurd amount
+ * of work); the floors depend on the purpose and are checked by parseKdfAlgorithm() before any
+ * request is made.
  */
-export async function deriveKeyBytes(
+export async function deriveKeyBytesOnThisThread(
   params: KdfParams,
   secretBytes: Uint8Array,
   salt: Uint8Array
@@ -260,6 +287,10 @@ export async function deriveKeyBytes(
     });
   }
 
+  if (params.algorithm !== "PBKDF2-SHA256") {
+    throw new KdfParameterError("Unknown key-derivation algorithm.");
+  }
+  assertWithin("PBKDF2 iterations", params.iterations, 1, KDF_LIMITS.pbkdf2.maxIterations);
   const subtle = globalThis.crypto.subtle;
   const baseKey = await subtle.importKey("raw", toArrayBuffer(secretBytes), "PBKDF2", false, ["deriveBits"]);
   const bits = await subtle.deriveBits(

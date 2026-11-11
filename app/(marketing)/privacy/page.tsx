@@ -5,7 +5,7 @@ import { SITE_DOCS } from "@/lib/site-docs";
 export const metadata: Metadata = {
   title: "Privacy policy | Dusk",
   description:
-    "How Dusk Technologies handles your data and stores your vault in encrypted form.",
+    "How Dusk handles your data, and what we keep and for how long.",
 };
 
 export default function PrivacyPolicyPage() {

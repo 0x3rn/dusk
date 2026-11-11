@@ -5,7 +5,11 @@
 import { z } from "zod";
 import { ValidationError } from "../auth/security";
 import { assertZeroKnowledgePayload } from "../domain/trust-boundary";
-import { isAcceptableKdfAlgorithm } from "../crypto/kdf";
+import {
+  isAcceptableArgon2idVaultAlgorithm,
+  isAcceptableKdfAlgorithm,
+  isAcceptableLegacyVaultAlgorithm,
+} from "../crypto/kdf";
 
 const id = z.string().min(1).max(64);
 const base64 = (maxLength: number) =>
@@ -63,7 +67,44 @@ const RecoveryArtifactSchema = z.object({
   fingerprintHex: z.string().regex(/^[0-9a-fA-F]{8,128}$/),
 });
 
+/** Exact decoded size of a Base64 string. */
+const decodedBytes = (value: string) => Buffer.from(value, "base64").byteLength;
+
+/**
+ * The automatic PBKDF2 -> Argon2id re-wrap of the Vault Master Key (see lib/crypto/kdf-upgrade.ts).
+ * Strict: unknown fields are refused. `expected` is the wrap the browser started from, `next` the
+ * new one. Sizes are exact: the wrapped key is the 32-byte key plus the 16-byte GCM tag (48
+ * bytes), the nonce is 12 bytes, the salt at least 16. Only Argon2id identifiers inside the
+ * accepted envelope can be stored, and the starting point must be a PBKDF2 vault, so this action
+ * can never downgrade a vault or store an unknown or weak setting.
+ */
+export const UpgradeVaultKdfSchema = z.strictObject({
+  action: z.literal("UPGRADE_VAULT_KDF"),
+  expected: z.strictObject({
+    kdfAlgorithm: z
+      .string()
+      .min(1)
+      .max(100)
+      .refine(isAcceptableLegacyVaultAlgorithm, "This vault does not use the older key settings."),
+    wrappedMasterKeyCiphertext: base64(200),
+    keyVersion: z.number().int().positive().max(10_000),
+  }),
+  next: z.strictObject({
+    kdfAlgorithm: z
+      .string()
+      .min(1)
+      .max(100)
+      .refine(isAcceptableArgon2idVaultAlgorithm, "Unsupported key settings."),
+    kdfSaltBase64: base64(200).refine((v) => decodedBytes(v) >= 16, "The salt is too short."),
+    wrappedMasterKeyCiphertext: base64(200).refine((v) => decodedBytes(v) === 48, "The wrapped key has the wrong size."),
+    wrappedMasterKeyIv: base64(100).refine((v) => decodedBytes(v) === 12, "The nonce has the wrong size."),
+  }),
+});
+
+export type UpgradeVaultKdfInput = z.infer<typeof UpgradeVaultKdfSchema>;
+
 export const DashboardActionSchema = z.discriminatedUnion("action", [
+  UpgradeVaultKdfSchema,
   z.object({ action: z.literal("LOGOUT") }),
   z.object({
     action: z.literal("INIT_VAULT"),

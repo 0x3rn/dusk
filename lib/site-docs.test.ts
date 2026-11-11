@@ -5,6 +5,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { RETENTION_MONTHS } from "./engine/retention";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "./security/http-hardening";
 import {
   COMPANY_NAME_PLACEHOLDER,
@@ -50,8 +51,7 @@ describe("every document", () => {
       /military[- ]grade/i,
       /unbreakable|100% secure|hack[- ]proof/i,
       /guarantee[sd]?\s+(delivery|release|that)/i,
-      /Settings.{0,40}delete (your )?account/i, // no self-serve delete exists
-      /delete (your )?account button/i,
+      /no delete button/i, // self-serve deletion exists now
       /instantly deleted?/i,
       /Dusk Technologies/, // the legal name is still a placeholder
     ];
@@ -127,25 +127,46 @@ describe("privacy policy", () => {
     expect(helpers).toMatch(/carries no personal data/);
   });
 
-  it("states the retention schedule", () => {
+  it("states the retention schedule, with the same 12 months the purge uses", () => {
+    expect(RETENTION_MONTHS).toBe(12);
     const section = text.slice(text.indexOf("How long we keep your information"), text.indexOf("How to delete your data"));
     expect(section).toMatch(/while your account is active/i);
-    expect(section).toMatch(/within 30 days of your request/);
-    expect(section).toMatch(/up to 12 months/);
+    expect(section).toMatch(/Security, activity and message records/);
+    expect(section).toMatch(/once they are 12 months old/);
+    expect(section).toMatch(/12 months after the release/);
     expect(section).toMatch(/tax law/i);
     expect(section).toMatch(/backups age out within 30 days/i);
-    expect(section).toMatch(/12 months after the release/);
+    expect(section).toMatch(/within 30 days of your request/);
   });
 
-  it("explains deletion honestly: by email, no button, 7 and 30 days, no unlocking needed", () => {
+  it("says what happens at once when you delete, and what ages out of backups", () => {
+    const section = text.slice(text.indexOf("How long we keep your information"), text.indexOf("How to delete your data"));
+    expect(section).toMatch(/When you delete your account Deleted straight away from our live systems/);
+    expect(section).toMatch(/Copies in our database backups are removed as the backups age out, within 30 days/);
+    expect(section).toMatch(/We don't restore a deleted account from a backup/);
+  });
+
+  it("is honest about the payment record that stays after deletion", () => {
+    expect(text).toMatch(/After you delete your account, we keep one payment record/);
+    expect(text).toMatch(/never your card/);
+    expect(text).toMatch(/no longer connects to any account/);
+  });
+
+  it("explains deletion: in Settings with an emailed code, or by email when you can't sign in, 7 and 30 days, no unlocking needed", () => {
     const section = text.slice(text.indexOf("How to delete your data"), text.indexOf("Your other choices"));
-    expect(section).toMatch(/no delete button in the app yet/i);
+    expect(section).toMatch(/open Settings, and choose Delete account/);
+    expect(section).toMatch(/emails a 6-digit code/);
+    expect(section).toMatch(/type your email to confirm/);
+    expect(section).toMatch(/The deletion happens straight away/);
+    expect(section).toMatch(/signed out on every device/);
+    expect(section).toMatch(/If you can't sign in/);
     expect(section).toContain(CONTACT_EMAIL_PLACEHOLDER);
     expect(section).toMatch(/from the email address on your account/);
     expect(section).toMatch(/within 7 days/);
     expect(section).toMatch(/within 30 days/);
     expect(section).toMatch(/don't need to unlock it first/);
     expect(section).toMatch(/destroyed/);
+    expect(section).toMatch(/people who have not opened theirs yet lose access/);
   });
 
   it("links the deletion section by anchor", () => {
@@ -170,6 +191,12 @@ describe("terms of service", () => {
     expect(htmlOf("terms-of-service")).toContain('id="lifetime-purchase"');
   });
 
+  it("says you can delete your account yourself, and what that does to a release", () => {
+    expect(text).toMatch(/You can delete your account yourself at any time: sign in, open Settings, and choose Delete account/);
+    expect(text).toMatch(/If you can't sign in, you can ask us by email/);
+    expect(text).toMatch(/deleting your account stops it/);
+  });
+
   it("covers lost keys, acceptable use, release limits, changes and governing law", () => {
     expect(text).toMatch(/can't recover a lost\s+master passphrase or a lost recovery code/i);
     expect(text).toMatch(/What you may not do/);
@@ -191,6 +218,14 @@ describe("help center", () => {
 
   it("explains password reset and change in the words other pages will use", () => {
     expect(text).toMatch(/Use Forgot password on the sign-in page, or Change password in Settings\. Either one emails you a code/);
+  });
+
+  it("explains self-serve deletion and keeps the email route for people who cannot sign in", () => {
+    expect(text).toMatch(/How do I delete my account\?/);
+    expect(text).toMatch(/open Settings, and use the Delete account section/);
+    expect(text).toMatch(/deleted straight away/);
+    expect(text).toMatch(/If you can't sign in, email us at \[CONTACT EMAIL TO BE ADDED\]/);
+    expect(text).not.toMatch(/no delete button/i);
   });
 
   it("covers a code that does not arrive, and invitations", () => {

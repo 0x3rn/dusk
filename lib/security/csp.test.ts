@@ -1,6 +1,6 @@
 // lib/security/csp.test.ts
 import { describe, expect, it } from "vitest";
-import { buildContentSecurityPolicy, generateCspNonce } from "./csp";
+import { WORKER_SCRIPT_CSP, buildContentSecurityPolicy, generateCspNonce } from "./csp";
 
 function directives(policy: string): Map<string, string[]> {
   return new Map(
@@ -53,6 +53,21 @@ describe("buildContentSecurityPolicy", () => {
     expect(dev.has("upgrade-insecure-requests")).toBe(false);
   });
 
+  it("allows same-origin Web Workers (key derivation) and nothing else for workers", () => {
+    for (const policy of [prod, dev]) {
+      // 'strict-dynamic' makes browsers ignore 'self' in script-src, so worker-src must say it.
+      expect(policy.get("worker-src")).toEqual(["'self'"]);
+    }
+  });
+
+  it("does not loosen any other directive for the worker (no blob:, data:, wildcard or unsafe-inline)", () => {
+    const whole = buildContentSecurityPolicy({ nonce, isDevelopment: false });
+    expect(whole).not.toMatch(/blob:/);
+    expect(whole).not.toMatch(/(^|[ ;])\*($|[ ;])/);
+    expect(prod.get("script-src")).not.toContain("'unsafe-inline'");
+    expect(prod.get("default-src")).toEqual(["'self'"]);
+  });
+
   it("keeps the framing, base, form and object protections", () => {
     expect(prod.get("frame-ancestors")).toEqual(["'none'"]);
     expect(prod.get("base-uri")).toEqual(["'self'"]);
@@ -75,5 +90,19 @@ describe("buildContentSecurityPolicy", () => {
     for (const bad of ["", "short", "abc def ghi jkl mnop", "aaaaaaaaaaaaaaaa'; script-src *", "aaaaaaaaaaaaaaaa;", "aaaaaaaaaaaaaaaa,"]) {
       expect(() => buildContentSecurityPolicy({ nonce: bad, isDevelopment: false })).toThrow();
     }
+  });
+});
+
+describe("WORKER_SCRIPT_CSP", () => {
+  const policy = directives(WORKER_SCRIPT_CSP);
+
+  it("lets the key-derivation worker load its own code and compile WebAssembly, and nothing else", () => {
+    expect(policy.get("default-src")).toEqual(["'none'"]);
+    expect(policy.get("script-src")).toEqual(["'self'", "'wasm-unsafe-eval'"]);
+  });
+
+  it("forbids every network request from the worker", () => {
+    expect(policy.get("connect-src")).toEqual(["'none'"]);
+    expect(WORKER_SCRIPT_CSP).not.toMatch(/'unsafe-inline'|'unsafe-eval'|https?:|\*/);
   });
 });

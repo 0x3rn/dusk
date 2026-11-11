@@ -35,6 +35,7 @@ import {
   generateBeneficiaryKeyPair,
   wrapItemKeyForBeneficiary,
 } from "@/lib/crypto/beneficiary-wrapping";
+import { needsKdfUpgrade, runVaultKdfUpgrade } from "@/lib/crypto/kdf-upgrade";
 import { Notice } from "@/components/ui/notice";
 import { useCheckoutReturn } from "@/components/billing/use-checkout-return";
 import { CryptoTamperOrAuthError } from "@/lib/crypto/vault-crypto";
@@ -86,6 +87,9 @@ export default function DashboardPage() {
   // Notifications
   const [errorBanner, setErrorBanner] = useState("");
   const [successBanner, setSuccessBanner] = useState("");
+  // Shown after an older vault was upgraded to the stronger passphrase protection.
+  const [protectionNotice, setProtectionNotice] = useState("");
+  const upgradeInFlight = React.useRef(false);
   const bannerRef = React.useRef<HTMLDivElement | null>(null);
 
   // Messages must be seen: bring a new one into view, and drop old ones when the page changes.
@@ -98,6 +102,7 @@ export default function DashboardPage() {
   const selectView = useCallback((view: DashboardView) => {
     setErrorBanner("");
     setSuccessBanner("");
+    setProtectionNotice("");
     setCurrentView(view);
     window.scrollTo({ top: 0 });
   }, []);
@@ -321,6 +326,61 @@ export default function DashboardPage() {
     }
   };
 
+  /**
+   * Quietly moves an older (PBKDF2) vault to Argon2id after a successful passphrase unlock: the same
+   * vault key is wrapped again, checked, and only then sent. It never blocks the unlock and never
+   * shows an error: if anything goes wrong the vault stays as it was and the next unlock retries.
+   */
+  const upgradeVaultProtection = async (
+    passphrase: string,
+    masterKeyBase64: string,
+    current: NonNullable<typeof vault>
+  ) => {
+    if (upgradeInFlight.current || !needsKdfUpgrade(current.kdfAlgorithm)) return;
+    upgradeInFlight.current = true;
+    try {
+      const firstItem = current.items[0];
+      const outcome = await runVaultKdfUpgrade({
+        vault: current,
+        vaultId: "vlt_primary",
+        passphrase,
+        masterKeyBase64,
+        sampleItem: firstItem
+          ? {
+              schemaVersion: firstItem.schemaVersion,
+              keyVersion: firstItem.keyVersion,
+              ciphertextBase64: firstItem.ciphertextBase64,
+              ivBase64: firstItem.ivBase64,
+              wrappedItemKeyBase64: firstItem.wrappedItemKeyBase64,
+              wrappedItemKeyIvBase64: firstItem.wrappedItemKeyIvBase64,
+              aadContext: {
+                vaultId: current.id,
+                resourceId: firstItem.aadResourceId,
+                resourceType: "VAULT_ITEM",
+                keyVersion: firstItem.keyVersion,
+              },
+            }
+          : undefined,
+        send: async (request) => {
+          const res = await fetch("/api/dashboard", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(request),
+          });
+          return { ok: res.ok };
+        },
+      });
+      if (outcome.status === "upgraded") {
+        setProtectionNotice("Your vault now uses stronger protection.");
+        await refreshData();
+      } else if (outcome.status === "skipped") {
+        console.warn("Vault protection upgrade skipped; it will be tried again at the next unlock.", outcome.reason);
+      }
+    } finally {
+      upgradeInFlight.current = false;
+    }
+  };
+
   const handleUnlockWithPassphrase = async (passphrase: string) => {
     setErrorBanner("");
     setSuccessBanner("");
@@ -340,6 +400,8 @@ export default function DashboardPage() {
       );
       setUnlockedVmkBase64(vmk);
       setSuccessBanner("Vault unlocked on this device.");
+      // Not awaited: unlocking is done, the upgrade finishes in the background.
+      void upgradeVaultProtection(passphrase, vmk, vault);
     } catch (err: unknown) {
       setErrorBanner(
         messageFor(err, "That passphrase didn't open your vault. Check it and try again.")
@@ -813,6 +875,11 @@ export default function DashboardPage() {
         {successBanner && (
           <Notice tone="success" onDismiss={() => setSuccessBanner("")}>
             {successBanner}
+          </Notice>
+        )}
+        {protectionNotice && (
+          <Notice tone="success" onDismiss={() => setProtectionNotice("")}>
+            {protectionNotice}
           </Notice>
         )}
       </div>

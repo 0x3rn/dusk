@@ -16,12 +16,12 @@ import {
 import {
   DEFAULT_ARGON2ID_PARAMS,
   assertKdfParamsAcceptable,
-  deriveKeyBytes,
   formatKdfAlgorithm,
   parseKdfAlgorithm,
   type KdfParams,
   type KdfPolicy,
 } from "./kdf";
+import { KdfDerivationError, deriveKeyBytes } from "./kdf-client";
 
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
@@ -330,7 +330,7 @@ export async function recoverVaultMasterKeyFromKit(params: {
 
     return bytesToBase64(new Uint8Array(decryptedBuf));
   } catch (err) {
-    if (err instanceof CryptoTamperOrAuthError) throw err;
+    if (err instanceof CryptoTamperOrAuthError || err instanceof KdfDerivationError) throw err;
     throw new CryptoTamperOrAuthError(
       "Failed to unwrap Vault Master Key from Recovery Kit: invalid passphrase or tampered artifact."
     );

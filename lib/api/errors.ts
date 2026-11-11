@@ -24,6 +24,7 @@ const DOMAIN_ERROR_STATUS: Record<string, number> = {
   CONCURRENCY_CONFLICT: 409,
   CRITICAL_CONTACT_CHANGE_CONFIRMATION_REQUIRED: 409,
   RECOVERY_ARTIFACT_REVOKED: 403,
+  VAULT_KDF_UPGRADE_CONFLICT: 409,
 };
 
 export function errorToResponse(err: unknown, routeLabel: string): NextResponse<ApiErrorBody> {
