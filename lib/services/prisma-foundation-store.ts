@@ -9,7 +9,7 @@ import {
   type VaultRecord,
 } from "./foundation-service";
 
-/** Only the columns callers may see: never leak mfaSecretEncrypted, stripeCustomerId, etc. */
+/** Only the columns callers may see: never leak mfaSecretEncrypted, the payment customer id, etc. */
 const USER_SELECT = {
   id: true,
   authUserId: true,

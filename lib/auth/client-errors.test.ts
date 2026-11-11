@@ -31,3 +31,37 @@ describe("authErrorMessage", () => {
     }
   );
 });
+
+describe("authErrorMessage for one-time codes and password reset", () => {
+  it.each([
+    ["INVALID_OTP", /isn't right/],
+    ["OTP_EXPIRED", /expired/],
+    ["TOO_MANY_ATTEMPTS", /Request a new code/],
+    ["PASSWORD_TOO_SHORT", /at least 10/],
+    ["PASSWORD_TOO_LONG", /128/],
+    ["INVALID_EMAIL", /email/],
+    ["USER_NOT_FOUND", /Request a new code/],
+    ["INVALID_TOKEN", /Request a new one/],
+    ["SESSION_EXPIRED", /Sign in again/],
+  ])("maps %s on a result error", (code, pattern) => {
+    expect(authErrorMessage({ code, message: "raw server text", status: 400 }, "x")).toMatch(pattern);
+  });
+
+  it("maps codes inside a thrown error body too", () => {
+    expect(authErrorMessage({ error: { code: "OTP_EXPIRED", message: "raw" } }, "x")).toMatch(/expired/);
+  });
+
+  it("never reveals whether an account exists after a reset attempt", () => {
+    const msg = authErrorMessage({ code: "USER_NOT_FOUND", message: "User not found" }, "x");
+    expect(msg).not.toMatch(/not found|no account|doesn't exist/i);
+  });
+
+  it("turns a bare 429 into a wait message", () => {
+    expect(authErrorMessage({ status: 429, message: "" }, "x")).toMatch(/Wait a minute/);
+    expect(authErrorMessage({ error: { status: 429 } }, "x")).toMatch(/Wait a minute/);
+  });
+
+  it("does not leak the raw message when a code is known", () => {
+    expect(authErrorMessage({ code: "INVALID_OTP", message: "otp 123456 mismatch" }, "x")).not.toMatch(/123456/);
+  });
+});

@@ -66,8 +66,11 @@ export function OverviewView({
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [isPausing, setIsPausing] = useState(false);
 
-  const beneficiariesCount = contacts.filter((c) => c.isBeneficiary).length;
-  const verifiersCount = contacts.filter((c) => c.isTrustedVerifier).length;
+  // Only people who accepted their invitation count: a waiting invitation is not a safety net.
+  const beneficiariesCount = contacts.filter((c) => c.isBeneficiary && c.status === "VERIFIED").length;
+  const verifiersCount = contacts.filter((c) => c.isTrustedVerifier && c.status === "VERIFIED").length;
+  const beneficiariesWaiting = contacts.some((c) => c.isBeneficiary && c.status === "PENDING_INVITE");
+  const verifiersWaiting = contacts.some((c) => c.isTrustedVerifier && c.status === "PENDING_INVITE");
   const itemsCount = vault?.items?.length || 0;
 
   // Derive schedule status badge and copy
@@ -291,7 +294,11 @@ export function OverviewView({
             {pluralize(beneficiariesCount, "Beneficiary", "Beneficiaries")}
           </span>
           <span className="block text-[13px] text-foreground-secondary">
-            {beneficiariesCount === 0 ? "Add someone to receive your items" : "People who receive your items"}
+            {beneficiariesCount === 0
+              ? beneficiariesWaiting
+                ? "Waiting for them to accept"
+                : "Add someone to receive your items"
+              : "People who receive your items"}
           </span>
         </button>
 
@@ -311,7 +318,11 @@ export function OverviewView({
             {pluralize(verifiersCount, "Trusted verifier", "Trusted verifiers")}
           </span>
           <span className="block text-[13px] text-foreground-secondary">
-            {verifiersCount === 0 ? "Add someone to confirm you're okay" : "People who confirm you're okay"}
+            {verifiersCount === 0
+              ? verifiersWaiting
+                ? "Waiting for them to accept"
+                : "Add someone to confirm you're okay"
+              : "People who confirm you're okay"}
           </span>
         </button>
 

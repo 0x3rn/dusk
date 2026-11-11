@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/landing/site-header";
 import { HeroSection } from "@/components/landing/hero-section";
 import { ProblemSection } from "@/components/landing/problem-section";
@@ -12,33 +12,24 @@ import { PricingSection } from "@/components/landing/pricing-section";
 import { FAQSection } from "@/components/landing/faq-section";
 import { FinalCTASection } from "@/components/landing/final-cta-section";
 import { SiteFooter } from "@/components/landing/site-footer";
+import { useCheckout } from "@/components/billing/use-checkout";
+import { isResumeCheckout } from "@/lib/billing/checkout-client";
 
 export function MarketingLanding({
   initialIsAuthenticated,
 }: {
   initialIsAuthenticated: boolean;
 }) {
-  const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated] = useState(initialIsAuthenticated);
+  const { pending, error, start } = useCheckout();
 
-  const handleCheckout = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/checkout", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        // Fallback to register if checkout session not directly returned
-        window.location.href = "/register";
-      }
-    } catch (err) {
-      console.error("Checkout session initialization error:", err);
-      window.location.href = "/register";
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // After signing in or up from "Buy lifetime access", pick the purchase up where it stopped.
+  useEffect(() => {
+    if (!initialIsAuthenticated || !isResumeCheckout(window.location.search)) return;
+    window.history.replaceState(null, "", "/#pricing"); // a refresh must not start another checkout
+    document.getElementById("pricing")?.scrollIntoView({ block: "center" });
+    void start();
+  }, [initialIsAuthenticated, start]);
 
   return (
     <div className="bg-background text-foreground selection:bg-accent-surface selection:text-foreground antialiased min-h-dvh overflow-x-clip">
@@ -68,7 +59,7 @@ export function MarketingLanding({
         <ReleaseSafetySection />
 
         {/* 8. Lifetime Pricing */}
-        <PricingSection onCheckout={handleCheckout} isLoading={isLoading} />
+        <PricingSection onCheckout={start} isLoading={pending} error={error} />
 
         {/* 9. Frequently Asked Questions */}
         <FAQSection />

@@ -9,7 +9,9 @@ import {
   LogOut,
 } from "lucide-react";
 import { UserAccount } from "./types";
+import { ChangePasswordCard } from "./change-password-card";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "@/lib/security/http-hardening";
+import { PlanCard } from "./plan-card";
 
 interface SettingsViewProps {
   user: UserAccount;
@@ -74,16 +76,11 @@ export function SettingsView({
             </span>
           </div>
 
-          <div>
-            <span className="block text-xs font-semibold uppercase tracking-wider text-foreground-secondary mb-1">
-              Plan
-            </span>
-            <span className="font-semibold text-foreground">
-              Dusk Lifetime
-            </span>
-          </div>
         </div>
       </div>
+
+      {/* 2b. Plan */}
+      <PlanCard user={user} />
 
       {/* 3. Session & Vault Security */}
       <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7">
@@ -144,6 +141,8 @@ export function SettingsView({
           </div>
         </div>
       </div>
+
+      <ChangePasswordCard email={user.email} />
 
       {/* 4. Technical Security & Legal Notice */}
       <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7 space-y-4">

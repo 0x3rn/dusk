@@ -32,9 +32,15 @@ const ServerEnvSchema = z.object({
     .min(32, "CRON_SECRET must be at least 32 characters")
     .optional(),
 
-  // Payments
-  STRIPE_SECRET_KEY: optionalString,
-  STRIPE_WEBHOOK_SECRET: optionalString,
+  // Payments (Lemon Squeezy). All four are needed for the lifetime-access purchase to work;
+  // with any missing, checkout and the webhook answer 503 and the rest of the app is unaffected.
+  // LEMONSQUEEZY_API_KEY: Settings > API in the Lemon Squeezy dashboard (server-side only).
+  // LEMONSQUEEZY_STORE_ID / LEMONSQUEEZY_VARIANT_ID: numeric ids of the store and the lifetime variant.
+  // LEMONSQUEEZY_WEBHOOK_SECRET: the signing secret entered when the webhook was created.
+  LEMONSQUEEZY_API_KEY: optionalString,
+  LEMONSQUEEZY_STORE_ID: optionalString,
+  LEMONSQUEEZY_VARIANT_ID: optionalString,
+  LEMONSQUEEZY_WEBHOOK_SECRET: optionalString,
 
   // Notification providers
   RESEND_API_KEY: optionalString,

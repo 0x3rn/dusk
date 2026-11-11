@@ -36,6 +36,8 @@ enum ContactStatus {
   VERIFIED
   SUSPENDED
   REVOKED
+  // The person opened their invitation and chose to decline it.
+  DECLINED
 }
 
 enum NotificationChannel {
@@ -66,7 +68,9 @@ model User {
   mfaSecretEncrypted  String?
   hasLifetimeAccess   Boolean      @default(false)
   lifetimePurchasedAt DateTime?
-  stripeCustomerId    String?      @unique
+  // Lemon Squeezy customer id of the last paid order. Informational and not unique: a buyer can
+  // type a different email at checkout, and one customer may pay for several accounts.
+  lemonSqueezyCustomerId String?
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 
@@ -78,12 +82,22 @@ model User {
   auditEvents         AuditEvent[]
 }
 
-// One row per Stripe webhook event we have handled. The primary key makes handling idempotent.
-model StripeEvent {
-  id          String   @id // Stripe event id (evt_...)
-  type        String
+// Idempotency ledger for payment webhooks. The primary key is a key we build from the provider
+// event and order (see ledgerKeyFor), so a repeated delivery fails its insert and changes nothing.
+// Deliberately no foreign key to User: the payment history must outlive an account deletion.
+// The legacy payments table and the old customer-id column on User still exist in the database
+// until prisma/sql/006_drop_stripe.sql is run; the app no longer reads or writes them.
+model PaymentEvent {
+  id          String   @id // e.g. lemonsqueezy:order_created:<orderId>
+  provider    String   @default("lemonsqueezy")
+  eventName   String   // order_created | order_refunded
+  orderId     String
   userId      String?
+  outcome     String   // GRANTED | SKIPPED_REFUNDED | REFUNDED | PARTIAL_REFUND
   processedAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([userId])
 }
 
 model Vault {

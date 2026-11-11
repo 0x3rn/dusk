@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Shield, KeyRound, FileText, CheckCircle2 } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteFooter } from "@/components/landing/site-footer";
 
 export const metadata = {
   title: "Recovery guide | Dusk",
@@ -21,7 +21,6 @@ export default function RecoveryPage() {
           </span>
         </div>
         <div className="flex items-center gap-1 sm:gap-3">
-          <ThemeToggle />
           <Link
             href="/login"
             className="inline-flex items-center gap-1.5 h-11 px-3.5 rounded-[8px] border border-border bg-elevated text-[13px] font-medium text-foreground hover:bg-hover transition-colors"
@@ -137,6 +136,8 @@ export default function RecoveryPage() {
           </div>
         </div>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

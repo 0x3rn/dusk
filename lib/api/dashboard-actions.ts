@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { ValidationError } from "../auth/security";
 import { assertZeroKnowledgePayload } from "../domain/trust-boundary";
+import { isAcceptableKdfAlgorithm } from "../crypto/kdf";
 
 const id = z.string().min(1).max(64);
 const base64 = (maxLength: number) =>
@@ -54,7 +55,11 @@ const RecoveryArtifactSchema = z.object({
   recoveryWrappedVmKBase64: base64(2_000),
   recoveryWrappedVmKIv: base64(100),
   kdfSaltBase64: base64(200),
-  kdfAlgorithm: z.string().min(1).max(100),
+  kdfAlgorithm: z
+    .string()
+    .min(1)
+    .max(100)
+    .refine((id) => isAcceptableKdfAlgorithm(id, "recovery-kit"), "Unsupported key settings."),
   fingerprintHex: z.string().regex(/^[0-9a-fA-F]{8,128}$/),
 });
 
@@ -69,6 +74,8 @@ export const DashboardActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("DELETE_ENCRYPTED_ITEM"), itemId: id }),
   z.object({ action: z.literal("ADD_CONTACT"), contact: ContactSchema }),
   z.object({ action: z.literal("REVOKE_CONTACT"), contactId: id }),
+  z.object({ action: z.literal("RESEND_INVITE"), contactId: id }),
+  z.object({ action: z.literal("CANCEL_INVITE"), contactId: id }),
   z.object({ action: z.literal("ASSIGN_ITEM_TO_BENEFICIARY"), assignment: AssignmentSchema }),
   z.object({ action: z.literal("UNASSIGN_ITEM_FROM_BENEFICIARY"), contactId: id, itemId: id }),
   z.object({ action: z.literal("CHECK_IN_NOW"), idempotencyKey: z.string().max(200).optional() }),

@@ -40,6 +40,11 @@ describe("parseDashboardAction", () => {
     ).toBe("UPDATE_SCHEDULE_CONFIG");
   });
 
+  it("accepts resend and cancel invitation actions", () => {
+    expect(parseDashboardAction({ action: "RESEND_INVITE", contactId: "cnt_1" }).action).toBe("RESEND_INVITE");
+    expect(parseDashboardAction({ action: "CANCEL_INVITE", contactId: "cnt_1" }).action).toBe("CANCEL_INVITE");
+  });
+
   it("accepts an empty-string phone as no phone", () => {
     const c = parseDashboardAction({ ...goodContact, contact: { ...goodContact.contact, phone: "" } });
     expect(c.action === "ADD_CONTACT" && c.contact.phone).toBeNull();
@@ -61,6 +66,9 @@ describe("parseDashboardAction", () => {
     ["key is not base64", { ...goodContact, contact: { ...goodContact.contact, publicKeyBase64: "!!!!" } }],
     ["object id (Prisma filter injection)", { action: "DELETE_ENCRYPTED_ITEM", itemId: { not: "x" } }],
     ["object contactId", { action: "REVOKE_CONTACT", contactId: { contains: "" } }],
+    ["object contactId on resend", { action: "RESEND_INVITE", contactId: { contains: "" } }],
+    ["object contactId on cancel", { action: "CANCEL_INVITE", contactId: { not: "x" } }],
+    ["resend without contactId", { action: "RESEND_INVITE" }],
     ["unassign with object itemId", { action: "UNASSIGN_ITEM_FROM_BENEFICIARY", contactId: "c", itemId: { not: "" } }],
     [
       "assignment wrapped key too big",

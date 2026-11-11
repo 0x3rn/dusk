@@ -36,6 +36,7 @@ import {
   wrapItemKeyForBeneficiary,
 } from "@/lib/crypto/beneficiary-wrapping";
 import { Notice } from "@/components/ui/notice";
+import { useCheckoutReturn } from "@/components/billing/use-checkout-return";
 import { CryptoTamperOrAuthError } from "@/lib/crypto/vault-crypto";
 
 /** Crypto failures carry developer wording; show the plain fallback instead. */
@@ -153,6 +154,14 @@ export default function DashboardPage() {
       console.error("Dashboard data refresh error:", err);
     }
   }, [router]);
+
+  // Back from the payment page: explain what is happening and wait for the purchase to show up.
+  useCheckoutReturn({
+    loaded: user !== null,
+    hasLifetimeAccess: user?.hasLifetimeAccess === true,
+    refresh: refreshData,
+    onMessage: setSuccessBanner,
+  });
 
   useEffect(() => {
     let active = true;
@@ -317,13 +326,11 @@ export default function DashboardPage() {
     setSuccessBanner("");
     try {
       if (!vault) throw new Error("We couldn't find your vault. Refresh the page and try again.");
-      const iterations = Number(vault.kdfAlgorithm?.split("-")[2]) || 600_000;
       const vmk = await unwrapVaultMasterKeyWithPassphrase(
         {
           schemaVersion: 1,
           keyVersion: vault.currentKeyVersion,
           kdfAlgorithm: vault.kdfAlgorithm,
-          kdfIterations: iterations,
           kdfSaltBase64: vault.kdfSaltBase64,
           wrappedMasterKeyCiphertext: vault.wrappedMasterKeyCiphertext,
           wrappedMasterKeyIv: vault.wrappedMasterKeyIv,
@@ -588,12 +595,62 @@ export default function DashboardPage() {
         });
       }
 
-      setSuccessBanner(`${data.contact.fullName} was added.`);
+      if (data.invitation?.delivered) {
+        setSuccessBanner(
+          `Invitation sent to ${data.contact.fullName}. They will show as "Waiting for them to accept" until they accept.`
+        );
+      } else {
+        // The person is saved but nothing reached them: say so plainly and point at Resend.
+        setErrorBanner(
+          `We couldn't send the invitation to ${data.contact.fullName}. Try again with "Resend invitation" next to their name.`
+        );
+      }
       await refreshData();
     } catch (err: unknown) {
       setErrorBanner(
-        messageFor(err, "We couldn't add that person. Check the details and try again.")
+        messageFor(err, "We couldn't send that invitation. Check the details and try again.")
       );
+    }
+  };
+
+  const handleResendInvite = async (contactId: string) => {
+    setErrorBanner("");
+    setSuccessBanner("");
+    const name = contacts.find((c) => c.id === contactId)?.fullName ?? "this person";
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "RESEND_INVITE", contactId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      if (data.invitation?.delivered) {
+        setSuccessBanner(`Invitation sent to ${name} again. The link in their earlier email no longer works.`);
+      } else {
+        setErrorBanner(`We couldn't send the invitation to ${name}. Try again.`);
+      }
+      await refreshData();
+    } catch (err: unknown) {
+      setErrorBanner(messageFor(err, `We couldn't send the invitation to ${name}. Try again.`));
+    }
+  };
+
+  const handleCancelInvite = async (contactId: string) => {
+    setErrorBanner("");
+    setSuccessBanner("");
+    try {
+      const res = await fetch("/api/dashboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "CANCEL_INVITE", contactId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setSuccessBanner("Invitation cancelled. The link in their email no longer works.");
+      await refreshData();
+    } catch (err: unknown) {
+      setErrorBanner(messageFor(err, "We couldn't cancel that invitation. Try again."));
     }
   };
 
@@ -805,6 +862,8 @@ export default function DashboardPage() {
           onDismissBeneficiaryKit={() => setNewlyCreatedBeneficiaryKit(null)}
           onAddContact={handleAddContact}
           onRevokeContact={handleRevokeContact}
+          onResendInvite={handleResendInvite}
+          onCancelInvite={handleCancelInvite}
         />
       )}
 

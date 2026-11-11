@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { DuskLogo } from "./dusk-logo";
 import { Menu, X, ArrowRight } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeMenuItem } from "@/components/theme-menu-item";
 
 interface SiteHeaderProps {
   isAuthenticated?: boolean;
@@ -71,7 +71,6 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1 sm:gap-4">
-          <ThemeToggle />
           {isAuthenticated ? (
             <Link
               href="/dashboard"
@@ -137,6 +136,7 @@ export function SiteHeader({ isAuthenticated = false }: SiteHeaderProps) {
           </nav>
 
           <div className="flex flex-col gap-3 pt-6 border-t border-border">
+            <ThemeMenuItem className="pb-3" />
             {isAuthenticated ? (
               <Link
                 href="/dashboard"

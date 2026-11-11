@@ -1,5 +1,6 @@
 // lib/services/recovery-service.ts
 import { z } from "zod";
+import { isAcceptableKdfAlgorithm } from "../crypto/kdf";
 import {
   AuthenticationError,
   AuthorizationError,
@@ -17,7 +18,7 @@ export const StoreRecoveryArtifactInputSchema = z.object({
   recoveryWrappedVmKBase64: z.string().min(24),
   recoveryWrappedVmKIv: z.string().min(16),
   kdfSaltBase64: z.string().min(16),
-  kdfAlgorithm: z.string().min(1),
+  kdfAlgorithm: z.string().min(1).refine((id) => isAcceptableKdfAlgorithm(id, "recovery-kit"), "Unsupported key settings."),
   fingerprintHex: z.string().regex(/^[a-f0-9]{16}$/, "Invalid 16-char hex fingerprint"),
   confirmIrreversibleRotation: z.boolean().refine((val) => val === true, {
     message:
@@ -31,7 +32,7 @@ export const CompleteRecoveryReEnrollmentInputSchema = z.object({
   newWrappedMasterKeyCiphertext: z.string().min(24),
   newWrappedMasterKeyIv: z.string().min(16),
   newKdfSaltBase64: z.string().min(16),
-  newKdfAlgorithm: z.string().min(1),
+  newKdfAlgorithm: z.string().min(1).refine((id) => isAcceptableKdfAlgorithm(id, "vault-passphrase"), "Unsupported key settings."),
   newDeviceName: z.string().min(1).max(120).default("Recovered Device"),
   revokeAllExistingSessions: z.boolean().default(true),
 });

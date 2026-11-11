@@ -17,6 +17,11 @@ import {
 } from "./types";
 import { formatDate } from "@/lib/display-format";
 import { ITEM_CATEGORIES, categoryLabel } from "./item-categories";
+import {
+  PASSPHRASE_HINT,
+  PASSPHRASE_PROBLEM_MESSAGES,
+  findNewPassphraseProblem,
+} from "@/lib/crypto/passphrase-policy";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Notice } from "@/components/ui/notice";
 import {
@@ -79,7 +84,8 @@ export function DigitalVaultView({
   const [revealedSecretIds, setRevealedSecretIds] = useState<Record<string, boolean>>({});
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-  const beneficiaryContacts = contacts.filter((c) => c.isBeneficiary);
+  // Only people who accepted their invitation can be given items.
+  const beneficiaryContacts = contacts.filter((c) => c.isBeneficiary && c.status === "VERIFIED");
 
   const handleUnlockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,8 +191,9 @@ export function DigitalVaultView({
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              if (passphrase !== confirmPassphrase) {
-                setPassphraseError("The two passphrases don't match. Type the same one in both boxes.");
+              const problem = findNewPassphraseProblem(passphrase, confirmPassphrase);
+              if (problem) {
+                setPassphraseError(PASSPHRASE_PROBLEM_MESSAGES[problem]);
                 return;
               }
               setPassphraseError("");
@@ -209,15 +216,20 @@ export function DigitalVaultView({
                 id="vault-new-passphrase"
                 type={showPassphrase ? "text" : "password"}
                 required
-                minLength={8}
                 autoComplete="new-password"
                 value={passphrase}
-                onChange={(e) => setPassphrase(e.target.value)}
-                aria-describedby="vault-new-passphrase-hint"
+                onChange={(e) => {
+                  setPassphrase(e.target.value);
+                  if (passphraseError) setPassphraseError("");
+                }}
+                aria-invalid={passphraseError ? true : undefined}
+                aria-describedby={
+                  passphraseError ? "vault-new-passphrase-hint vault-passphrase-error" : "vault-new-passphrase-hint"
+                }
                 className={fieldInputClass}
               />
               <span id="vault-new-passphrase-hint" className={fieldHintClass}>
-                At least 8 characters. A short sentence you will remember works well.
+                {PASSPHRASE_HINT}
               </span>
             </div>
             <div>
@@ -409,7 +421,7 @@ export function DigitalVaultView({
               {/* Beneficiary Assignment Chips */}
               {beneficiaryContacts.length === 0 && (
                 <p className="text-[13px] text-foreground-secondary">
-                  No one will receive this item yet. Add a beneficiary under People &amp; access to choose who gets it.
+                  No one will receive this item yet. Add a beneficiary under People &amp; access. They can receive items once they accept their invitation.
                 </p>
               )}
               {beneficiaryContacts.length > 0 && (

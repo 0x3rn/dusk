@@ -7,6 +7,7 @@ describe("scrubUrl", () => {
     ["https://dusk.app/checkin/SECRETTOKEN123", "https://dusk.app/checkin/[redacted]"],
     ["https://dusk.app/verify/SECRETTOKEN123?x=1#frag", "https://dusk.app/verify/[redacted]"],
     ["https://dusk.app/unlock/contact_1?token=SECRET#PRIVATEKEY", "https://dusk.app/unlock/[redacted]"],
+    ["https://dusk.app/invite/SECRETINVITETOKEN?x=1", "https://dusk.app/invite/[redacted]"],
     ["https://dusk.app/dashboard?tab=vault", "https://dusk.app/dashboard"],
     ["/api/checkin/confirm", "/api/checkin/confirm"],
   ])("%s -> %s", (input, expected) => {

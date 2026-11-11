@@ -8,6 +8,8 @@ import { DuskLogo } from "@/components/landing/dusk-logo";
 import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/client-errors";
 import { Notice } from "@/components/ui/notice";
+import { CheckoutIntentBanner, IntentLink } from "@/components/billing/checkout-intent-banner";
+import { afterSignInPath } from "@/lib/billing/checkout-client";
 import {
   buttonPrimaryClass,
   buttonSecondaryClass,
@@ -30,7 +32,7 @@ export default function LoginPage() {
     try {
       const result = await authClient.signIn.email({ email, password });
       if (result.error) throw result.error;
-      router.push("/dashboard");
+      router.push(afterSignInPath(window.location.search));
       router.refresh();
     } catch (err: unknown) {
       setError(authErrorMessage(err, "We couldn't sign you in. Check your connection and try again."));
@@ -47,7 +49,7 @@ export default function LoginPage() {
       // Redirects to Google and back; the page unloads, so loading stays true on success.
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: afterSignInPath(window.location.search),
       });
       if (result?.error) throw result.error;
     } catch (err: unknown) {
@@ -71,6 +73,8 @@ export default function LoginPage() {
             Sign in to your Dusk account.
           </p>
         </div>
+
+        <CheckoutIntentBanner mode="login" />
 
         {error && (
           <Notice tone="error" className="mb-4">
@@ -131,9 +135,17 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label htmlFor="login-password" className={fieldLabelClass}>
-              Password
-            </label>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="login-password" className={`${fieldLabelClass} mb-0`}>
+                Password
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-sm text-accent-text underline underline-offset-2 font-medium inline-flex min-h-11 items-center -my-1.5"
+              >
+                Forgot password?
+              </Link>
+            </div>
             <input
               id="login-password"
               type="password"
@@ -158,9 +170,9 @@ export default function LoginPage() {
         <div className="text-center text-sm text-foreground-secondary space-y-2 mt-6 sm:mt-8">
           <p>
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-accent-text underline underline-offset-2 font-medium inline-flex min-h-11 items-center">
+            <IntentLink to="/register" className="text-accent-text underline underline-offset-2 font-medium inline-flex min-h-11 items-center">
               Create one
-            </Link>
+            </IntentLink>
           </p>
           <p>
             Locked out of your vault?{" "}

@@ -2,7 +2,6 @@
 import {
   AES_GCM_IV_BYTES,
   AES_GCM_TAG_BITS,
-  AES_KEY_BITS,
   CRYPTO_SCHEMA_VERSION,
   CryptoTamperOrAuthError,
   base64ToBytes,
@@ -11,12 +10,26 @@ import {
   encodeAadContext,
   generateIvBytes,
   wrapVaultMasterKeyWithPassphrase,
+  type CreateVaultOptions,
   type WrappedMasterKeyBundle,
 } from "./vault-crypto";
+import {
+  DEFAULT_ARGON2ID_PARAMS,
+  assertKdfParamsAcceptable,
+  deriveKeyBytes,
+  formatKdfAlgorithm,
+  parseKdfAlgorithm,
+  type KdfParams,
+  type KdfPolicy,
+} from "./kdf";
 
 const CROCKFORD_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
-const RECOVERY_KDF_ITERATIONS = 310_000;
 
+/**
+ * Server-stored recovery artifact. `kdfAlgorithm` names the real key derivation, e.g.
+ * "ARGON2ID-19456-2-1" (kits made now) or "PBKDF2-SHA256-310000" (kits made before Argon2id),
+ * with a "+PASSPHRASE" suffix when a kit passphrase was mixed in. See ./kdf.ts.
+ */
 export interface RecoveryServerArtifact {
   schemaVersion: number;
   keyVersion: number;
@@ -94,8 +107,10 @@ export function computeRecoveryCodeFingerprint(recoveryCode: string): string {
 }
 
 /**
- * Encodes 32 random bytes (256 bits) into a human-friendly Recovery Code:
- * `DUSK-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`
+ * Encodes 32 random symbols from a 32-letter alphabet (5 bits each, 160 bits of entropy) into a
+ * human-friendly Recovery Code: `DUSK-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX`.
+ * 160 random bits cannot be guessed, so the code itself needs no slow key derivation; the slow,
+ * memory-hard derivation protects the OPTIONAL human-chosen kit passphrase that can be mixed in.
  */
 export function generateRecoveryCode(): {
   recoveryCode: string;
@@ -126,16 +141,19 @@ export function generateRecoveryCode(): {
 }
 
 /**
- * Derives the 256-bit AES-GCM Recovery Wrapping Key from the Recovery Code,
- * salt, and optional recovery passphrase using pure Web Crypto API (PBKDF2-SHA256).
- * Works identically in all browsers and Node.js without node:crypto shims.
+ * Derives the 256-bit AES-GCM Recovery Wrapping Key from the Recovery Code, salt, and optional
+ * kit passphrase. The stored `kdfAlgorithm` picks the algorithm (Argon2id for kits made now,
+ * PBKDF2-SHA256 for older kits); it is validated first, so a hostile identifier never runs.
  */
 async function deriveRecoveryWrappingKey(params: {
   recoveryCode: string;
   kdfSaltBase64: string;
+  kdfAlgorithm: string;
   recoveryPassphrase?: string;
   keyVersion: number;
+  policy?: KdfPolicy;
 }): Promise<CryptoKey> {
+  const { params: kdfParams } = parseKdfAlgorithm(params.kdfAlgorithm, "recovery-kit", params.policy);
   const normalizedCode = normalizeRecoveryCode(params.recoveryCode);
   const saltBytes = base64ToBytes(params.kdfSaltBase64);
   if (saltBytes.byteLength < 16) {
@@ -147,26 +165,19 @@ async function deriveRecoveryWrappingKey(params: {
     `${normalizedCode}|pass:${normalizedPassphrase}|kv:${params.keyVersion}`
   );
 
-  const baseKey = await globalThis.crypto.subtle.importKey(
-    "raw",
-    toArrayBuffer(combinedInputBytes),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-
-  return globalThis.crypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      hash: "SHA-256",
-      salt: toArrayBuffer(saltBytes),
-      iterations: RECOVERY_KDF_ITERATIONS,
-    },
-    baseKey,
-    { name: "AES-GCM", length: AES_KEY_BITS },
-    false,
-    ["encrypt", "decrypt"]
-  );
+  const keyBytes = await deriveKeyBytes(kdfParams, combinedInputBytes, saltBytes);
+  try {
+    return await globalThis.crypto.subtle.importKey(
+      "raw",
+      toArrayBuffer(keyBytes),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  } finally {
+    keyBytes.fill(0);
+    combinedInputBytes.fill(0);
+  }
 }
 
 /**
@@ -178,6 +189,10 @@ export async function createRecoveryKitForVault(params: {
   accountEmail: string;
   keyVersion: number;
   recoveryPassphrase?: string;
+  /** Key derivation for the new kit. Defaults to Argon2id (19 MiB, 2 passes). */
+  kdf?: KdfParams;
+  /** Test-only relaxation of the PBKDF2 floor. */
+  policy?: KdfPolicy;
 }): Promise<{
   clientKit: UserPrintableRecoveryKit;
   serverArtifact: RecoveryServerArtifact;
@@ -186,6 +201,13 @@ export async function createRecoveryKitForVault(params: {
   if (rawVmk.byteLength !== 32) {
     throw new Error("Vault Master Key must be exactly 32 bytes (256 bits).");
   }
+
+  const kdf = params.kdf ?? DEFAULT_ARGON2ID_PARAMS;
+  assertKdfParamsAcceptable(kdf, "recovery-kit", params.policy);
+  const hasPassphrase = Boolean(
+    params.recoveryPassphrase && params.recoveryPassphrase.length > 0
+  );
+  const kdfAlgorithm = formatKdfAlgorithm(kdf, { kitPassphrase: hasPassphrase });
 
   const { recoveryCode, fingerprintHex } = generateRecoveryCode();
   const saltBytes = new Uint8Array(16);
@@ -196,8 +218,10 @@ export async function createRecoveryKitForVault(params: {
   const wrappingKey = await deriveRecoveryWrappingKey({
     recoveryCode,
     kdfSaltBase64,
+    kdfAlgorithm,
     recoveryPassphrase: params.recoveryPassphrase,
     keyVersion: params.keyVersion,
+    policy: params.policy,
   });
 
   const aadBytes = encodeAadContext({
@@ -216,10 +240,6 @@ export async function createRecoveryKitForVault(params: {
     },
     wrappingKey,
     toArrayBuffer(rawVmk)
-  );
-
-  const hasPassphrase = Boolean(
-    params.recoveryPassphrase && params.recoveryPassphrase.length > 0
   );
 
   return {
@@ -242,9 +262,7 @@ export async function createRecoveryKitForVault(params: {
       recoveryWrappedVmKBase64: bytesToBase64(new Uint8Array(encryptedBuf)),
       recoveryWrappedVmKIv: bytesToBase64(iv),
       kdfSaltBase64,
-      kdfAlgorithm: hasPassphrase
-        ? `PBKDF2-SHA256-${RECOVERY_KDF_ITERATIONS}+PASSPHRASE`
-        : `PBKDF2-SHA256-${RECOVERY_KDF_ITERATIONS}`,
+      kdfAlgorithm,
       fingerprintHex,
     },
   };
@@ -258,8 +276,16 @@ export async function recoverVaultMasterKeyFromKit(params: {
   serverArtifact: RecoveryServerArtifact;
   recoveryCode: string;
   recoveryPassphrase?: string;
+  /** Test-only relaxation of the PBKDF2 floor. */
+  policy?: KdfPolicy;
 }): Promise<string> {
-  const { serverArtifact, recoveryCode, recoveryPassphrase } = params;
+  const { serverArtifact, recoveryCode, recoveryPassphrase, policy } = params;
+
+  // Fail early, with a useful message, on an identifier we will not run or a missing kit passphrase.
+  const { usesKitPassphrase } = parseKdfAlgorithm(serverArtifact.kdfAlgorithm, "recovery-kit", policy);
+  if (usesKitPassphrase && !recoveryPassphrase) {
+    throw new CryptoTamperOrAuthError("This recovery kit also needs the kit passphrase it was created with.");
+  }
 
   const providedFingerprint = computeRecoveryCodeFingerprint(recoveryCode);
   if (providedFingerprint !== serverArtifact.fingerprintHex) {
@@ -278,8 +304,10 @@ export async function recoverVaultMasterKeyFromKit(params: {
     const wrappingKey = await deriveRecoveryWrappingKey({
       recoveryCode,
       kdfSaltBase64: serverArtifact.kdfSaltBase64,
+      kdfAlgorithm: serverArtifact.kdfAlgorithm,
       recoveryPassphrase,
       keyVersion: serverArtifact.keyVersion,
+      policy,
     });
 
     const aadBytes = encodeAadContext({
@@ -318,7 +346,10 @@ export async function rewrapRecoveredMasterKeyWithNewPassphrase(params: {
   recoveryCode: string;
   recoveryPassphrase?: string;
   newMasterPassphrase: string;
-  pbkdf2Iterations?: number;
+  /** Key derivation for the new passphrase wrapping. Defaults to Argon2id. */
+  newPassphraseOptions?: CreateVaultOptions;
+  /** Test-only relaxation of the PBKDF2 floor when reading the artifact. */
+  policy?: KdfPolicy;
 }): Promise<{
   recoveredMasterKeyBase64: string;
   newWrappedMasterKeyBundle: WrappedMasterKeyBundle;
@@ -327,6 +358,7 @@ export async function rewrapRecoveredMasterKeyWithNewPassphrase(params: {
     serverArtifact: params.serverArtifact,
     recoveryCode: params.recoveryCode,
     recoveryPassphrase: params.recoveryPassphrase,
+    policy: params.policy,
   });
 
   const saltBytes = new Uint8Array(16);
@@ -339,7 +371,7 @@ export async function rewrapRecoveredMasterKeyWithNewPassphrase(params: {
     params.serverArtifact.vaultId,
     params.serverArtifact.keyVersion,
     newSaltBase64,
-    params.pbkdf2Iterations
+    params.newPassphraseOptions
   );
 
   return {

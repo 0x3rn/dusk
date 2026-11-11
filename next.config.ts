@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         headers: getProductionSecurityHeaders(),
       },
       {
+        // The invitation page names the person who invited you and its link is a credential.
+        source: "/invite/:path*",
+        headers: [{ key: "Cache-Control", value: "private, no-store" }],
+      },
+      {
         // API responses hold personal and encrypted data: never let a browser or CDN reuse them.
         source: "/api/:path*",
         headers: [{ key: "Cache-Control", value: "private, no-store" }],

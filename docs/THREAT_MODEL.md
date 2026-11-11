@@ -35,7 +35,8 @@ Dusk is a zero-knowledge digital estate vault and staged dead-man's switch. Its 
 * **Mitigation:**
   * All vault items and files are encrypted client-side using `AES-256-GCM` with unique 96-bit nonces and authenticated additional data (`AAD` binding `vaultId`, `itemId`, `keyVersion`, and `itemType`).
   * The server stores only ciphertext, IV/nonce, auth tag, key version, and wrapped keys.
-  * Passwords for authentication are hashed with Argon2id (or scrypt with high cost) using a distinct server-side auth salt—never reusing the client-side key derivation salt or password hash as an encryption key.
+  * The vault passphrase and the recovery code are stretched in the browser (see section 4.1) and the results never leave the device. The server only stores the random salt and the algorithm identifier next to the wrapped key.
+  * Account sign-in passwords are handled by **Neon Auth**, not by Dusk code: Dusk never sees or stores an account password hash, and the account password is never used as, or to derive, an encryption key. The hashing algorithm for account passwords is chosen by that service.
 
 ### A2. Malicious or Compromised Operator / Server
 * **Capabilities:** Inspects incoming HTTP requests, server logs, error telemetry, and database records.
@@ -83,8 +84,27 @@ Dusk is a zero-knowledge digital estate vault and staged dead-man's switch. Its 
 1. Generation of the 256-bit **Vault Master Key (VMK)**.
 2. Generation of per-item **Item Encryption Keys (IEK)** and per-file **File Encryption Keys (FEK)**.
 3. Encryption and decryption of item payloads and file blobs using `AES-256-GCM` with fresh 12-byte random IVs and authenticated context (`AAD`).
-4. Generation of the **Recovery Kit** key material and Argon2id key-wrapping where passphrase-backed recovery is used.
+4. Generation of the **Recovery Kit** code and the key-wrapping of the VMK under it (Argon2id for kits created now, PBKDF2-SHA256 for older kits; see section 4.1).
 5. Generation of beneficiary keypairs and public-key wrapping (`X25519` / `ECDH P-256` + `HKDF-SHA256` + `AES-256-GCM` key wrapping) of assigned `IEKs` into beneficiary-specific release envelopes.
+
+### 4.1 Passphrase and Recovery Key Derivation (what the code really does)
+
+Both derivations run in the browser. The algorithm is named by a versioned identifier stored beside the wrapped key (`Vault.kdfAlgorithm`, `RecoveryArtifact.kdfAlgorithm`). The unlock and recovery paths read that identifier and nothing else to decide how to derive the key (`lib/crypto/kdf.ts`).
+
+| Secret | Entropy source | Existing vaults and kits (created before Argon2id) | New vaults and kits |
+| :--- | :--- | :--- | :--- |
+| **Vault master passphrase** (typed by a person) | Human-chosen: low entropy, so a slow memory-hard derivation is required | `PBKDF2-SHA256-600000` (PBKDF2-HMAC-SHA256, 600,000 iterations, 16-byte random salt). Meets the OWASP minimum; still unlocks unchanged. | `ARGON2ID-19456-2-1` (Argon2id, 19,456 KiB memory, 2 passes, 1 lane, 16-byte random salt): the OWASP-recommended Argon2id setting. Passphrase minimum is 12 characters (new passphrases only). |
+| **Recovery code** (`DUSK-...`, 32 symbols from a 32-letter alphabet) | 160 random bits from `crypto.getRandomValues`: not guessable, so the code alone would not need a slow derivation | `PBKDF2-SHA256-310000`, with `+PASSPHRASE` appended when a kit passphrase was added | `ARGON2ID-19456-2-1`, with `+PASSPHRASE` appended when a kit passphrase was added |
+| **Optional kit passphrase** (mixed into the recovery derivation; no screen asks for one today) | Human-chosen | covered by the PBKDF2 row above | covered by the Argon2id row above: this is why the recovery path also uses the memory-hard function |
+
+Findings from the review that introduced this section:
+
+* **Labels.** Before this change, `Vault.kdfAlgorithm` was written truthfully (`PBKDF2-SHA256-600000`) but the unlock code ignored it and the page parsed the iteration count out of the label text (`split("-")[2]`). The `RecoveryArtifact.kdfAlgorithm` database default read `ARGON2ID-19456-2-1` although every recovery kit was in fact derived with PBKDF2-SHA256 (310,000 iterations); rows were always written with an explicit, truthful value by the code, so no stored row was mislabelled, but the default was a false claim. Both problems are fixed: the identifier is now the single source of the parameters, and the default is true for every row created from now on. Older rows keep their PBKDF2 identifiers.
+* **Recovery code strength.** Code comments described the recovery code as 256 bits; it is 160 bits (32 symbols at 5 bits each). That is far beyond guessing, so it does not weaken anything, and the comment is corrected.
+* **Server-supplied parameters.** The iteration count used to come from the server unchecked, so a malicious or compromised server could have made the browser run for hours. Identifiers are now parsed strictly: only `ARGON2ID-<m>-<t>-<p>` with 19,456 to 65,536 KiB, 2 to 6 passes and 1 to 4 lanes, and `PBKDF2-SHA256-<n>` with 600,000 (recovery kits: 310,000) to 1,000,000 iterations are accepted. Anything else is refused before any work starts. The server applies the same check when it stores a vault or recovery kit.
+* **Downgrade.** Changing the identifier cannot weaken a vault: every parameter and the algorithm change the derived key, so the wrapped key fails its AES-GCM authentication check and nothing opens. Values below the floor are refused outright.
+* **Library.** Argon2id runs through `hash-wasm` 4.12.0 (MIT, no dependencies, no native modules, WebAssembly, pinned to an exact version). It is loaded only when a key is derived. The CSP allows WebAssembly compilation (`'wasm-unsafe-eval'`) for this. Correctness is tested against the Argon2 reference-implementation vector, against the RFC 9106 parameters cross-checked with OpenSSL's independent Argon2id, and with fixed vaults and recovery kits produced by the earlier PBKDF2 code.
+* **What is deliberately unchanged.** The 128-bit AES-GCM wrapping, HKDF subkeys and AAD layout are untouched. The 16-hex-character recovery `fingerprintHex` is a non-cryptographic checksum of the recovery code that the server stores; it reveals at most 64 bits of a 160-bit secret, which does not make the code guessable, but it should not be treated as a secret-free value.
 
 ### Server-Side Only (Next.js API + Neon PostgreSQL)
 1. User authentication and session lifecycle, owned by **Neon Auth (Managed Better Auth)**: email and password plus Google sign-in. Dusk maps each Neon Auth identity to a Dusk user and links existing accounts only by a *verified* email, so an attacker who signs up with someone else's address cannot take over their account.

@@ -11,12 +11,19 @@ import {
   KeyRound,
   Check,
   Copy,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  XCircle,
+  RotateCw,
+  type LucideIcon,
 } from "lucide-react";
 import { ContactData, AssignmentData } from "./types";
-import { formatCount } from "@/lib/display-format";
+import { formatCount, formatDate } from "@/lib/display-format";
+import { INVITATION_STATE_LABEL, invitationStateOf, type InvitationState } from "@/lib/domain/invitation-status";
 import { ConfirmAction } from "@/components/ui/confirm-action";
 import { Notice } from "@/components/ui/notice";
-import { fieldInputClass, fieldLabelClass, buttonPrimaryClass } from "@/components/ui/form-field";
+import { fieldInputClass, fieldLabelClass, buttonPrimaryClass, buttonSecondaryClass } from "@/components/ui/form-field";
 
 interface PeopleAccessViewProps {
   contacts: ContactData[];
@@ -35,6 +42,10 @@ interface PeopleAccessViewProps {
     isTrustedVerifier: boolean
   ) => Promise<void>;
   onRevokeContact: (contactId: string) => Promise<void>;
+  /** Sends a new invitation link; the earlier link stops working. */
+  onResendInvite: (contactId: string) => Promise<void>;
+  /** Withdraws an invitation that has not been accepted. */
+  onCancelInvite: (contactId: string) => Promise<void>;
 }
 
 export function PeopleAccessView({
@@ -44,6 +55,8 @@ export function PeopleAccessView({
   onDismissBeneficiaryKit,
   onAddContact,
   onRevokeContact,
+  onResendInvite,
+  onCancelInvite,
 }: PeopleAccessViewProps) {
   const [activeTab, setActiveTab] = useState<"all" | "beneficiaries" | "verifiers">("all");
 
@@ -57,6 +70,18 @@ export function PeopleAccessView({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [resendingId, setResendingId] = useState<string | null>(null);
+
+  const handleResend = async (contactId: string) => {
+    if (resendingId) return;
+    setResendingId(contactId);
+    try {
+      await onResendInvite(contactId);
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,6 +138,10 @@ export function PeopleAccessView({
           Choose who receives your items and who confirms you&apos;re okay if you stop checking in.
         </p>
       </div>
+
+      <Notice tone="info">
+        Only people who have accepted their invitation can take part. Anyone who is still waiting, has declined or whose invitation expired is never asked to confirm anything and never receives your items.
+      </Notice>
 
       {/* One-time unlock link, shown right after adding a beneficiary */}
       {newlyCreatedBeneficiaryKit && (
@@ -183,7 +212,7 @@ export function PeopleAccessView({
               Add a person
             </h2>
             <p className="text-[13px] text-foreground-secondary mt-0.5">
-              Choose whether they receive items, confirm you&apos;re okay, or both.
+              We&apos;ll email them an invitation. Choose whether they receive items, confirm you&apos;re okay, or both.
             </p>
           </div>
 
@@ -290,7 +319,7 @@ export function PeopleAccessView({
                 className={`${buttonPrimaryClass} w-full`}
               >
                 <Plus className="w-4 h-4" aria-hidden="true" />
-                <span>{isSubmitting ? "Adding..." : "Add person"}</span>
+                <span>{isSubmitting ? "Sending..." : "Send invitation"}</span>
               </button>
             </div>
           </form>
@@ -345,6 +374,9 @@ export function PeopleAccessView({
             <div className="divide-y divide-border">
               {displayedContacts.map((contact) => {
                 const assignedCount = assignments.filter((a) => a.contactId === contact.id).length;
+                const state = invitationStateOf(contact);
+                const canAnswerLater = state === "WAITING" || state === "EXPIRED";
+                const firstName = contact.fullName.split(" ")[0] || contact.fullName;
                 return (
                   <div key={contact.id} className="py-4 space-y-3 gap-2 sm:gap-4">
                   <div className="flex items-center justify-between gap-4">
@@ -371,7 +403,7 @@ export function PeopleAccessView({
                         <span className="text-foreground-secondary block text-[14px] break-all break-words">
                           {contact.email}{contact.phone ? ` · ${contact.phone}` : ""}
                         </span>
-                        {contact.isBeneficiary && (
+                        {state === "ACCEPTED" && contact.isBeneficiary && (
                           <span className="text-xs text-foreground-secondary block mt-0.5">
                             {assignedCount === 0
                               ? "No items assigned yet"
@@ -381,8 +413,9 @@ export function PeopleAccessView({
                       </div>
                     </div>
 
+                    {/* People who never accepted get a clear "Cancel invitation" below instead. */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {pendingRemoveId !== contact.id && (
+                      {!canAnswerLater && pendingRemoveId !== contact.id && (
                         <button
                           type="button"
                           onClick={() => setPendingRemoveId(contact.id)}
@@ -395,6 +428,49 @@ export function PeopleAccessView({
                       )}
                     </div>
                   </div>
+
+                  {/* Where this person stands. Words and an icon, never colour alone. */}
+                  <div className="ml-12 space-y-2">
+                    <InvitationStatus contact={contact} state={state} />
+                    {canAnswerLater && (
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => void handleResend(contact.id)}
+                          disabled={resendingId === contact.id}
+                          className={`${buttonSecondaryClass} w-full sm:w-auto`}
+                          aria-label={`Resend invitation to ${contact.fullName}`}
+                        >
+                          <RotateCw className="w-4 h-4" aria-hidden="true" />
+                          {resendingId === contact.id ? "Sending..." : "Resend invitation"}
+                        </button>
+                        {pendingCancelId !== contact.id && (
+                          <button
+                            type="button"
+                            onClick={() => setPendingCancelId(contact.id)}
+                            className={`${buttonSecondaryClass} w-full sm:w-auto text-[var(--danger-fg)]`}
+                            aria-label={`Cancel invitation to ${contact.fullName}`}
+                          >
+                            Cancel invitation
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {pendingCancelId === contact.id && (
+                    <ConfirmAction
+                      defaultOpen
+                      onClose={() => setPendingCancelId(null)}
+                      title={`Cancel the invitation to ${contact.fullName}?`}
+                      description={`The link in their email will stop working and ${firstName} will be taken off your list. You can invite them again later.`}
+                      confirmLabel="Cancel invitation"
+                      pendingLabel="Cancelling..."
+                      cancelLabel="Keep invitation"
+                      onConfirm={() => onCancelInvite(contact.id)}
+                      trigger={() => null}
+                    />
+                  )}
                   {pendingRemoveId === contact.id && (
                     <ConfirmAction
                       defaultOpen
@@ -419,6 +495,51 @@ export function PeopleAccessView({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+const STATE_STYLE: Record<InvitationState, { Icon: LucideIcon; classes: string }> = {
+  ACCEPTED: { Icon: CheckCircle2, classes: "bg-accent-surface text-accent-text border-brand/25" },
+  WAITING: { Icon: Clock, classes: "bg-[var(--info-bg)] text-[var(--info-fg)] border-[var(--info-fg)]/40" },
+  EXPIRED: { Icon: AlertCircle, classes: "bg-[var(--warning-bg)] text-[var(--warning-fg)] border-[var(--warning-fg)]/40" },
+  DECLINED: { Icon: XCircle, classes: "bg-elevated text-foreground-secondary border-border" },
+  PAUSED: { Icon: Clock, classes: "bg-elevated text-foreground-secondary border-border" },
+  REMOVED: { Icon: XCircle, classes: "bg-elevated text-foreground-secondary border-border" },
+};
+
+/** One plain status badge plus one sentence about what it means for a release. */
+function InvitationStatus({ contact, state }: { contact: ContactData; state: InvitationState }) {
+  const notSent = state === "WAITING" && contact.invitationEmail === "FAILED";
+  const { Icon, classes } = notSent ? STATE_STYLE.EXPIRED : STATE_STYLE[state];
+  const label = notSent ? "Invitation not sent" : INVITATION_STATE_LABEL[state];
+
+  let detail: string;
+  if (state === "ACCEPTED") {
+    detail = contact.verifiedAt
+      ? `Accepted on ${formatDate(contact.verifiedAt)}. They can take part in a release.`
+      : "They can take part in a release.";
+  } else if (notSent) {
+    detail = "We couldn't send the invitation. Try again.";
+  } else if (state === "WAITING") {
+    detail = `Invitation emailed${contact.inviteExpiresAt ? `. The link works until ${formatDate(contact.inviteExpiresAt)}` : ""}. They can't take part in a release until they accept.`;
+  } else if (state === "EXPIRED") {
+    detail = `The invitation ${contact.inviteExpiresAt ? `expired on ${formatDate(contact.inviteExpiresAt)}` : "expired"}. They can't take part until you send a new one.`;
+  } else if (state === "DECLINED") {
+    detail = "They chose not to take part, so they will never be asked to confirm anything or receive items. They won't be asked again unless you add them again.";
+  } else {
+    detail = "They can't take part in a release right now.";
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] border text-[13px] font-semibold ${classes}`}>
+        <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+        {label}
+      </span>
+      <p className={`text-[13px] leading-relaxed ${notSent ? "text-[var(--danger-fg)] font-medium" : "text-foreground-secondary"}`}>
+        {detail}
+      </p>
     </div>
   );
 }

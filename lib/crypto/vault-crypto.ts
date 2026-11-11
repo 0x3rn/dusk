@@ -1,4 +1,15 @@
 // lib/crypto/vault-crypto.ts
+import {
+  DEFAULT_ARGON2ID_PARAMS,
+  KdfParameterError,
+  assertKdfParamsAcceptable,
+  deriveKeyBytes,
+  formatKdfAlgorithm,
+  parseKdfAlgorithm,
+  type KdfParams,
+  type KdfPolicy,
+} from "./kdf";
+import { assertAcceptableNewPassphrase } from "./passphrase-policy";
 
 /**
  * THE-98: Zero-Knowledge Client-Side Vault Encryption & Key Hierarchy
@@ -8,7 +19,9 @@
  *
  * Key Hierarchy:
  *   User Master Passphrase + 16-byte random Salt
- *     └── PBKDF2-SHA256 (600,000 iterations) -> Passphrase Key Encryption Key (KEK)
+ *     └── Argon2id (19 MiB, 2 passes, 1 lane) for vaults created now, or PBKDF2-SHA256
+ *         (600,000 iterations) for vaults created earlier -> Passphrase Key Encryption Key (KEK)
+ *         The stored `kdfAlgorithm` identifier (see ./kdf.ts) decides which one is used.
  *           └── Wraps/Unwraps 256-bit Vault Master Key (VMK)
  *                 ├── HKDF-SHA256 ("dusk-v1-item-kek") -> Wraps per-item 256-bit Item Keys (IEK)
  *                 ├── HKDF-SHA256 ("dusk-v1-file-kek") -> Wraps per-file 256-bit File Keys (FEK)
@@ -19,7 +32,8 @@ export const CRYPTO_SCHEMA_VERSION = 1;
 export const AES_GCM_IV_BYTES = 12; // 96-bit nonce per NIST SP 800-38D
 export const AES_KEY_BITS = 256;
 export const AES_GCM_TAG_BITS = 128;
-export const DEFAULT_PBKDF2_ITERATIONS = 600_000;
+/** Iterations of the PBKDF2 scheme that existing (legacy) vaults were created with. */
+export const LEGACY_PBKDF2_ITERATIONS = 600_000;
 
 export type ResourceType =
   | "VAULT_ITEM"
@@ -38,8 +52,8 @@ export interface AadContext {
 export interface WrappedMasterKeyBundle {
   schemaVersion: number;
   keyVersion: number;
+  /** Versioned identifier, e.g. "ARGON2ID-19456-2-1". The only source of KDF parameters. */
   kdfAlgorithm: string;
-  kdfIterations: number;
   kdfSaltBase64: string;
   wrappedMasterKeyCiphertext: string;
   wrappedMasterKeyIv: string;
@@ -200,61 +214,72 @@ export async function deriveHkdfSubkey(
   );
 }
 
+/** Options shared by the passphrase functions. `policy` exists for fast unit tests only. */
+export interface PassphraseKdfOptions {
+  policy?: KdfPolicy;
+}
+
+export interface CreateVaultOptions extends PassphraseKdfOptions {
+  /** Key-derivation parameters for the new vault. Defaults to Argon2id (19 MiB, 2 passes). */
+  kdf?: KdfParams;
+}
+
 /**
- * Derives a 256-bit Key Encryption Key (KEK) from a user's Master Passphrase + 16-byte salt
- * using PBKDF2-HMAC-SHA256.
+ * Derives a 256-bit Key Encryption Key (KEK) from a user's Master Passphrase + salt using the
+ * algorithm named by the stored `kdfAlgorithm` identifier (Argon2id or legacy PBKDF2-SHA256).
+ * The identifier is validated first (see ./kdf.ts), so unknown or extreme values never run.
+ * No length rule applies here: existing vaults must open with whatever passphrase they were made
+ * with. The length rule for NEW passphrases lives in ./passphrase-policy.ts.
  */
 export async function derivePassphraseKek(
   passphrase: string,
   saltBase64: string,
-  iterations = DEFAULT_PBKDF2_ITERATIONS
+  kdfAlgorithm: string,
+  options: PassphraseKdfOptions = {}
 ): Promise<CryptoKey> {
-  if (!passphrase || passphrase.length < 8) {
-    throw new Error("Master passphrase must be at least 8 characters.");
+  const { params } = parseKdfAlgorithm(kdfAlgorithm, "vault-passphrase", options.policy);
+  if (!passphrase) {
+    throw new Error("A passphrase is required.");
   }
   const saltBytes = base64ToBytes(saltBase64);
   if (saltBytes.byteLength < 16) {
-    throw new Error("KDF salt must be at least 16 bytes.");
+    throw new KdfParameterError("KDF salt must be at least 16 bytes.");
   }
 
-  const webCrypto = getWebCrypto();
-  const normalizedPassphrase = new TextEncoder().encode(passphrase.normalize("NFKC"));
-
-  const baseKey = await webCrypto.subtle.importKey(
-    "raw",
-    toArrayBuffer(normalizedPassphrase),
-    "PBKDF2",
-    false,
-    ["deriveKey"]
-  );
-
-  return webCrypto.subtle.deriveKey(
-    {
-      name: "PBKDF2",
-      hash: "SHA-256",
-      salt: toArrayBuffer(saltBytes),
-      iterations,
-    },
-    baseKey,
-    { name: "AES-GCM", length: AES_KEY_BITS },
-    false,
-    ["encrypt", "decrypt"]
-  );
+  const passphraseBytes = new TextEncoder().encode(passphrase.normalize("NFKC"));
+  const keyBytes = await deriveKeyBytes(params, passphraseBytes, saltBytes);
+  try {
+    return await getWebCrypto().subtle.importKey(
+      "raw",
+      toArrayBuffer(keyBytes),
+      { name: "AES-GCM" },
+      false,
+      ["encrypt", "decrypt"]
+    );
+  } finally {
+    keyBytes.fill(0);
+    passphraseBytes.fill(0);
+  }
 }
 
 /**
  * Creates a new Vault Master Key (VMK) and wraps it under the user's passphrase-derived KEK.
  * Returns both the client-only `masterKeyBase64` and the server-safe `wrappedBundle`.
+ * The passphrase must meet the new-passphrase rule (12+ characters).
  */
 export async function createAndWrapVaultMasterKey(
   passphrase: string,
   vaultId: string,
-  iterations = DEFAULT_PBKDF2_ITERATIONS
+  options: CreateVaultOptions = {}
 ): Promise<{
   masterKeyBase64: string;
   wrappedBundle: WrappedMasterKeyBundle;
 }> {
   const webCrypto = getWebCrypto();
+  const kdf = options.kdf ?? DEFAULT_ARGON2ID_PARAMS;
+  assertAcceptableNewPassphrase(passphrase);
+  assertKdfParamsAcceptable(kdf, "vault-passphrase", options.policy);
+
   const masterKeyBase64 = await generateRandomKeyBase64();
   const saltBytes = new Uint8Array(16);
   webCrypto.getRandomValues(saltBytes);
@@ -266,22 +291,33 @@ export async function createAndWrapVaultMasterKey(
     vaultId,
     1,
     kdfSaltBase64,
-    iterations
+    { kdf, policy: options.policy }
   );
 
   return { masterKeyBase64, wrappedBundle };
 }
 
+/**
+ * Wraps an existing Vault Master Key under a NEW passphrase (12+ characters) with the given KDF.
+ * The stored `kdfAlgorithm` is always produced from the parameters actually used.
+ */
 export async function wrapVaultMasterKeyWithPassphrase(
   masterKeyBase64: string,
   passphrase: string,
   vaultId: string,
   keyVersion: number,
   kdfSaltBase64: string,
-  iterations = DEFAULT_PBKDF2_ITERATIONS
+  options: CreateVaultOptions = {}
 ): Promise<WrappedMasterKeyBundle> {
   const webCrypto = getWebCrypto();
-  const kek = await derivePassphraseKek(passphrase, kdfSaltBase64, iterations);
+  const kdf = options.kdf ?? DEFAULT_ARGON2ID_PARAMS;
+  assertAcceptableNewPassphrase(passphrase);
+  assertKdfParamsAcceptable(kdf, "vault-passphrase", options.policy);
+  const kdfAlgorithm = formatKdfAlgorithm(kdf);
+
+  const kek = await derivePassphraseKek(passphrase, kdfSaltBase64, kdfAlgorithm, {
+    policy: options.policy,
+  });
   const rawVmk = base64ToBytes(masterKeyBase64);
   if (rawVmk.byteLength !== 32) {
     throw new Error("Vault Master Key must be 32 bytes.");
@@ -309,8 +345,7 @@ export async function wrapVaultMasterKeyWithPassphrase(
   return {
     schemaVersion: CRYPTO_SCHEMA_VERSION,
     keyVersion,
-    kdfAlgorithm: `PBKDF2-SHA256-${iterations}`,
-    kdfIterations: iterations,
+    kdfAlgorithm,
     kdfSaltBase64,
     wrappedMasterKeyCiphertext: bytesToBase64(new Uint8Array(encrypted)),
     wrappedMasterKeyIv: bytesToBase64(iv),
@@ -319,18 +354,23 @@ export async function wrapVaultMasterKeyWithPassphrase(
 
 /**
  * Unwraps the Vault Master Key (VMK) on the client using the user's passphrase.
+ * Dispatches on `bundle.kdfAlgorithm`: Argon2id for new vaults, PBKDF2-SHA256 for legacy ones.
+ * Throws KdfParameterError for an identifier it will not run (unknown, out of range, malformed),
+ * and CryptoTamperOrAuthError for a wrong passphrase or any modified field.
  */
 export async function unwrapVaultMasterKeyWithPassphrase(
   bundle: WrappedMasterKeyBundle,
   passphrase: string,
-  vaultId: string
+  vaultId: string,
+  options: PassphraseKdfOptions = {}
 ): Promise<string> {
   try {
     const webCrypto = getWebCrypto();
     const kek = await derivePassphraseKek(
       passphrase,
       bundle.kdfSaltBase64,
-      bundle.kdfIterations
+      bundle.kdfAlgorithm,
+      options
     );
     const iv = base64ToBytes(bundle.wrappedMasterKeyIv);
     const ciphertext = base64ToBytes(bundle.wrappedMasterKeyCiphertext);
@@ -358,7 +398,7 @@ export async function unwrapVaultMasterKeyWithPassphrase(
 
     return bytesToBase64(new Uint8Array(decrypted));
   } catch (err) {
-    if (err instanceof CryptoTamperOrAuthError) throw err;
+    if (err instanceof CryptoTamperOrAuthError || err instanceof KdfParameterError) throw err;
     throw new CryptoTamperOrAuthError("Failed to unlock Vault Master Key: wrong passphrase or tampered bundle.");
   }
 }

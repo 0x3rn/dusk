@@ -30,7 +30,6 @@ import { generateOpaqueToken, hashOpaqueToken } from "../auth/security";
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 describe("THE-110: Complete Cryptographic, Workflow, Failure-Path & Zero-Knowledge E2E Verification", () => {
-  const TEST_PBKDF2_ITERATIONS = 10_000;
 
   const SENSITIVE_CANARY_SECRETS = [
     "owner-master-passphrase-canary-998877!",
@@ -50,8 +49,7 @@ describe("THE-110: Complete Cryptographic, Workflow, Failure-Path & Zero-Knowled
     const { masterKeyBase64: vmk, wrappedBundle } =
       await createAndWrapVaultMasterKey(
         masterPassphrase,
-        vaultId,
-        TEST_PBKDF2_ITERATIONS
+        vaultId
       );
     serverPersistedSnapshots.push(wrappedBundle);
 

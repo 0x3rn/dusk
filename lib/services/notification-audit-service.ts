@@ -27,6 +27,7 @@ export type NotificationTemplateKey =
   | "CHECKIN_REMINDER"
   | "MISSED_CHECKIN_ESCALATION"
   | "BENEFICIARY_INVITATION"
+  | "CONTACT_INVITATION"
   | "TRUSTED_VERIFIER_CHALLENGE"
   | "RELEASE_PACKAGE_READY"
   | "SECURITY_ALERT";
@@ -45,6 +46,7 @@ export const SendNotificationInputSchema = z.object({
     "CHECKIN_REMINDER",
     "MISSED_CHECKIN_ESCALATION",
     "BENEFICIARY_INVITATION",
+    "CONTACT_INVITATION",
     "TRUSTED_VERIFIER_CHALLENGE",
     "RELEASE_PACKAGE_READY",
     "SECURITY_ALERT",
@@ -175,6 +177,7 @@ const TEMPLATE_SUBJECTS: Record<NotificationTemplateKey, string> = {
   CHECKIN_REMINDER: "Dusk check-in reminder",
   MISSED_CHECKIN_ESCALATION: "URGENT: Dusk missed check-in warning",
   BENEFICIARY_INVITATION: "You've been added to a Dusk release plan",
+  CONTACT_INVITATION: "You've been asked to help with someone's Dusk plan",
   TRUSTED_VERIFIER_CHALLENGE:
     "Action required: Dusk trusted verifier check",
   RELEASE_PACKAGE_READY: "Dusk release package ready",

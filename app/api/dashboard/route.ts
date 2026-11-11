@@ -11,7 +11,16 @@ import { RATE_LIMIT_POLICIES } from "@/lib/security/http-hardening";
 import { consumeRateLimit } from "@/lib/security/db-rate-limiter";
 import { createEngine } from "@/lib/engine/engine";
 import { AuthorizationError } from "@/lib/services/foundation-service";
+import { ValidationError } from "@/lib/auth/security";
 import { redactForAuditLog } from "@/lib/domain/trust-boundary";
+import { ContactService } from "@/lib/services/contact-service";
+import { PrismaContactStore } from "@/lib/services/prisma-contact-store";
+import {
+  invitationIdempotencyKey,
+  sendContactInvitationEmail,
+  toDashboardContact,
+} from "@/lib/services/contact-invitation-delivery";
+import { INVITE_TTL_DAYS } from "@/lib/domain/invitation-status";
 
 export async function GET() {
   try {
@@ -24,6 +33,7 @@ export async function GET() {
       recoveryArtifacts,
       assignments,
       auditEvents,
+      purchase,
     ] = await Promise.all([
       prisma.vault.findUnique({
         where: { userId: user.id },
@@ -40,8 +50,6 @@ export async function GET() {
       }),
       prisma.contact.findMany({
         where: { userId: user.id, status: { not: "REVOKED" } },
-        // Invite token hashes are credentials-at-rest; the browser never needs them.
-        omit: { inviteTokenHash: true },
         orderBy: { createdAt: "desc" },
       }),
       prisma.recoveryArtifact.findMany({
@@ -57,14 +65,31 @@ export async function GET() {
         orderBy: { createdAt: "desc" },
         take: 25,
       }),
+      // Only the purchase date: no payment ids or customer data reach the browser.
+      prisma.user.findUnique({
+        where: { id: user.id },
+        select: { lifetimePurchasedAt: true },
+      }),
     ]);
 
+    // Did the email for each waiting invitation go out? Looked up by the idempotency key of the
+    // CURRENT link, so a resend starts clean. toDashboardContact drops the token hash
+    // (a credential-at-rest the browser never needs).
+    const waiting = contacts.filter((c) => c.status === "PENDING_INVITE" && c.inviteTokenHash);
+    const deliveries = waiting.length
+      ? await prisma.notificationDelivery.findMany({
+          where: { userId: user.id, idempotencyKey: { in: waiting.map(invitationIdempotencyKey) } },
+          select: { idempotencyKey: true, status: true },
+        })
+      : [];
+    const deliveryStatusByKey = new Map(deliveries.map((d) => [d.idempotencyKey, d.status]));
+
     return NextResponse.json({
-      user,
+      user: { ...user, lifetimePurchasedAt: purchase?.lifetimePurchasedAt ?? null },
       currentSessionId: authSession.id,
       vault,
       schedule,
-      contacts,
+      contacts: contacts.map((c) => toDashboardContact(c, deliveryStatusByKey)),
       recoveryArtifacts,
       assignments,
       auditEvents,
@@ -166,62 +191,60 @@ export async function POST(req: Request) {
       }
 
       case "ADD_CONTACT": {
-        const {
-          fullName,
-          email,
-          phone,
-          isBeneficiary,
-          isTrustedVerifier,
-          publicKeyBase64,
-        } = body.contact;
+        await consumeRateLimit(prisma, RATE_LIMIT_POLICIES.INVITE_SEND, user.id);
+        const contacts = new ContactService(new PrismaContactStore(prisma));
 
-        // Already trimmed, lower-cased and checked by parseDashboardAction.
-        const normalizedEmail = email;
-        const contact = await prisma.contact.upsert({
-          where: {
-            userId_email: { userId: user.id, email: normalizedEmail },
-          },
-          update: {
-            fullName,
-            phone: phone || null,
-            isBeneficiary,
-            isTrustedVerifier,
-            status: "VERIFIED",
-            verifiedAt: new Date(),
-            publicKeyBase64: isBeneficiary ? publicKeyBase64 : null,
-            keyAlgorithm: isBeneficiary ? "ECDH-P256-HKDF-AES256GCM" : null,
-          },
-          create: {
-            userId: user.id,
-            fullName,
-            email: normalizedEmail,
-            phone: phone || null,
-            isBeneficiary,
-            isTrustedVerifier,
-            status: "VERIFIED",
-            verifiedAt: new Date(),
-            publicKeyBase64: isBeneficiary ? publicKeyBase64 : null,
-            keyAlgorithm: isBeneficiary ? "ECDH-P256-HKDF-AES256GCM" : null,
-          },
+        // The person starts as "waiting for them to accept". Nobody is a verifier or a
+        // beneficiary until they open the emailed link and accept. A beneficiary's public key
+        // is still stored now (the owner's browser made the pair; the private half never reaches us).
+        const { contact, rawInviteToken } = await contacts.inviteContact(user.id, {
+          fullName: body.contact.fullName,
+          email: body.contact.email,
+          phone: body.contact.phone ?? undefined,
+          isBeneficiary: body.contact.isBeneficiary,
+          isTrustedVerifier: body.contact.isTrustedVerifier,
+          publicKeyBase64: body.contact.publicKeyBase64,
         });
 
-        await prisma.auditEvent.create({
-          data: {
-            userId: user.id,
-            eventType: "CONTACT_SAVED",
-            severity: "INFO",
-            actorType: "USER",
-            actorId: user.id,
-            redactedMeta: JSON.stringify({
-              contactId: contact.id,
-              email: contact.email,
-              isBeneficiary: contact.isBeneficiary,
-              isTrustedVerifier: contact.isTrustedVerifier,
-            }),
-          },
+        // A failed send leaves the person waiting; the owner is told and can press Resend.
+        const { delivered } = await sendContactInvitationEmail(engine.notifier, {
+          ownerUserId: user.id,
+          ownerName: user.fullName?.trim() || null,
+          contact,
+          rawToken: rawInviteToken,
+          appUrl: engine.appUrl,
         });
 
-        return NextResponse.json({ contact }, { status: 201 });
+        return NextResponse.json(
+          {
+            contact: toDashboardContact(contact, new Map([[invitationIdempotencyKey(contact), delivered ? "DELIVERED" : "FAILED"]])),
+            invitation: { delivered, expiresInDays: INVITE_TTL_DAYS },
+          },
+          { status: 201 }
+        );
+      }
+
+      case "RESEND_INVITE": {
+        await consumeRateLimit(prisma, RATE_LIMIT_POLICIES.INVITE_SEND, user.id);
+        const contacts = new ContactService(new PrismaContactStore(prisma));
+
+        // A new token replaces the old one, so the link in the earlier email stops working.
+        const { contact, rawInviteToken } = await contacts.reinviteContact(user.id, body.contactId);
+        const { delivered } = await sendContactInvitationEmail(engine.notifier, {
+          ownerUserId: user.id,
+          ownerName: user.fullName?.trim() || null,
+          contact,
+          rawToken: rawInviteToken,
+          appUrl: engine.appUrl,
+        });
+
+        return NextResponse.json({ invitation: { delivered, expiresInDays: INVITE_TTL_DAYS } });
+      }
+
+      case "CANCEL_INVITE": {
+        const contacts = new ContactService(new PrismaContactStore(prisma));
+        await contacts.cancelInvitation(user.id, body.contactId);
+        return NextResponse.json({ ok: true });
       }
 
       case "REVOKE_CONTACT": {
@@ -270,6 +293,12 @@ export async function POST(req: Request) {
         if (!contact || contact.userId !== user.id || !contact.isBeneficiary) {
           throw new AuthorizationError(
             "Target contact is not a valid Beneficiary."
+          );
+        }
+        // Items can only be set aside for someone who has agreed to receive them.
+        if (contact.status !== "VERIFIED") {
+          throw new ValidationError(
+            "This person has not accepted their invitation yet. You can give them items once they accept."
           );
         }
 

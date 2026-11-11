@@ -12,6 +12,7 @@ const TOKEN_PATH_PATTERNS: Array<[RegExp, string]> = [
   [/(?<!\/api)(\/checkin\/)[^/?#]+/g, "$1[redacted]"],
   [/(?<!\/api)(\/verify\/)[^/?#]+/g, "$1[redacted]"],
   [/(?<!\/api)(\/unlock\/)[^/?#]+/g, "$1[redacted]"],
+  [/(?<!\/api)(\/invite\/)[^/?#]+/g, "$1[redacted]"],
 ];
 
 /** Drops the query string and fragment, and hides token path segments. */

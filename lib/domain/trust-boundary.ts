@@ -129,7 +129,7 @@ const REDACTED_LOG_KEYS = new Set([
   "sessiontoken",
   "authorization",
   "cookie",
-  "stripesignature",
+  "xsignature",
   "ciphertext",
   "ciphertextbase64",
   "wrappedkey",

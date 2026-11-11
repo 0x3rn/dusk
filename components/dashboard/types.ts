@@ -12,6 +12,10 @@ export interface UserAccount {
   email: string;
   fullName?: string | null;
   role?: string;
+  /** From the dashboard API; absent only while older cached data is shown. */
+  hasLifetimeAccess?: boolean;
+  /** ISO date of the paid order, when there is one. */
+  lifetimePurchasedAt?: string | null;
 }
 
 export interface VaultItemData {
@@ -36,6 +40,14 @@ export interface ContactData {
   isTrustedVerifier: boolean;
   publicKeyBase64?: string | null;
   createdAt?: string;
+  /** Only an accepted ("VERIFIED") contact can take part in a release. */
+  status: "PENDING_INVITE" | "VERIFIED" | "SUSPENDED" | "REVOKED" | "DECLINED";
+  /** When the current invitation link stops working (ISO string). */
+  inviteExpiresAt?: string | null;
+  /** When they accepted (ISO string). */
+  verifiedAt?: string | null;
+  /** Whether the email for the current invitation went out. Null once they have answered. */
+  invitationEmail?: "SENT" | "FAILED" | null;
 }
 
 export interface AssignmentData {

@@ -1,5 +1,6 @@
 // lib/services/foundation-service.ts
 import { z } from "zod";
+import { LEGACY_VAULT_PBKDF2_ALGORITHM_ID, isAcceptableKdfAlgorithm } from "../crypto/kdf";
 import {
   AuthenticationError,
   AuthorizationError,
@@ -35,7 +36,13 @@ export const InitializeVaultInputSchema = z.object({
   wrappedMasterKeyCiphertext: z.string().min(16).max(2_000),
   wrappedMasterKeyIv: z.string().min(12).max(100),
   kdfSaltBase64: z.string().min(16).max(200),
-  kdfAlgorithm: z.string().min(1).max(100).default("PBKDF2-SHA256-600000"),
+  // Clients built before Argon2id omit it and always used PBKDF2-SHA256 with 600,000 iterations.
+  kdfAlgorithm: z
+    .string()
+    .min(1)
+    .max(100)
+    .default(LEGACY_VAULT_PBKDF2_ALGORITHM_ID)
+    .refine((id) => isAcceptableKdfAlgorithm(id, "vault-passphrase"), "Unsupported key settings."),
 });
 
 export const CreateEncryptedItemInputSchema = z.object({

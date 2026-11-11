@@ -22,13 +22,13 @@ describe("THE-97: Foundation, Auth Primitives, Env Validation & Ownership Guards
       const env = validateEnv(valid);
       expect(env.NODE_ENV).toBe("test");
       expect(env.NEXT_PUBLIC_APP_URL).toBe("http://localhost:3000");
-      expect(env.STRIPE_SECRET_KEY).toBeUndefined();
+      expect(env.LEMONSQUEEZY_API_KEY).toBeUndefined();
     });
 
     it("treats blank optional provider keys as unset", () => {
-      const env = validateEnv({ ...valid, RESEND_API_KEY: "   ", STRIPE_SECRET_KEY: "" });
+      const env = validateEnv({ ...valid, RESEND_API_KEY: "   ", LEMONSQUEEZY_API_KEY: "" });
       expect(env.RESEND_API_KEY).toBeUndefined();
-      expect(env.STRIPE_SECRET_KEY).toBeUndefined();
+      expect(env.LEMONSQUEEZY_API_KEY).toBeUndefined();
     });
 
     it("rejects missing or non-Postgres DATABASE_URL", () => {

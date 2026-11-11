@@ -1,5 +1,5 @@
 // lib/security/http-hardening.ts
-import { AuthorizationError } from "../auth/security";
+import { AuthorizationError } from "../auth/errors";
 
 /**
  * THE-111: Production Security Headers, CSRF Protection, Rate Limits & Legal Disclaimers
@@ -19,24 +19,13 @@ export interface SecurityHeaderEntry {
   value: string;
 }
 
+/**
+ * Static security headers, applied to every response by next.config.ts.
+ * The Content-Security-Policy is NOT here: it needs a fresh nonce per request, so it is built in
+ * proxy.ts from lib/security/csp.ts.
+ */
 export function getProductionSecurityHeaders(): SecurityHeaderEntry[] {
-  const cspDirectives = [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://js.stripe.com",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://images.unsplash.com https://*.googleusercontent.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://api.stripe.com https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io",
-    "frame-src 'self' https://js.stripe.com",
-    "frame-ancestors 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "object-src 'none'",
-    "upgrade-insecure-requests",
-  ].join("; ");
-
   return [
-    { key: "Content-Security-Policy", value: cspDirectives },
     {
       key: "Strict-Transport-Security",
       value: "max-age=63072000; includeSubDomains; preload",
@@ -164,6 +153,16 @@ export const RATE_LIMIT_POLICIES = {
     bucketName: "dashboard_mutation",
     maxAttempts: 120,
     windowMs: 5 * 60 * 1000, // 120 vault/contact/schedule changes per 5 minutes per user
+  },
+  INVITE_LINK: {
+    bucketName: "invite_link",
+    maxAttempts: 30,
+    windowMs: 15 * 60 * 1000, // opening, accepting or declining an invitation link, per caller
+  },
+  INVITE_SEND: {
+    bucketName: "invite_send",
+    maxAttempts: 20,
+    windowMs: 60 * 60 * 1000, // invitation emails an owner can send or resend per hour
   },
   SCHEDULER_TICK: {
     bucketName: "scheduler_tick",

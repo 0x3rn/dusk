@@ -120,13 +120,10 @@ class InMemoryRecoveryStore implements RecoveryPersistencePort {
 }
 
 describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
-  const TEST_PBKDF2_ITERATIONS = 10_000;
-
   it("1. generates a Recovery Kit, normalizes human transcription typos, and recovers the exact Vault Master Key", async () => {
     const { masterKeyBase64 } = await createAndWrapVaultMasterKey(
       "original-forgotten-passphrase",
-      "vlt_rec_1",
-      TEST_PBKDF2_ITERATIONS
+      "vlt_rec_1"
     );
 
     const { clientKit, serverArtifact } = await createRecoveryKitForVault({
@@ -163,8 +160,7 @@ describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
   it("2. enforces secondary recovery passphrase when configured and fails closed when omitted or wrong", async () => {
     const { masterKeyBase64 } = await createAndWrapVaultMasterKey(
       "primary-passphrase-123",
-      "vlt_rec_2",
-      TEST_PBKDF2_ITERATIONS
+      "vlt_rec_2"
     );
 
     const { clientKit, serverArtifact } = await createRecoveryKitForVault({
@@ -196,8 +192,7 @@ describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
     const vaultId = "vlt_e2e_recovery";
     const { masterKeyBase64: originalVmk } = await createAndWrapVaultMasterKey(
       "lost-device-passphrase-111!",
-      vaultId,
-      TEST_PBKDF2_ITERATIONS
+      vaultId
     );
 
     const { bundle: itemBundle } = await encryptVaultItemPayload({
@@ -220,7 +215,6 @@ describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
         serverArtifact,
         recoveryCode: clientKit.recoveryCode,
         newMasterPassphrase: newPassphrase,
-        pbkdf2Iterations: TEST_PBKDF2_ITERATIONS,
       });
 
     const unlockedVmkOnNewDevice = await unwrapVaultMasterKeyWithPassphrase(
@@ -249,8 +243,7 @@ describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
 
     const { masterKeyBase64 } = await createAndWrapVaultMasterKey(
       "passphrase-abc-123",
-      vaultId,
-      TEST_PBKDF2_ITERATIONS
+      vaultId
     );
 
     const kit1 = await createRecoveryKitForVault({
@@ -301,7 +294,6 @@ describe("THE-99: Recovery Kit & Secure Key Recovery Flows", () => {
       serverArtifact: kit2.serverArtifact,
       recoveryCode: kit2.clientKit.recoveryCode,
       newMasterPassphrase: "new-passphrase-after-rotation-123!",
-      pbkdf2Iterations: TEST_PBKDF2_ITERATIONS,
     });
 
     const enrollment = await service.completeRecoveryReEnrollment(userId, {

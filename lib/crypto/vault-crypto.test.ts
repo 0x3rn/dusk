@@ -18,8 +18,6 @@ import {
 } from "./vault-crypto";
 
 describe("THE-98: Client-Side Vault Encryption, Key Hierarchy & Test Vectors", () => {
-  // Fast PBKDF2 iterations for unit tests while verifying the exact algorithm
-  const TEST_PBKDF2_ITERATIONS = 10_000;
 
   describe("1. Deterministic AES-256-GCM Test Vectors", () => {
     const fixedKeyBytes = new Uint8Array(32);
@@ -159,7 +157,7 @@ describe("THE-98: Client-Side Vault Encryption, Key Hierarchy & Test Vectors", (
       const vaultId = "vlt_rotation_test";
 
       const { masterKeyBase64: vmkV1, wrappedBundle } =
-        await createAndWrapVaultMasterKey(passphrase, vaultId, TEST_PBKDF2_ITERATIONS);
+        await createAndWrapVaultMasterKey(passphrase, vaultId);
 
       // Unwrap VMK with correct passphrase
       const unwrappedVmk = await unwrapVaultMasterKeyWithPassphrase(

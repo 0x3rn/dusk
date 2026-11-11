@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { DuskLogo } from "./dusk-logo";
+import { ThemeMenuItem } from "@/components/theme-menu-item";
 
 // Links get a 44px-tall hit area on touch screens; mouse users keep the compact list.
 const linkClass =
@@ -95,8 +96,9 @@ export function SiteFooter() {
         </div>
 
         {/* Footer Bottom Bar */}
-        <div className="pt-8 border-t border-border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-[13px] text-foreground-muted">
+        <div className="pt-8 border-t border-border flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-6 sm:gap-4 text-[13px] text-foreground-muted">
           <span>© {new Date().getFullYear()} Dusk Technologies. All rights reserved.</span>
+          <ThemeMenuItem layout="inline" />
         </div>
       </div>
     </footer>

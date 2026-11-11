@@ -2,10 +2,13 @@
 
 import React from "react";
 import { Check } from "lucide-react";
+import { CheckoutError } from "@/components/billing/checkout-error";
 
 interface PricingSectionProps {
   onCheckout: () => void;
   isLoading?: boolean;
+  /** Plain-language message when checkout could not start; shown under the button. */
+  error?: string | null;
 }
 
 const features = [
@@ -16,7 +19,7 @@ const features = [
   "Recovery kit to get back in if you lose your passphrase",
 ];
 
-export function PricingSection({ onCheckout, isLoading = false }: PricingSectionProps) {
+export function PricingSection({ onCheckout, isLoading = false, error = null }: PricingSectionProps) {
   return (
     <section id="pricing" className="py-16 sm:py-24 lg:py-32 bg-canvas dark:bg-sunken border-t border-b border-border transition-colors">
       <div className="max-w-[1240px] mx-auto px-6 sm:px-8 lg:px-12 text-center">
@@ -83,10 +86,16 @@ export function PricingSection({ onCheckout, isLoading = false }: PricingSection
               type="button"
               onClick={onCheckout}
               disabled={isLoading}
+              aria-busy={isLoading}
               className="w-full h-12 rounded-[10px] bg-brand text-on-brand hover:bg-brand-hover text-[15px] font-semibold disabled:opacity-60 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand flex items-center justify-center"
             >
-              {isLoading ? "Redirecting to checkout..." : "Get Dusk Lifetime"}
+              {isLoading ? "Opening checkout..." : "Get Dusk Lifetime"}
             </button>
+            {error && (
+              <div className="mt-4">
+                <CheckoutError message={error} onRetry={onCheckout} pending={isLoading} />
+              </div>
+            )}
           </div>
 
           {/* Policy Footnote */}

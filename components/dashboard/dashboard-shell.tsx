@@ -18,7 +18,7 @@ import {
   X,
   ExternalLink,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeMenuItem } from "@/components/theme-menu-item";
 import { DashboardView, UserAccount } from "./types";
 
 interface DashboardShellProps {
@@ -169,6 +169,7 @@ export function DashboardShell({
 
         {/* Footer: User Profile & Account */}
         <div className="p-4 border-t border-border bg-sunken">
+          <ThemeMenuItem showIcons={false} className="px-2 pb-3" />
           <div className="flex items-center justify-between gap-2 p-2 rounded-[8px] hover:bg-hover transition-colors">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-8 h-8 rounded-full bg-[var(--cta-band)] text-[var(--cta-band-text)] dark:text-accent-text border border-transparent text-[12px] font-semibold flex items-center justify-center shrink-0">
@@ -247,8 +248,6 @@ export function DashboardShell({
               </div>
             )}
 
-            <ThemeToggle />
-
             {/* Link to Technical Security Whitepaper */}
             <Link
               href="/security"
@@ -297,7 +296,7 @@ export function DashboardShell({
               {/* Drawer Header */}
               <div className="flex items-center justify-between pb-4 border-b border-border mb-5">
                 <div className="flex items-center gap-2">
-                  <DuskSymbol size={22} className="text-accent-text" />
+                  <DuskSymbol size={22} className="text-foreground" />
                   <span className="font-semibold text-[17px] text-foreground">
                     Dusk
                   </span>
@@ -373,6 +372,7 @@ export function DashboardShell({
 
             {/* Mobile Drawer Footer */}
             <div className="pt-4 border-t border-border">
+              <ThemeMenuItem className="pb-4" />
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-[var(--cta-band)] text-[var(--cta-band-text)] dark:text-accent-text border border-transparent text-[12px] font-semibold flex items-center justify-center">

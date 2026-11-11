@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   ArrowRight,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteFooter } from "@/components/landing/site-footer";
 import { Badge } from "@/components/ui/badge";
 import { isSignedIn } from "@/lib/auth/current-user";
 import { LEGAL_SCOPE_AND_ESTATE_DISCLAIMER } from "@/lib/security/http-hardening";
@@ -45,7 +45,6 @@ export default async function SecurityArchitecturePage() {
             </Link>
           </div>
           <div className="flex items-center gap-1 sm:gap-4">
-            <ThemeToggle />
             {isAuthenticated ? (
               <Link
                 href="/dashboard"
@@ -314,8 +313,9 @@ export default async function SecurityArchitecturePage() {
               <div className="text-xs font-mono text-accent-text mb-1">STAGE 3</div>
               <div className="font-bold mb-1">ESCALATION_PENDING</div>
               <p className="text-sm text-muted-foreground">
-                Multi-channel Email + SMS fallback warnings. If providers have
-                an outage, the timer fails closed and refuses to advance.
+                Reminders by email, with a text-message back-up only where a
+                phone number is on file. If providers have an outage, the
+                timer fails closed and refuses to advance.
               </p>
             </div>
             <div className="border border-border rounded-xl p-4 bg-card">
@@ -368,6 +368,8 @@ export default async function SecurityArchitecturePage() {
           </p>
         </section>
       </main>
+
+      <SiteFooter />
     </div>
   );
 }

@@ -12,11 +12,12 @@
 * **What is stored in Neon PostgreSQL:**
   * Encrypted ciphertext blobs (`AES-256-GCM`) and their 12-byte random IVs
   * Wrapped (encrypted) keys that can only be unlocked by the user's passphrase, the user's Recovery Kit, or the assigned beneficiary's private key
-  * Account login hashes (`scrypt`), SHA-256 session token hashes, contact emails/phones, and Dead-Man's Switch timer states
+  * Per-vault salt and an algorithm identifier for the passphrase and recovery-code key derivation (Argon2id `ARGON2ID-19456-2-1` for new vaults; `PBKDF2-SHA256-600000` / `PBKDF2-SHA256-310000` for vaults created earlier; see `docs/THREAT_MODEL.md` section 4.1)
+  * Account sign-in hashes are held by **Neon Auth** in its own schema (Dusk code never handles them); SHA-256 session token hashes, contact emails/phones, and Dead-Man's Switch timer states
 
 ### Web & API Hardening Active in Production (`lib/security/http-hardening.ts`)
 1. **`Referrer-Policy: no-referrer`**: Ensures that when a beneficiary opens `/unlock/[contactId]#privateKey`, the browser never leaks the URL or `#hash` to any external link or analytics header.
-2. **Clickjacking & XSS Defense (`Content-Security-Policy` + `X-Frame-Options: DENY`)**: Blocks any third-party site from embedding Dusk in an `<iframe>` to trick a user into unlocking their vault or approving a release.
+2. **Script injection and clickjacking defense (per-request nonce `Content-Security-Policy` + `X-Frame-Options: DENY`)**: the policy is built for every page request in `proxy.ts` (`lib/security/csp.ts`) with a fresh random nonce: `script-src 'self' 'nonce-<random>' 'strict-dynamic' 'wasm-unsafe-eval'`, no `'unsafe-inline'` for scripts, and `'unsafe-eval'` in development only. It also sets `frame-ancestors 'none'`, `object-src 'none'`, `base-uri 'self'`, `form-action 'self'` and, in production, `upgrade-insecure-requests`. `connect-src` allows only the site itself and the Sentry ingest hosts. Styles still allow `'unsafe-inline'` (React and Framer Motion write inline style attributes); scripts are the part that matters. Because the nonce is per request, every page is rendered on demand (no static pre-rendering and no CDN page cache). The other headers (HSTS, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `nosniff`, DNS prefetch) are static and set in `next.config.ts`. Browser test `tests/e2e/csp.spec.ts` fails if any page produces a CSP violation or a script without the nonce.
 3. **CSRF Origin Check (`assertCsrfSafeMutationRequest`)**: Blocks malicious websites from submitting `POST`/`DELETE` requests on behalf of a logged-in Dusk user.
 4. **Brute-Force Rate Limiting (`lib/security/db-rate-limiter.ts`)**: counters live in PostgreSQL (`RateLimitBucket`) so the limit holds across every serverless instance.
    * Beneficiary package unlock attempts: Max **5 attempts per 30 minutes** per caller and beneficiary
@@ -38,17 +39,28 @@ When deploying Dusk to a brand-new production environment (e.g., Vercel + Neon P
 * `CRON_SECRET`: At least 32 characters. The shared secret the scheduler sends to `/api/internal/scheduler/tick`. Generate with `openssl rand -hex 32`.
 * `RESEND_API_KEY`, `RESEND_FROM_EMAIL`: Your Resend key and verified sender (ensure SPF, DKIM, and DMARC are verified so check-in emails never land in spam).
 * `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`: For SMS fallback warnings.
-* `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`: For $50 lifetime access checkout. The webhook endpoint is `/api/webhook/stripe` (events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`).
+* `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_STORE_ID`, `LEMONSQUEEZY_VARIANT_ID`, `LEMONSQUEEZY_WEBHOOK_SECRET`: For the one-time lifetime access purchase (Lemon Squeezy is the payment provider and merchant of record). With any of them missing, checkout and the webhook answer 503 and nothing else breaks. Set-up is in "Step 1c: Lemon Squeezy".
 * `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` (optional): Error reporting. Reports are scrubbed of request bodies, cookies, emails and token links (`lib/observability/sentry-scrub.ts`).
 
-Neon Auth settings to confirm on the **production** branch: email and password enabled, **Require email verification** turned on (existing accounts are linked to their Dusk data by *verified* email only), and your production domain added as a trusted domain.
+Neon Auth settings to confirm on the **production** branch: email and password enabled, **Require email verification** turned on (existing accounts are linked to their Dusk data by *verified* email only), and your production domain added as a trusted domain. Also turn on **end all sessions on password reset** (`revoke_sessions_on_password_reset`), so a password reset signs out every device, and keep your production domain in the trusted domains list.
 
 ### Step 1b: Database changes (run once, in order)
 The SQL files in `prisma/sql/` are applied by hand in the Neon SQL Editor (this project does not use `prisma db push`, which would drop data):
 1. `001_neon_auth_identity.sql` and `003_rate_limit.sql`: additive and safe to run any time.
-2. `002_drop_legacy_auth.sql`: **destructive.** Run it only after every real user has signed in once through Neon Auth (`SELECT count(*) FROM "User" WHERE "authUserId" IS NULL;` must show no real accounts). It deletes the old password hashes.
+2. `004_lemonsqueezy.sql`: additive and safe to run any time and more than once (adds the `PaymentEvent` ledger table and `User.lemonSqueezyCustomerId`). Run it **before** deploying the Lemon Squeezy release. It leaves the old Stripe table and column alone, so the old code keeps working until the new release is live.
+3. `005_contact_declined.sql`: additive and safe to run any time and more than once (adds the `DECLINED` contact status). Run it **before** deploying the invitation flow: the invitation page needs it to record a declined invitation.
+4. `002_drop_legacy_auth.sql`: **destructive.** Run it only after every real user has signed in once through Neon Auth (`SELECT count(*) FROM "User" WHERE "authUserId" IS NULL;` must show no real accounts). It deletes the old password hashes.
+5. `006_drop_stripe.sql`: **destructive and not yet run anywhere.** It drops the old `StripeEvent` table and `User.stripeCustomerId`. Run it only after the Lemon Squeezy release is live and one real purchase and refund have been checked end to end. Export the old Stripe records first if you want to keep them, and take a Neon snapshot before running it.
 
-### Step 1c: Start the scheduler
+### Step 1c: Lemon Squeezy (lifetime purchase)
+1. In Lemon Squeezy create a product with one **single-payment** variant priced at **$50 USD** (the price shown on the website; Lemon Squeezy, not Dusk, decides what is charged). Copy the numeric **store id** and **variant id** into `LEMONSQUEEZY_STORE_ID` and `LEMONSQUEEZY_VARIANT_ID`.
+2. Settings, API: create an API key and set `LEMONSQUEEZY_API_KEY`. Use a test-mode key while testing and a live-mode key in production.
+3. Settings, Webhooks: add a webhook with URL `https://<your domain>/api/webhook/lemonsqueezy`, tick the events **order_created** and **order_refunded**, and type a signing secret (6 to 40 characters, e.g. from `openssl rand -hex 16`). Put the same value in `LEMONSQUEEZY_WEBHOOK_SECRET`. Test-mode and live-mode webhooks are separate: create both and use the matching secret per environment.
+4. What happens: a signed-in user presses Buy and `POST /api/checkout` creates a checkout with their user id attached on the server. After payment Lemon Squeezy calls the webhook. The webhook checks the `X-Signature` header, then grants access only for a **paid** `order_created` whose store and variant match your settings. A **full** `order_refunded` removes access (unless the user has another paid order) and writes an audit event; a partial refund is recorded and access stays.
+5. Replays are safe: every handled event is recorded once in `PaymentEvent` (keyed by event name and order id), so a repeated delivery changes nothing. Failed deliveries are retried by Lemon Squeezy; unfixable ones (wrong store/variant, unknown user) are acknowledged and logged as `Rejected order event` in the server log. Watch for that line.
+6. If checkout is not configured, `/api/checkout` and the webhook answer 503 and log which variable is missing (never its value).
+
+### Step 1d: Start the scheduler
 The dead-man's switch only runs when something calls the tick endpoint. The project ships a Trigger.dev schedule (`trigger/dead-mans-switch.ts`, every 15 minutes):
 1. Create a project at trigger.dev and copy its `proj_...` id into `TRIGGER_PROJECT_REF`.
 2. In the Trigger.dev project's environment variables set `APP_URL` (your production URL) and `CRON_SECRET` (same value as above).
@@ -136,7 +148,7 @@ Here is exactly what to do in the three most critical real-world emergencies:
 * **Action:** The user opens the **Security Center** (`GET/POST /api/security`) and revokes other sessions, or uses their **Offline Recovery Kit** (`THE-99`) to re-enroll.
 * **What happens:** The sessions are revoked in Neon Auth. The stolen laptop loses access within about a second (the session cache is 1 second, set in `lib/auth/server.ts`).
 
-**Situation 2 — You need to rotate server environment secrets (`RESEND_API_KEY`, `STRIPE_SECRET_KEY`, `NEON_AUTH_COOKIE_SECRET`, `CRON_SECRET`) or revoke all active sessions platform-wide:**
+**Situation 2 — You need to rotate server environment secrets (`RESEND_API_KEY`, `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_WEBHOOK_SECRET`, `NEON_AUTH_COOKIE_SECRET`, `CRON_SECRET`) or revoke all active sessions platform-wide:**
 1. Update the secret in your Vercel/hosting environment variables and redeploy. (Changing `CRON_SECRET` also means updating it in Trigger.dev.)
 2. Changing `NEON_AUTH_COOKIE_SECRET` makes every browser cookie invalid, so everyone signs in again.
 3. To end every Neon Auth session directly, run this in the Neon SQL Editor:

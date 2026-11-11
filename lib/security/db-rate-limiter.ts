@@ -42,8 +42,12 @@ export async function consumeRateLimit(
 }
 
 /** A stable, non-identifying key for the caller's IP (never store raw IPs). */
-export function clientKeyFromRequest(req: Request): string {
-  const forwarded = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || req.headers.get("x-real-ip") || "unknown";
+export function clientKeyFromHeaders(headers: Pick<Headers, "get">): string {
+  const forwarded = headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+  const ip = forwarded || headers.get("x-real-ip") || "unknown";
   return hashIpAddress(ip);
+}
+
+export function clientKeyFromRequest(req: Request): string {
+  return clientKeyFromHeaders(req.headers);
 }

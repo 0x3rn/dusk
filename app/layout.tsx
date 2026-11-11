@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ActiveScrollManager } from "@/components/active-scroll-manager";
+import { CSP_NONCE_HEADER } from "@/lib/security/csp";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,11 +18,15 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Reading the per-request nonce set by proxy.ts also makes every page render on demand, which
+  // is what lets Next.js stamp the nonce on its scripts (a prebuilt page has no request).
+  const nonce = (await headers()).get(CSP_NONCE_HEADER) ?? undefined;
+
   return (
     <html
       lang="en"
@@ -33,6 +39,7 @@ export default function RootLayout({
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
+          nonce={nonce}
         >
           <ActiveScrollManager />
           {children}

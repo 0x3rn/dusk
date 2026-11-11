@@ -255,12 +255,30 @@ export function getAuditEventDisplay(
         description: "Your one-time payment was received and your lifetime access is active.",
       };
 
+    case "LIFETIME_ACCESS_REVOKED":
+      return {
+        title: "Payment refunded",
+        description:
+          meta.accessKept === true
+            ? "A payment was refunded. Your lifetime access stays because you have another paid order."
+            : "Your payment was refunded, so lifetime access has ended.",
+      };
+
+    case "LIFETIME_ACCESS_PARTIAL_REFUND":
+      return {
+        title: "Partial refund",
+        description: "Part of your payment was refunded. Your lifetime access is unchanged.",
+      };
+
     case "CONTACT_INVITED":
     case "CONTACT_REINVITED": {
       const name = resolveContactName(meta, contacts, "A contact");
+      const sentAgain = eventType === "CONTACT_REINVITED";
       return {
-        title: eventType === "CONTACT_INVITED" ? "Invitation sent" : "Invitation sent again",
-        description: `${name} was asked to confirm their email address.`,
+        title: sentAgain ? "Invitation sent again" : "Invitation sent",
+        description: sentAgain
+          ? `${name} was sent a new invitation as a ${resolveRole(meta)}. The earlier link no longer works.`
+          : `${name} was invited as a ${resolveRole(meta)}. They can take part only after they accept.`,
       };
     }
 
@@ -268,9 +286,42 @@ export function getAuditEventDisplay(
       const name = resolveContactName(meta, contacts, "A contact");
       return {
         title: "Invitation accepted",
-        description: `${name} accepted their invitation.`,
+        description: `${name} accepted as a ${resolveRole(meta)}. They can now take part in a release.`,
       };
     }
+
+    case "CONTACT_INVITE_DECLINED": {
+      const name = resolveContactName(meta, contacts, "A contact");
+      return {
+        title: "Invitation declined",
+        description: `${name} chose not to be a ${resolveRole(meta)}. They won't be asked again unless you add them again.`,
+      };
+    }
+
+    case "CONTACT_INVITE_EXPIRED": {
+      const name = resolveContactName(meta, contacts, "A contact");
+      return {
+        title: "Invitation expired",
+        description: `${name} did not accept in time. Send a new invitation if you still want them in your plan.`,
+      };
+    }
+
+    case "CONTACT_INVITE_CANCELED": {
+      const name = resolveContactName(meta, contacts, "A contact");
+      return {
+        title: "Invitation cancelled",
+        description: `You cancelled the invitation to ${name}. The link no longer works.`,
+      };
+    }
+
+    case "SECURITY_NOTIFICATION_DELIVERY_FAILED":
+      return {
+        title: "An email could not be sent",
+        description:
+          asString(meta.templateKey) === "CONTACT_INVITATION"
+            ? "We couldn't deliver an invitation. Use Resend invitation under People & access to try again."
+            : "We couldn't deliver a message. Check your plan on the dashboard.",
+      };
 
     case "VERIFIER_CHALLENGE_ISSUED": {
       const name = resolveContactName(meta, contacts, "A trusted verifier");

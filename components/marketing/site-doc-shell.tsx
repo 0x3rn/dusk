@@ -1,7 +1,6 @@
 import React from "react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { SiteFooter } from "@/components/landing/site-footer";
-import { ThemeToggle } from "@/components/theme-toggle";
 import type { SiteDoc } from "@/lib/site-docs";
 
 export function SiteDocShell({ doc }: { doc: SiteDoc }) {
@@ -18,7 +17,6 @@ export function SiteDocShell({ doc }: { doc: SiteDoc }) {
             {doc.title}
           </span>
         </div>
-        <ThemeToggle />
       </header>
 
       <main id="main-content" className="flex-1">
@@ -26,9 +24,16 @@ export function SiteDocShell({ doc }: { doc: SiteDoc }) {
           <span className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground-secondary mb-3 block">
             {doc.category}
           </span>
-          <h1 className="text-[28px] sm:text-[38px] font-semibold text-foreground leading-[1.15] tracking-[-0.02em] mb-6 sm:mb-8 break-words">
+          <h1
+            className={`text-[28px] sm:text-[38px] font-semibold text-foreground leading-[1.15] tracking-[-0.02em] break-words ${
+              doc.lastUpdated ? "mb-3" : "mb-6 sm:mb-8"
+            }`}
+          >
             {doc.title}
           </h1>
+          {doc.lastUpdated ? (
+            <p className="text-[14px] text-foreground-muted mb-6 sm:mb-8">Last updated: {doc.lastUpdated}</p>
+          ) : null}
           <div className="text-[15px] text-foreground-secondary leading-[1.7] break-words">
             {doc.body}
           </div>

@@ -1,22 +1,9 @@
 // lib/auth/security.ts
 import crypto from "node:crypto";
 
-export class ValidationError extends Error {
-  public readonly code = "VALIDATION_ERROR";
-  constructor(message: string) {
-    super(message);
-    this.name = "ValidationError";
-  }
-}
+import { AuthorizationError, ValidationError } from "./errors";
 
-export class AuthorizationError extends Error {
-  public readonly code = "FORBIDDEN";
-  public readonly statusCode = 403;
-  constructor(message = "You do not have permission to access this resource.") {
-    super(message);
-    this.name = "AuthorizationError";
-  }
-}
+export { AuthorizationError, ValidationError };
 
 export class AuthenticationError extends Error {
   public readonly statusCode = 401;

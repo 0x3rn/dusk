@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Shield } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { authClient } from "@/lib/auth/client";
 import { authErrorMessage } from "@/lib/auth/client-errors";
 import { Notice } from "@/components/ui/notice";
+import { CheckoutIntentBanner, IntentLink } from "@/components/billing/checkout-intent-banner";
+import { afterSignInPath } from "@/lib/billing/checkout-client";
+import { PasswordField } from "@/components/auth/password-field";
+import { PASSWORD_HINT, checkNewPassword } from "@/lib/auth/password-policy";
 import {
   buttonPrimaryClass,
   buttonSecondaryClass,
-  fieldHintClass,
   fieldInputClass,
   fieldLabelClass,
 } from "@/components/ui/form-field";
@@ -25,12 +27,19 @@ export default function RegisterPage() {
   const [step, setStep] = useState<"details" | "verify">("details");
   const [otp, setOtp] = useState("");
   const [notice, setNotice] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const router = useRouter();
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
     setError("");
+    const policy = checkNewPassword(password);
+    if (!policy.ok) {
+      setPasswordError(policy.message);
+      return;
+    }
+    setPasswordError("");
     setLoading(true);
     try {
       const result = await authClient.signUp.email({ email, password, name });
@@ -39,7 +48,7 @@ export default function RegisterPage() {
       // When the project requires email verification there is no session yet.
       const session = await authClient.getSession();
       if (session.data) {
-        router.push("/dashboard");
+        router.push(afterSignInPath(window.location.search));
         router.refresh();
       } else {
         setStep("verify");
@@ -60,7 +69,7 @@ export default function RegisterPage() {
     try {
       const result = await authClient.emailOtp.verifyEmail({ email, otp: otp.trim() });
       if (result.error) throw result.error;
-      router.push("/dashboard");
+      router.push(afterSignInPath(window.location.search));
       router.refresh();
     } catch (err: unknown) {
       setError(authErrorMessage(err, "We couldn't verify that code. Check it and try again."));
@@ -95,7 +104,7 @@ export default function RegisterPage() {
     try {
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/dashboard",
+        callbackURL: afterSignInPath(window.location.search),
       });
       if (result?.error) throw result.error;
     } catch (err: unknown) {
@@ -119,6 +128,8 @@ export default function RegisterPage() {
             You will choose a separate passphrase for your vault after this.
           </p>
         </div>
+
+        <CheckoutIntentBanner mode="register" />
 
         {error && (
           <Notice tone="error" className="mb-4">
@@ -237,25 +248,15 @@ export default function RegisterPage() {
                             placeholder="you@example.com"
             />
           </div>
-          <div>
-            <label htmlFor="register-password" className={fieldLabelClass}>
-              Password
-            </label>
-            <input
-              id="register-password"
-              type="password"
-              autoComplete="new-password"
-              required
-              minLength={10}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              aria-describedby="register-password-hint"
-              className={fieldInputClass}
-            />
-            <span id="register-password-hint" className={fieldHintClass}>
-              At least 10 characters.
-            </span>
-          </div>
+          <PasswordField
+            id="register-password"
+            label="Password"
+            autoComplete="new-password"
+            value={password}
+            onChange={setPassword}
+            hint={PASSWORD_HINT}
+            error={passwordError}
+          />
 
           <button
             type="submit"
@@ -271,9 +272,9 @@ export default function RegisterPage() {
 
         <div className="mt-6 sm:mt-8 text-center text-sm text-foreground-secondary">
           Already have an account?{" "}
-          <Link href="/login" className="text-accent-text font-medium underline underline-offset-2 inline-flex min-h-11 items-center">
+          <IntentLink to="/login" className="text-accent-text font-medium underline underline-offset-2 inline-flex min-h-11 items-center">
             Sign in
-          </Link>
+          </IntentLink>
         </div>
       </div>
     </main>

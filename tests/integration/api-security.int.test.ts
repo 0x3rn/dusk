@@ -204,7 +204,7 @@ describe("rate limits on signed-in routes", () => {
     session.user = attacker;
   });
 
-  it("/api/checkout stops opening Stripe sessions after 10 an hour, before Stripe is contacted", async () => {
+  it("/api/checkout stops opening checkouts after 10 an hour, before the payment provider is contacted", async () => {
     await exhaust(RATE_LIMIT_POLICIES.CHECKOUT_START, attacker.id);
     const res = await checkoutPOST(post("/api/checkout", {}));
     expect(res.status).toBe(429);
