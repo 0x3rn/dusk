@@ -31,6 +31,20 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
+/** The one sign-out control in the shell: full width, directly below the person's name. */
+function SignOutButton({ onSignOut }: { onSignOut: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSignOut}
+      className="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-[8px] border border-border text-[14px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+    >
+      <LogOut className="w-4 h-4" aria-hidden="true" />
+      <span>Sign out</span>
+    </button>
+  );
+}
+
 export function DashboardShell({
   currentView,
   onSelectView,
@@ -169,8 +183,8 @@ export function DashboardShell({
 
         {/* Footer: User Profile & Account */}
         <div className="p-4 border-t border-border bg-sunken">
-          <ThemeMenuItem showIcons={false} className="px-2 pb-3" />
-          <div className="flex items-center justify-between gap-2 p-2 rounded-[8px] hover:bg-hover transition-colors">
+          <ThemeMenuItem showIcons={false} className="px-2 pb-5" />
+          <div className="flex items-center gap-2 p-2 rounded-[8px]">
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-8 h-8 rounded-full bg-[var(--cta-band)] text-[var(--cta-band-text)] dark:text-accent-text border border-transparent text-[12px] font-semibold flex items-center justify-center shrink-0">
                 {initials}
@@ -184,16 +198,8 @@ export function DashboardShell({
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="border border-border flex items-center justify-center text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-card transition-colors shrink-0 w-10 h-10 rounded-[8px] pointer-coarse:size-11"
-              title="Sign out"
-              aria-label="Sign out"
-            >
-              <LogOut className="w-4 h-4 stroke-[1.75]" aria-hidden="true" />
-            </button>
           </div>
+          <SignOutButton onSignOut={onSignOut} />
         </div>
       </aside>
 
@@ -259,14 +265,6 @@ export function DashboardShell({
               <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
               <span className="sr-only">(opens in a new tab)</span>
             </Link>
-
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="hidden sm:inline-flex items-center justify-center rounded-[8px] border border-border font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors h-10 px-3.5 text-[14px] h-11 lg:pointer-fine:h-9"
-            >
-              Sign out
-            </button>
           </div>
         </header>
 
@@ -372,8 +370,8 @@ export function DashboardShell({
 
             {/* Mobile Drawer Footer */}
             <div className="pt-4 border-t border-border">
-              <ThemeMenuItem className="pb-4" />
-              <div className="flex items-center justify-between">
+              <ThemeMenuItem className="pb-6" />
+              <div className="flex items-center">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-[var(--cta-band)] text-[var(--cta-band-text)] dark:text-accent-text border border-transparent text-[12px] font-semibold flex items-center justify-center">
                     {initials}
@@ -387,24 +385,8 @@ export function DashboardShell({
                     </span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={onSignOut}
-                  className="p-2.5 rounded-[8px] border border-border text-foreground-secondary hover:text-[var(--danger-fg)] transition-colors"
-                  title="Sign out"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="w-4 h-4" aria-hidden="true" />
-                </button>
               </div>
-              <button
-                type="button"
-                onClick={onSignOut}
-                className="mt-3 w-full inline-flex items-center justify-center gap-2 min-h-11 rounded-[8px] border border-border text-[14px] font-medium text-foreground-secondary hover:text-[var(--danger-fg)] hover:bg-hover transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-                <span>Sign out</span>
-              </button>
+              <SignOutButton onSignOut={onSignOut} />
             </div>
           </div>
         </div>
