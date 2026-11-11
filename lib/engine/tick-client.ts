@@ -1,6 +1,6 @@
 // lib/engine/tick-client.ts
-// What the durable scheduler (Trigger.dev) does every run: call our tick endpoint with the shared
-// secret. Kept separate and tiny so it can be tested without Trigger.dev.
+// What the scheduler (the Cloudflare Worker in scheduler/) does every run: call our tick endpoint with the shared
+// secret. Kept separate and tiny so it can be tested without Cloudflare.
 
 export interface TickResult {
   ok: boolean;

@@ -62,10 +62,11 @@ The SQL files in `prisma/sql/` are applied by hand in the Neon SQL Editor (this 
 6. If checkout is not configured, `/api/checkout` and the webhook answer 503 and log which variable is missing (never its value).
 
 ### Step 1d: Start the scheduler
-The dead-man's switch only runs when something calls the tick endpoint. The project ships a Trigger.dev schedule (`trigger/dead-mans-switch.ts`, every 15 minutes):
-1. Create a project at trigger.dev and copy its `proj_...` id into `TRIGGER_PROJECT_REF`.
-2. In the Trigger.dev project's environment variables set `APP_URL` (your production URL) and `CRON_SECRET` (same value as above).
-3. Deploy it: `npx trigger.dev@latest deploy`.
+The dead-man's switch only runs when something calls the tick endpoint. The project ships a small Cloudflare Worker (`scheduler/`) with a cron trigger every 15 minutes that calls it. It is free and needs no change to the app:
+1. `cd scheduler` and set `APP_URL` in `wrangler.jsonc` to your production URL (already `https://dusk.somto.xyz`).
+2. Set the secret: `npx wrangler secret put CRON_SECRET` (same value as `CRON_SECRET` in Vercel).
+3. Deploy it: `npx wrangler deploy`.
+4. Check it ran: `npx wrangler tail dusk-scheduler` at the next quarter hour shows `tick_ok`; a failed run shows `tick_failed`.
 Each run is safe to repeat: state changes are keyed in the database, reminders are one per day, and overlapping runs are skipped by a database lock.
 
 ### Step 1e: How the retention purge runs (the Privacy page's 12-month promises)
@@ -165,7 +166,7 @@ Here is exactly what to do in the three most critical real-world emergencies:
 * **What happens:** The sessions are revoked in Neon Auth. The stolen laptop loses access within about a second (the session cache is 1 second, set in `lib/auth/server.ts`).
 
 **Situation 2 — You need to rotate server environment secrets (`RESEND_API_KEY`, `LEMONSQUEEZY_API_KEY`, `LEMONSQUEEZY_WEBHOOK_SECRET`, `NEON_AUTH_COOKIE_SECRET`, `CRON_SECRET`) or revoke all active sessions platform-wide:**
-1. Update the secret in your Vercel/hosting environment variables and redeploy. (Changing `CRON_SECRET` also means updating it in Trigger.dev.)
+1. Update the secret in your Vercel/hosting environment variables and redeploy. (Changing `CRON_SECRET` also means running `npx wrangler secret put CRON_SECRET` in `scheduler/`.)
 2. Changing `NEON_AUTH_COOKIE_SECRET` makes every browser cookie invalid, so everyone signs in again.
 3. To end every Neon Auth session directly, run this in the Neon SQL Editor:
    ```sql

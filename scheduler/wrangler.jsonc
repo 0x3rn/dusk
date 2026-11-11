@@ -1,0 +1,13 @@
+{
+  // Cloudflare Worker that wakes the Dusk scheduler every 15 minutes.
+  // Deploy:  cd scheduler && npx wrangler deploy
+  // Secret:  npx wrangler secret put CRON_SECRET   (same value as CRON_SECRET in Vercel)
+  "name": "dusk-scheduler",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": { "APP_URL": "https://dusk.somto.xyz" },
+  "observability": { "enabled": true }
+}

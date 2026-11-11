@@ -301,8 +301,8 @@ export const SITE_DOCS: Record<string, SiteDoc> = {
               text: "Error reports. Receives technical reports about faults, with vault data, email addresses and link codes removed first.",
             },
             {
-              term: "Trigger.dev",
-              text: "Scheduling. Runs the regular check that decides when reminders are due. It carries no personal data.",
+              term: "Cloudflare",
+              text: "Scheduling. Runs the regular timer that wakes our servers to check which reminders are due. It carries no personal data.",
             },
           ]}
         />

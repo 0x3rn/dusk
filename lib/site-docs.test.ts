@@ -118,7 +118,7 @@ describe("privacy policy", () => {
 
   it("lists every company that helps us run Dusk, each with a purpose", () => {
     const helpers = text.slice(text.indexOf("Who helps us run Dusk"), text.indexOf("How long we keep your information"));
-    for (const name of ["Neon", "Vercel", "Lemon Squeezy", "Resend", "Twilio", "Sentry", "Trigger.dev"]) {
+    for (const name of ["Neon", "Vercel", "Lemon Squeezy", "Resend", "Twilio", "Sentry", "Cloudflare"]) {
       expect(helpers, name).toContain(name);
     }
     expect(helpers).toMatch(/Dusk never sees your card number/);

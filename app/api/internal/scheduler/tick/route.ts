@@ -1,5 +1,5 @@
 // app/api/internal/scheduler/tick/route.ts
-// Called by the durable scheduler (Trigger.dev) every few minutes. Not a user endpoint:
+// Called by the scheduler (the Cloudflare Worker in scheduler/) every few minutes. Not a user endpoint:
 // it is authenticated by a shared secret and returns counts only (no personal data).
 import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
