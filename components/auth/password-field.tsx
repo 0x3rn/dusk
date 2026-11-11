@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { fieldHintClass, fieldInputClass, fieldLabelClass } from "@/components/ui/form-field";
+import { fieldHintClass, fieldLabelClass } from "@/components/ui/form-field";
+import { authInputClass } from "@/components/auth/auth-field-classes";
 
 interface PasswordFieldProps {
   id: string;
@@ -52,7 +53,7 @@ export function PasswordField({
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className={`${fieldInputClass} pr-12`}
+          className={`${authInputClass} pr-12`}
         />
         <button
           type="button"

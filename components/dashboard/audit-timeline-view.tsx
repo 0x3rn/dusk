@@ -3,7 +3,7 @@
 import React from "react";
 import {
   Activity,
-  Shield,
+  CircleDot,
   KeyRound,
   Users,
   Clock,
@@ -46,7 +46,7 @@ export function AuditTimelineView({
     if (type.includes("PAUSE")) {
       return PauseCircle;
     }
-    return Shield;
+    return CircleDot;
   };
 
   return (

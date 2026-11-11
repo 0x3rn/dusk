@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import {
-  Shield,
+  LockKeyhole,
   Lock,
   ExternalLink,
   LogOut,
@@ -149,7 +149,7 @@ export function SettingsView({
       <div className="border border-border bg-card rounded-[14px] p-5 sm:p-7 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2 gap-x-4 gap-y-1">
                   <div className="flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-accent-text" aria-hidden="true" />
+                    <LockKeyhole className="w-5 h-5 text-accent-text" aria-hidden="true" />
             <h2 className="text-[18px] font-semibold text-foreground">
               How Dusk protects your vault
                         </h2>

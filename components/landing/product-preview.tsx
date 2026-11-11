@@ -1,5 +1,5 @@
 import React from "react";
-import { Shield, Users, Clock, CheckCircle2, Lock, KeyRound } from "lucide-react";
+import { Users, Clock, CheckCircle2, Lock, KeyRound } from "lucide-react";
 
 export function ProductPreview() {
   return (
@@ -70,7 +70,7 @@ export function ProductPreview() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
             <div className="p-3.5 rounded-[10px] border border-border bg-elevated">
               <div className="flex items-center gap-2 mb-1.5">
-                <Shield className="w-4 h-4 text-accent-text stroke-[1.75]" />
+                <Lock className="w-4 h-4 text-accent-text stroke-[1.75]" />
                 <h4 className="text-[13px] font-semibold text-foreground">
                   Encrypted vault
                 </h4>

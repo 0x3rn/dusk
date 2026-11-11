@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Clock, Link2Off, ShieldCheck, TimerReset } from "lucide-react";
+import { CheckCircle2, Clock, Link2Off, MailOpen, TimerReset } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { Notice } from "@/components/ui/notice";
 import { buttonPrimaryClass, buttonSecondaryClass } from "@/components/ui/form-field";
@@ -192,7 +192,7 @@ function ChooseView({
     <div className="space-y-5">
       <div className="space-y-3">
         <p className="inline-flex items-center gap-1.5 text-[13px] font-medium text-accent-text">
-          <ShieldCheck className="w-4 h-4" aria-hidden="true" />
+          <MailOpen className="w-4 h-4" aria-hidden="true" />
           Invitation to Dusk
         </p>
         <h1 className="text-2xl sm:text-[28px] font-semibold tracking-tight text-foreground leading-tight">

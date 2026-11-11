@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import {
   Lock,
   KeyRound,
-  Shield,
   Trash2,
   Eye,
   EyeOff,
@@ -145,7 +144,7 @@ export function DigitalVaultView({
               Digital vault
             </h1>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-accent-surface text-accent-text border border-brand/25 text-[13px] font-semibold">
-              <Shield className="w-3.5 h-3.5 text-accent-text stroke-[2]" />
+              <Lock className="w-3.5 h-3.5 text-accent-text stroke-[2]" />
               <span>Encrypted on your device</span>
             </span>
           </div>

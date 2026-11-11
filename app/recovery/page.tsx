@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Shield, KeyRound, FileText, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, FileKey, KeyRound, FileText, CheckCircle2 } from "lucide-react";
 import { DuskLogo } from "@/components/landing/dusk-logo";
 import { SiteFooter } from "@/components/landing/site-footer";
 
@@ -48,7 +48,7 @@ export default function RecoveryPage() {
 
           {/* Critical Notice */}
           <div className="p-4 sm:p-5 rounded-[12px] bg-accent-surface/40 border border-brand/25 flex items-start gap-3.5">
-            <Shield className="w-5 h-5 text-accent-text shrink-0 mt-0.5" />
+            <FileKey className="w-5 h-5 text-accent-text shrink-0 mt-0.5" />
             <div className="text-[14px] leading-relaxed">
               <strong className="text-foreground font-semibold block mb-1">
                 Your recovery kit

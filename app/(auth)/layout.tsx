@@ -1,6 +1,7 @@
 // app/(auth)/layout.tsx
 import { redirect } from "next/navigation";
 import { isSignedIn } from "@/lib/auth/current-user";
+import { AuthShell } from "@/components/auth/auth-shell";
 
 // Reads the signed-in session, so it must render per request, never at build time.
 export const dynamic = "force-dynamic";
@@ -14,5 +15,5 @@ export default async function AuthLayout({
     redirect("/dashboard");
   }
 
-  return <>{children}</>;
+  return <AuthShell>{children}</AuthShell>;
 }

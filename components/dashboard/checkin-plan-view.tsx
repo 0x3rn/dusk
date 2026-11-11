@@ -5,7 +5,7 @@ import {
   Clock,
   PauseCircle,
   Play,
-  Shield,
+  BellRing,
   Calendar,
 } from "lucide-react";
 import { ScheduleData } from "./types";
@@ -204,7 +204,7 @@ export function CheckinPlanView({
               </div>
             </div>
             <div className="flex items-start gap-2.5">
-              <Shield className="w-4 h-4 text-accent-text shrink-0 mt-0.5" aria-hidden="true" />
+              <BellRing className="w-4 h-4 text-accent-text shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <strong className="text-foreground">If you miss one:</strong> when the grace period ends, Dusk contacts your trusted verifiers. Nothing is sent to anyone until they confirm.
               </div>

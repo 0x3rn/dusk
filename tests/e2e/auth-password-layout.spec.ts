@@ -112,3 +112,75 @@ test.describe("settings change-password card", () => {
     }
   }
 });
+
+// On a computer (1024px and wider) the auth pages have no card and no side panel: the form is
+// centred on the page. On phones and tablets the form keeps its card. Nothing else is on the page.
+const AUTH_VIEWPORTS = [
+  { width: 1920, height: 1080 },
+  { width: 1440, height: 900 },
+  { width: 768, height: 1024 },
+  { width: 390, height: 844 },
+] as const;
+
+for (const theme of THEMES) {
+  for (const { width, height } of AUTH_VIEWPORTS) {
+    for (const path of ["/login", "/register", "/forgot-password"]) {
+      test.describe(`${path} layout, ${theme} theme at ${width}px`, () => {
+        test.use({ viewport: { width, height }, colorScheme: theme });
+
+        test("centred form, card only below 1024px, no side panel, button reachable", async ({ page }) => {
+          await ready(page, path, theme);
+          await noSidewaysScroll(page);
+
+          const form = page.locator("main form");
+          const formBox = await form.boundingBox();
+          expect(formBox).not.toBeNull();
+          const formWidth = formBox?.width ?? 0;
+          const desktop = width >= 1024;
+
+          if (width >= 768) {
+            expect(formWidth, "form is too narrow").toBeGreaterThanOrEqual(380 - (desktop ? 0 : 64));
+            expect(formWidth, "form is too wide to read comfortably").toBeLessThanOrEqual(480);
+          } else {
+            // On a phone the form uses the screen minus the 16px gutters, the 1px card border and 20px card padding.
+            expect(formWidth, "form does not fill the phone width").toBeGreaterThanOrEqual(width - 76);
+          }
+
+          // The form is centred on the page.
+          const centre = (formBox?.x ?? 0) + formWidth / 2;
+          expect(Math.abs(centre - width / 2), "form is not centred").toBeLessThanOrEqual(2);
+
+          // A card (border or shadow around the form) exists below 1024px and not above it.
+          const framed = await form.evaluate((el) => {
+            const main = el.closest("main");
+            for (let node = el.parentElement; node && node !== main?.parentElement; node = node.parentElement) {
+              const style = getComputedStyle(node);
+              // "No shadow" can be computed as a fully transparent shadow, which is not a visible card.
+              const visibleShadow = style.boxShadow !== "none" && !/^rgba\(0, 0, 0, 0\)/.test(style.boxShadow);
+              if (parseFloat(style.borderTopWidth) > 0 || visibleShadow) return true;
+            }
+            return false;
+          });
+          expect(framed, desktop ? "form is wrapped in a card on desktop" : "form has lost its card on a phone or tablet").toBe(!desktop);
+
+          // There is no extra section about what Dusk can see, at any width.
+          await expect(page.getByRole("complementary")).toHaveCount(0);
+          await expect(page.getByText("What Dusk can and can't see")).toHaveCount(0);
+
+          // Text boxes use at least 16px so phones do not zoom in when one is tapped.
+          const inputs = form.locator("input:visible");
+          for (let i = 0; i < (await inputs.count()); i++) {
+            const size = await inputs.nth(i).evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+            expect(size).toBeGreaterThanOrEqual(16);
+          }
+
+          // The main button can be scrolled to and used.
+          const submit = form.locator("button[type=submit]");
+          await submit.scrollIntoViewIfNeeded();
+          await expect(submit).toBeInViewport();
+          expect((await submit.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(MIN_TARGET - 0.5);
+        });
+      });
+    }
+  }
+}

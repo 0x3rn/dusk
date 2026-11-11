@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Lock, Shield, Users, RefreshCw, ArrowRight, X, Laptop, Server, KeyRound } from "lucide-react";
+import { Lock, LockKeyhole, Users, RefreshCw, ArrowRight, X, Laptop, Server, KeyRound } from "lucide-react";
 
 export function SecuritySection() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -138,7 +138,7 @@ export function SecuritySection() {
 
           <div className="flex items-start gap-4">
             <div className="w-9 h-9 rounded-[8px] bg-elevated border border-border flex items-center justify-center shrink-0 text-accent-text">
-              <Shield className="w-4 h-4 stroke-[1.75]" />
+              <LockKeyhole className="w-4 h-4 stroke-[1.75]" />
             </div>
             <div>
               <h4 className="text-[16px] font-semibold text-foreground mb-1.5">

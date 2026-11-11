@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock, XCircle, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Clock, XCircle, CheckCircle2, UserCheck } from "lucide-react";
 
 export function ReleaseSafetySection() {
   return (
@@ -36,7 +36,7 @@ export function ReleaseSafetySection() {
 
               <div className="flex items-start gap-3.5">
                 <div className="w-8 h-8 rounded-[8px] bg-elevated border border-border flex items-center justify-center shrink-0 text-accent-text mt-0.5">
-                  <ShieldCheck className="w-4 h-4 stroke-[1.75]" />
+                  <UserCheck className="w-4 h-4 stroke-[1.75]" />
                 </div>
                 <div>
                   <h4 className="text-[15px] font-semibold text-foreground mb-1">
