@@ -31,7 +31,7 @@ export function DuskSymbol({
         d="M26 10H32C44.1503 10 54 19.8497 54 32C54 44.1503 44.1503 54 32 54H26V44.5H31.5C38.9558 44.5 45 38.4558 45 31C45 23.5442 38.9558 17.5 31.5 17.5H26V10Z"
         fill="currentColor"
       />
-      {/* Inner Dusk Horizon Core (#00FFA3) */}
+      {/* Inner Dusk Horizon Core, in the brand green */}
       <circle cx="31" cy="32" r="7.5" fill="var(--brand)" />
     </svg>
   );

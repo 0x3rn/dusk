@@ -6,12 +6,12 @@ export const fieldLabelClass = "block text-sm font-medium text-foreground mb-1.5
 export const fieldHintClass = "block text-[13px] text-foreground-secondary mt-1.5";
 
 export const fieldInputClass =
-  "w-full h-11 px-3.5 rounded-[8px] border border-border bg-background text-[15px] text-foreground " +
+  "w-full h-11 px-3.5 rounded-[8px] border border-input bg-background text-[15px] text-foreground " +
   "placeholder:text-foreground-muted transition-colors disabled:opacity-60 " +
   "aria-[invalid=true]:border-[var(--danger-fg)]";
 
 export const fieldTextareaClass =
-  "w-full p-3 rounded-[8px] border border-border bg-background text-[15px] text-foreground " +
+  "w-full p-3 rounded-[8px] border border-input bg-background text-[15px] text-foreground " +
   "placeholder:text-foreground-muted transition-colors resize-y " +
   "aria-[invalid=true]:border-[var(--danger-fg)]";
 

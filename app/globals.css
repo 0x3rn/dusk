@@ -69,18 +69,18 @@
   --card-foreground: #17191F;
   --popover: #FFFFFF;
   --popover-foreground: #17191F;
-  --primary: #00FFA3;
+  --primary: #00A367;
   --primary-foreground: #17191F;
   --secondary: #F7F8FA;
   --secondary-foreground: #17191F;
   --muted: #F7F8FA;
   --muted-foreground: #656B76;
-  --accent: #C2FFE8;
+  --accent: #E4F6F0;
   --accent-foreground: #17191F;
   --destructive: #B91C1C;
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
-  --input: #E5E7EB;
+  --input: #868C96;
   --ring: #007A52; /* darker than the brand mint so the focus outline shows on white (5:1) */
   --radius: 0.75rem;
 
@@ -91,14 +91,14 @@
   --sunken: #FFFFFF;
   --foreground-secondary: #656B76;
   --foreground-muted: #656B76;
-  --brand: #00FFA3;
-  --brand-hover: #00C982;
-  --accent-surface: #C2FFE8;
+  --brand: #00A367;
+  --brand-hover: #009961;
+  --accent-surface: #E4F6F0;
   --accent-text: #007A52;
   --on-brand: #17191F;
 
   --success-fg: #17191F;
-  --success-bg: #C2FFE8;
+  --success-bg: #E4F6F0;
   --warning-fg: #92400E;
   --warning-bg: #FEF3C7;
   --danger-fg: #B91C1C;
@@ -115,56 +115,56 @@
 
 .dark,
 [data-theme="dark"] {
-  --background: #141820;
-  --foreground: #F0F2F5;
-  --card: #1B212B;
-  --card-foreground: #F0F2F5;
-  --popover: #242C38;
-  --popover-foreground: #F0F2F5;
-  --primary: #00FFA3;
-  --primary-foreground: #10141B;
-  --secondary: #242C38;
-  --secondary-foreground: #F0F2F5;
-  --muted: #1B212B;
-  --muted-foreground: #A4ADBC;
-  --accent: #123B30;
-  --accent-foreground: #00FFA3;
-  --destructive: #FF7B86;
-  --destructive-foreground: #10141B;
-  --border: #303947;
-  --input: #303947;
-  --ring: #00FFA3;
+  --background: #0A0C0F;
+  --foreground: #E8EBEE;
+  --card: #0F1215;
+  --card-foreground: #E8EBEE;
+  --popover: #151A1E;
+  --popover-foreground: #E8EBEE;
+  --primary: #36D399;
+  --primary-foreground: #06140E;
+  --secondary: #151A1E;
+  --secondary-foreground: #E8EBEE;
+  --muted: #0F1215;
+  --muted-foreground: #A0A8B2;
+  --accent: #0D241C;
+  --accent-foreground: #6CDAB2;
+  --destructive: #FF8A94;
+  --destructive-foreground: #06090B;
+  --border: #1E242A;
+  --input: #656D77;
+  --ring: #6CDAB2;
 
-  --canvas: #141820;
-  --elevated: #242C38;
-  --hover: #293341;
-  --sunken: #10141B;
-  --foreground-secondary: #A4ADBC;
-  --foreground-muted: #8E99AA; /* 5:1 on card surfaces; was 4.1:1 */
-  --brand: #00FFA3;
-  --brand-hover: #00C982;
-  --accent-surface: #123B30;
-  --accent-text: #00FFA3;
-  --on-brand: #10141B;
+  --canvas: #0A0C0F;
+  --elevated: #151A1E;
+  --hover: #1B2126;
+  --sunken: #060809;
+  --foreground-secondary: #A0A8B2;
+  --foreground-muted: #8A929C; /* 5:1 on card surfaces; was 4.1:1 */
+  --brand: #36D399;
+  --brand-hover: #28B883;
+  --accent-surface: #0D241C;
+  --accent-text: #6CDAB2;
+  --on-brand: #06140E;
 
-  --success-fg: #00FFA3;
-  --success-bg: #123B30;
-  --warning-fg: #F5C76B;
-  --warning-bg: #3A2E19;
-  --danger-fg: #FF7B86;
-  --danger-bg: #3D1B22;
+  --success-fg: #6CDAB2;
+  --success-bg: #0D241C;
+  --warning-fg: #E9B95F;
+  --warning-bg: #2A2112;
+  --danger-fg: #FF8A94;
+  --danger-bg: #2E151B;
   --info-fg: #8AB4FF;
-  --info-bg: #1A2B47;
+  --info-bg: #14233B;
 
-  --cta-band: #10141B;
-  --cta-band-text: #F0F2F5;
-  --cta-band-text-secondary: #A4ADBC;
+  --cta-band: #060809;
+  --cta-band-text: #E8EBEE;
+  --cta-band-text-secondary: #A0A8B2;
 
-  --sidebar-background: #10141B;
-  --sidebar-foreground: #F0F2F5;
-  --sidebar-border: #303947;
-  --sidebar-accent: #123B30;
-  --sidebar-accent-foreground: #00FFA3;
+  --sidebar-background: #080A0C;
+  --sidebar-foreground: #E8EBEE;
+  --sidebar-border: #1E242A;
+  --sidebar-accent: #0D241C;
+  --sidebar-accent-foreground: #6CDAB2;
 
   color-scheme: dark;
 }
@@ -186,6 +186,11 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline-offset: 0;
+}
+
+/* Native checkboxes and radios follow the brand green. :where() keeps this overridable by utilities. */
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--brand);
 }
 
 /* Skip link: hidden until it receives keyboard focus. */

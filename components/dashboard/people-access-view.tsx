@@ -171,7 +171,7 @@ export function PeopleAccessView({
               aria-label="Secure unlock link"
               value={unlockUrl}
               onFocus={(e) => e.currentTarget.select()}
-              className="h-11 px-3 rounded-[8px] border border-border bg-background font-mono text-[13px] text-foreground w-full sm:w-auto sm:flex-1 min-w-0 sm:pointer-fine:h-10"
+              className="h-11 px-3 rounded-[8px] border border-input bg-background font-mono text-[13px] text-foreground w-full sm:w-auto sm:flex-1 min-w-0 sm:pointer-fine:h-10"
             />
             <button type="button" onClick={handleCopyUnlockLink} className={`${buttonPrimaryClass} shrink-0`}>
               {copiedLink ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}

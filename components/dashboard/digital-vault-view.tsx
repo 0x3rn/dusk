@@ -492,7 +492,7 @@ export function DigitalVaultView({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search titles"
-                    className="pr-2.5 border border-border bg-background text-foreground placeholder:text-foreground-muted h-10 pl-9 rounded-[8px] text-[14px] w-36 sm:w-44 h-11 sm:pointer-fine:h-8 w-full"
+                    className="pr-2.5 border border-input bg-background text-foreground placeholder:text-foreground-muted h-10 pl-9 rounded-[8px] text-[14px] w-36 sm:w-44 h-11 sm:pointer-fine:h-8 w-full"
                   />
                 </div>
                 <label htmlFor="item-filter" className="sr-only">
@@ -502,7 +502,7 @@ export function DigitalVaultView({
                   id="item-filter"
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
-                  className="px-2 border border-border bg-background text-foreground-secondary h-10 rounded-[8px] text-[14px] h-11 sm:pointer-fine:h-8 w-full sm:w-auto sm:max-w-44 focus-visible:ring-1 focus-visible:ring-brand"
+                  className="px-2 border border-input bg-background text-foreground-secondary h-10 rounded-[8px] text-[14px] h-11 sm:pointer-fine:h-8 w-full sm:w-auto sm:max-w-44 focus-visible:ring-1 focus-visible:ring-brand"
                 >
                   <option value="ALL">All types</option>
                   {ITEM_CATEGORIES.map((c) => (
