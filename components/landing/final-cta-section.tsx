@@ -21,7 +21,7 @@ export function FinalCTASection({ isAuthenticated = false }: FinalCTASectionProp
           </p>
 
           {/* Single Green Action */}
-          <div className="mb-5">
+          <div>
             <Link
               href={isAuthenticated ? "/dashboard" : "/register"}
               className="inline-flex items-center justify-center h-12 px-8 rounded-[10px] bg-brand text-on-brand text-[15px] font-semibold hover:bg-brand-hover transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--cta-band)] focus-visible:ring-brand"
@@ -29,11 +29,6 @@ export function FinalCTASection({ isAuthenticated = false }: FinalCTASectionProp
               {isAuthenticated ? "Open dashboard" : "Create your vault"}
             </Link>
           </div>
-
-          {/* Subtext */}
-          <p className="text-[13px] text-[var(--cta-band-text-secondary)]">
-            $50 once. No subscription.
-          </p>
         </div>
       </div>
     </section>

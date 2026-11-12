@@ -1,7 +1,6 @@
 import React from "react";
 import Link from "next/link";
 import { ProductPreview } from "./product-preview";
-import { Check } from "lucide-react";
 
 interface HeroSectionProps {
   isAuthenticated?: boolean;
@@ -32,7 +31,7 @@ export function HeroSection({ isAuthenticated = false }: HeroSectionProps) {
             </p>
 
             {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto mb-6">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto">
               <Link
                 href={isAuthenticated ? "/dashboard" : "/register"}
                 className="inline-flex items-center justify-center h-12 px-6 rounded-[10px] bg-brand text-on-brand hover:bg-brand-hover text-[15px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand"
@@ -45,14 +44,6 @@ export function HeroSection({ isAuthenticated = false }: HeroSectionProps) {
               >
                 See how it works
               </a>
-            </div>
-
-            {/* Supporting Label */}
-            <div className="flex items-center gap-2 text-[13px] text-foreground-secondary">
-              <div className="flex items-center justify-center w-4 h-4 rounded-full bg-accent-surface text-accent-text shrink-0">
-                <Check className="w-2.5 h-2.5 stroke-[3]" />
-              </div>
-              <span>$50 once. No subscription.</span>
             </div>
           </div>
 
