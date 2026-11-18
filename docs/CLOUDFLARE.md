@@ -17,6 +17,22 @@ Dusk runs as **one Cloudflare Worker** that does two jobs: it serves the whole N
 - OpenNext copies every value from `.env` and `.env.local` into the Worker as plain text. So **never deploy a build made on a machine that has real secrets in those files.** `npm run cf:deploy` checks for this and refuses (`scripts/bundled-env-guard.mjs`). A clean checkout has no `.env` files, so a CI build passes.
 - The two public values that Next bakes in at build time, `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_SENTRY_DSN`, must be set as **build variables** in CI.
 
+## Git build on Cloudflare (Workers Builds)
+
+If the repository is connected in the Cloudflare dashboard (Workers & Pages > dusk > Settings > Build), use these settings:
+
+| Setting | Value |
+| --- | --- |
+| Production branch | `main` |
+| Build command | `npm run cf:build` |
+| Deploy command | `npm run cf:deploy` |
+| Root directory | `/` (empty) |
+| Build variables | `NEXT_PUBLIC_APP_URL` = `https://dusk.somto.xyz`, and `NEXT_PUBLIC_SENTRY_DSN` if you have one |
+
+- Cloudflare runs `npm ci` itself before the build command. The Worker name in the dashboard must be `dusk`, matching `wrangler.jsonc`.
+- **Build variables** exist only while building. **Runtime variables and secrets** (Settings > Variables and Secrets, or `wrangler secret put`) are what the running Worker sees. They are two separate lists, and Dusk needs both.
+- The builder's Node version is pinned to 22 by `.node-version`. The lockfile must stay readable by npm 10, which Node 22 ships. If a build ever fails at install with "Missing: ... from lock file", regenerate it with `npx -p node@22 -p npm@10 npm install --package-lock-only`.
+
 ## Database connection
 
 `lib/db.ts` uses Prisma with the `pg` driver adapter. A Worker may not share a database connection between requests, so each request gets its own client (`lib/db-provider.ts`). By default the connection uses `DATABASE_URL`. To route it through **Hyperdrive** (connection pooling close to the Worker, recommended for speed), create a Hyperdrive config for the Neon database and add this to `wrangler.jsonc`; the code uses it automatically:
