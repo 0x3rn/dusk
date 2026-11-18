@@ -7,7 +7,8 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
-import { createClientProvider, lazyClient } from "./db-provider";
+import { createClientProvider } from "./db-provider";
+import { lazyInstance } from "./lazy-instance";
 
 const isCloudflareWorker =
   typeof navigator !== "undefined" && navigator.userAgent === "Cloudflare-Workers";
@@ -66,4 +67,4 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.duskClientProvider = getClient;
 }
 
-export const prisma: PrismaClient = lazyClient(getClient);
+export const prisma: PrismaClient = lazyInstance(getClient);

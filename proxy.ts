@@ -10,9 +10,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { CSP_NONCE_HEADER, buildContentSecurityPolicy, generateCspNonce } from "@/lib/security/csp";
 
-const authProxy = auth.middleware({
-  loginUrl: "/login",
-});
+let authProxy: ReturnType<typeof auth.middleware> | undefined;
+
+// Created on first use so that importing this file needs no secrets.
+const getAuthProxy = () => (authProxy ??= auth.middleware({ loginUrl: "/login" }));
 
 export function isDashboardPath(pathname: string): boolean {
   return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
@@ -34,7 +35,7 @@ export default async function proxy(request: NextRequest): Promise<NextResponse>
   if (isDashboardPath(request.nextUrl.pathname)) {
     // The auth proxy copies the incoming request headers when it lets a request through, so the
     // nonce and policy travel with it. A redirect for a signed-out visitor is returned as is.
-    response = await authProxy(new NextRequest(request, { headers: requestHeaders }));
+    response = await getAuthProxy()(new NextRequest(request, { headers: requestHeaders }));
   } else {
     response = NextResponse.next({ request: { headers: requestHeaders } });
   }

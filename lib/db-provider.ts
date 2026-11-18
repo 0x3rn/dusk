@@ -34,20 +34,3 @@ export function createClientProvider<T extends object>(options: ClientProviderOp
     return client;
   };
 }
-
-/**
- * A stand-in for a client that looks up the right real client every time it is used, so the rest of
- * the code can keep writing `prisma.user.findMany()` without caring where it runs.
- */
-export function lazyClient<T extends object>(getClient: () => T): T {
-  return new Proxy({} as T, {
-    get(_target, property) {
-      const client = getClient();
-      const value = Reflect.get(client, property, client);
-      return typeof value === "function" ? value.bind(client) : value;
-    },
-    has(_target, property) {
-      return Reflect.has(getClient(), property);
-    },
-  });
-}

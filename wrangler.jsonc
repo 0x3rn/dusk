@@ -1,7 +1,7 @@
 {
   // The Dusk app as a Cloudflare Worker (built by `npm run cf:build`).
-  // Staging deploy goes to https://dusk.<account>.workers.dev. The custom domain is added only at
-  // cutover (see docs/CLOUDFLARE.md), so deploying this file never touches dusk.somto.xyz.
+  // The custom domain (dusk.corstack.dev) is attached to this Worker in the Cloudflare dashboard,
+  // not here, so deploying this file never changes any domain.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dusk",
   "main": "worker/index.ts",
@@ -19,5 +19,5 @@
   "triggers": { "crons": ["*/15 * * * *"] },
 
   // Not secret. Secrets (DATABASE_URL, CRON_SECRET, ...) are set with `wrangler secret put`.
-  "vars": { "APP_URL": "https://dusk.somto.xyz" }
+  "vars": { "APP_URL": "https://dusk.corstack.dev" }
 }

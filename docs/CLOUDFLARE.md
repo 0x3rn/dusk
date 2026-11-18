@@ -27,7 +27,7 @@ If the repository is connected in the Cloudflare dashboard (Workers & Pages > du
 | Build command | `npm run cf:build` |
 | Deploy command | `npm run cf:deploy` |
 | Root directory | `/` (empty) |
-| Build variables | `NEXT_PUBLIC_APP_URL` = `https://dusk.somto.xyz`, and `NEXT_PUBLIC_SENTRY_DSN` if you have one |
+| Build variables | `NEXT_PUBLIC_APP_URL` = `https://dusk.corstack.dev`, and `NEXT_PUBLIC_SENTRY_DSN` if you have one |
 
 - Cloudflare runs `npm ci` itself before the build command. The Worker name in the dashboard must be `dusk`, matching `wrangler.jsonc`.
 - **Build variables** exist only while building. **Runtime variables and secrets** (Settings > Variables and Secrets, or `wrangler secret put`) are what the running Worker sees. They are two separate lists, and Dusk needs both.
@@ -61,28 +61,19 @@ E2E_PORT=3100 npx playwright test
 
 This runs the real Workers runtime against the dev database. Do not point it at production.
 
-## First deploy (staging, no custom domain)
+## Domain
 
-`wrangler.jsonc` has no `routes`, so deploying only creates `https://dusk.<your-account>.workers.dev`. Your live domain is untouched.
+The site lives at `https://dusk.corstack.dev`. The custom domain is attached to the `dusk` Worker in the Cloudflare dashboard (Workers & Pages > dusk > Domains), not in `wrangler.jsonc`, so a deploy never changes it. Three other places must name the same address:
 
-1. Set the secrets above on the Worker.
-2. Build in CI (clean checkout) and deploy: `npm run cf:build && npm run cf:deploy`.
-3. In the Neon console, add the workers.dev address as a trusted domain for Neon Auth, or sign-in will be refused there.
-4. Check the Worker: sign in, create a vault, unlock it, and watch the cron: `npx wrangler tail dusk` at the next quarter hour should show `tick_ok`.
+1. **Build variable** `NEXT_PUBLIC_APP_URL` = `https://dusk.corstack.dev` (links in emails and the invitation page use it).
+2. **Neon Auth trusted domain**: add `dusk.corstack.dev` in the Neon console (or sign-in is refused).
+3. **Lemon Squeezy webhook**: `https://dusk.corstack.dev/api/webhook/lemonsqueezy`.
 
-## Cutover to dusk.somto.xyz
-
-Only after staging works end to end:
-
-1. Add the route to `wrangler.jsonc` and deploy: `"routes": [{ "pattern": "dusk.somto.xyz", "custom_domain": true }]`. The domain's DNS must be on Cloudflare.
-2. Add `dusk.somto.xyz` as a trusted domain in Neon Auth if it is not already.
-3. Point the Lemon Squeezy webhook at `https://dusk.somto.xyz/api/webhook/lemonsqueezy` (unchanged if the domain stays the same).
-4. Delete the old `dusk-scheduler` Worker (`scheduler/`): this Worker now runs the timer itself, so two timers are not needed.
-5. Remove the project from Vercel only once you are happy. Until then it is your rollback.
+The old `dusk-scheduler` Worker (`scheduler/`) is not needed any more: this Worker runs the timer itself. Delete it when the old host is retired.
 
 ## Rollback
 
-Remove the `routes` entry and redeploy (or delete the custom domain in the Cloudflare dashboard), and put the domain back on Vercel. The database is shared, so nothing needs to be moved.
+Roll back to an earlier Worker version with `npx wrangler rollback`, or in the dashboard under Deployments. The database is shared, so nothing needs to be moved.
 
 ## Features worth using on Cloudflare
 

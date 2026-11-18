@@ -1,6 +1,6 @@
 // lib/db-provider.test.ts
 import { describe, expect, it, vi } from "vitest";
-import { createClientProvider, lazyClient } from "./db-provider";
+import { createClientProvider } from "./db-provider";
 
 describe("createClientProvider", () => {
   it("shares one client when there is no request (Node)", () => {
@@ -48,33 +48,5 @@ describe("createClientProvider", () => {
     });
     expect(() => get()).toThrow("no connection string");
     expect(get()).toEqual({ ok: true });
-  });
-});
-
-describe("lazyClient", () => {
-  it("forwards reads and calls to the current real client, with the right this", () => {
-    class Fake {
-      name = "real";
-      who() {
-        return this.name;
-      }
-      user = { count: () => 7 };
-    }
-    const fake = new Fake();
-    const proxy = lazyClient(() => fake);
-    expect(proxy.name).toBe("real");
-    expect(proxy.who()).toBe("real");
-    expect(proxy.user.count()).toBe(7);
-    expect("name" in proxy).toBe(true);
-  });
-
-  it("looks the client up on every use, so a new request sees its own client", () => {
-    const first = { value: 1 };
-    const second = { value: 2 };
-    let current = first;
-    const proxy = lazyClient(() => current);
-    expect(proxy.value).toBe(1);
-    current = second;
-    expect(proxy.value).toBe(2);
   });
 });
