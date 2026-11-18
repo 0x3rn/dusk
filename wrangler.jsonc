@@ -1,0 +1,23 @@
+{
+  // The Dusk app as a Cloudflare Worker (built by `npm run cf:build`).
+  // Staging deploy goes to https://dusk.<account>.workers.dev. The custom domain is added only at
+  // cutover (see docs/CLOUDFLARE.md), so deploying this file never touches dusk.somto.xyz.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dusk",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "dusk" }],
+  "observability": { "enabled": true },
+
+  // Wrangler's bundler wraps functions in a `__name` helper by default. Code that is turned into
+  // text and run in the browser (the theme script does this) then fails with "__name is not defined".
+  "keep_names": false,
+
+  // The dead-man's-switch timer: wakes the app every 15 minutes (see worker/index.ts).
+  "triggers": { "crons": ["*/15 * * * *"] },
+
+  // Not secret. Secrets (DATABASE_URL, CRON_SECRET, ...) are set with `wrangler secret put`.
+  "vars": { "APP_URL": "https://dusk.somto.xyz" }
+}

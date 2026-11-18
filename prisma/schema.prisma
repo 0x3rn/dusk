@@ -1,7 +1,10 @@
 // prisma/schema.prisma
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Rust-free query compiler plus a driver adapter (see lib/db.ts). This is what lets the same client
+  // run on Node, in tests, and inside a Cloudflare Worker, and keeps the Worker bundle small.
+  engineType = "client"
 }
 
 datasource db {

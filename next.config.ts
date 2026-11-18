@@ -7,6 +7,11 @@ import { getProductionSecurityHeaders } from "./lib/security/http-hardening";
 const nextConfig: NextConfig = {
   // Do not advertise the framework in an X-Powered-By header.
   poweredByHeader: false,
+  // Inside a Cloudflare Worker the Postgres driver opens connections through pg-cloudflare. Next only
+  // traces the plain-Node variant of that package, so the Worker variant is included on purpose.
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/pg-cloudflare/**/*"],
+  },
   async headers() {
     return [
       {

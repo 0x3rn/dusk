@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated Cloudflare output (the OpenNext build and Wrangler's working files).
+    ".open-next/**",
+    ".wrangler/**",
+    "scheduler/.wrangler/**",
   ]),
 ]);
 

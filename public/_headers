@@ -1,0 +1,7 @@
+# Headers for static files on Cloudflare. Static files are served by Cloudflare directly, without
+# running the app, so the headers next.config.ts adds do not reach them. These must match
+# WORKER_SCRIPT_CSP in lib/security/csp.ts (lib/security/static-headers.test.ts checks that).
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'none'; base-uri 'none'; form-action 'none'

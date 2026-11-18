@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 function hostOf(url: string | undefined): string | null {
   if (!url) return null;
@@ -36,7 +37,8 @@ if (target === productionHost()) {
   );
 }
 
-export const db = new PrismaClient();
+// The same driver adapter the app uses (lib/db.ts), pointed at the dev branch checked above.
+export const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 /** Creates a throwaway user + default schedule. Rows are removed by cleanupUser. */
 export async function createTestUser(label: string) {
